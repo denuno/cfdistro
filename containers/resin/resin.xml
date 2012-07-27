@@ -1,0 +1,347 @@
+<project name="resin" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="server.deploy.dir" location="${resin.dir}/webapps"/>
+	<property name="server.log.dir" value="${resin.dir}/logs/"/>
+	<property name="server.host" value="localhost"/>
+	<property name="server.port" value="8080"/>
+	<property name="server.port.http" value="8080"/>
+	<property name="server.port.ajp" value="8009"/>
+	<property name="server.maxmemory" value="256M"/>
+
+	<property name="ext.resin.version" value="4" />
+	<property name="ext.resin.version.minor" value="0.10" />
+	<property name="resin.host" value="${server.host}"/>
+	<property name="ext.resin.dir" location="${ext.dir}/resin/${ext.resin.version}" />
+	<property name="resin.version.long" value="${ext.resin.version}.${ext.resin.version.minor}" />
+	<property name="ext.resin.zip.uri" value="http://www.caucho.com/download/resin-${resin.version.long}.zip" />
+	<property name="ext.resin.zip" location="${ext.resin.dir}/resin-${resin.version.long}.zip" />
+	<property name="resin.dir" location="${temp.dir}/server/resin-${resin.version.long}" />
+	<property name="resin.port.http" value="${server.port.http}"/>
+	<property name="resin.port.ajp" value="${server.port.ajp}"/>
+	<property name="resin.deploy.dir" value="${server.deploy.dir}"/>
+	<property name="resin.server.log.dir" value="${server.log.dir}"/>
+	<property name="resin.watchdog.port" value="6600"/>
+	
+
+	<property name="resin.manager.url"   value="http://${resin.host}:${server.port.http}/manager"/>
+    <property name="resin.manager.username" value="admin"/>
+    <property name="resin.manager.password" value="${cfadmin.password}"/>
+
+
+	<antcontrib:if>
+		<equals arg1="1" arg2="1" />
+		<then>
+			<path id="resin.ant.lib.path">
+				<fileset dir="${cfdistro.basedir}/ext/containers/resin/lib">
+					<include name="*.jar" />
+				</fileset>
+			</path>
+		</then>
+	</antcontrib:if>
+	
+	<target name="resin.uninstall" depends="resin.stop">
+		<delete dir="${resin.dir}" />
+	</target>
+
+	<target name="resin.server.log.dir">
+		<property name="server.log.dir" value="${resin.server.log.dir}"/>
+	</target>
+
+	<target name="resin.install">
+		<mkdir dir="${ext.resin.dir}"/>
+		<sequential>
+		<antcontrib:if>
+			<available file="${resin.dir}" />
+			<then>
+			<echo message="server dir ${resin.dir} already exists, not installing!  Remove with: ant server.uninstall"/> 
+			</then>
+			<else>
+				<required-resource
+					src="${ext.resin.zip.uri}" 
+					dest="${ext.resin.zip}" />
+				<unzip src="${ext.resin.zip}"						
+				       dest="${resin.dir}">
+					<regexpmapper from="resin-${resin.version.long}/(.*)$" to="\1"/>
+				</unzip>
+			</else>
+		</antcontrib:if>
+		<antcontrib:runtarget target="resin.configure" />
+		</sequential>
+	</target>
+
+	<target name="resin.configure">
+		<property name="war.target.dir.absolute" location="${war.target.dir}" />
+		<property name="resin.deploy.dir.absolute" location="${resin.deploy.dir}" />
+		<antcontrib:var name="resin.host.exists" unset="true"/>
+		<xmltask source="${resin.dir}/conf/resin.xml" dest="${resin.dir}/conf/resin.xml">
+			<replace path="//:cluster/:server-default/:http[@port='8080']/@port" withText="${resin.port.http}"/>
+			<copy path="//:cluster/:server-default/:jvm-arg[text()='-Xmx${server.maxmemory}']/text()" attrValue="true" property="resin.jvm-arg.exists"/>
+			<insert path="//:cluster/:server-default" position="under" unless="resin.jvm-arg.exists">
+				<![CDATA[
+				<jvm-arg xmlns="http://caucho.com/ns/resin">-Xmx${server.maxmemory}</jvm-arg>
+				]]>
+			</insert>
+			<!--
+			<replace path="//:cluster/:host[@id='']">
+				<![CDATA[]]>
+			</replace>
+			-->
+			<copy path="//:cluster/:host[@id='${resin.host}']/@id" attrValue="true" property="resin.host.exists"/>
+			<replace path="//:cluster/:host[@id='${resin.host}']" if="resin.host.exists">
+				<![CDATA[
+				<host id="${resin.host}" host-name="${resin.host}" root-directory="${resin.deploy.dir.absolute}" xmlns="http://caucho.com/ns/resin">
+					<web-app id="${war.contextpath}" root-directory="${war.name}.war"/>
+					<web-app id="/resin-admin" root-directory="/${resin.root}/doc/admin">
+						<prologue>
+							<resin:set value="false" var="resin_admin_external" xmlns="http://caucho.com/ns/resin" xmlns:resin="urn:java:com.caucho.resin"/>
+							<resin:set value="true" var="resin_admin_insecure" xmlns="http://caucho.com/ns/resin" xmlns:resin="urn:java:com.caucho.resin"/>
+						</prologue>
+					</web-app>
+			   	</host>
+				]]>
+			</replace>
+			<insert path="//:cluster" position="under" unless="resin.host.exists">
+				<![CDATA[
+				<host id="${resin.host}" host-name="${resin.host}" root-directory="${resin.deploy.dir.absolute}" xmlns="http://caucho.com/ns/resin">
+					<web-app id="${war.contextpath}" root-directory="${war.name}.war"/>
+					<web-app id="/resin-admin" root-directory="/${resin.root}/doc/admin">
+						<prologue>
+							<resin:set value="false" var="resin_admin_external" xmlns="http://caucho.com/ns/resin" xmlns:resin="urn:java:com.caucho.resin"/>
+							<resin:set value="true" var="resin_admin_insecure" xmlns="http://caucho.com/ns/resin" xmlns:resin="urn:java:com.caucho.resin"/>
+						</prologue>
+					</web-app>
+			   	</host>
+				]]>
+			</insert>
+<!--
+			<replace path="//:cluster/:host[@root-directory='.']/@root-directory" withText="${war.target.dir.absolute}/../"/>
+			<replace path="//:cluster/:host/:web-app[@id='/']/@id" withText="${war.contextpath}"/>
+			<replace path="//:cluster/:host/:web-app[@root-directory='webapps/ROOT']/@root-directory" withText="${war.target.dir.absolute}"/>
+-->
+		</xmltask>
+		<echo file="${resin.dir}/conf/admin-users.xml"><![CDATA[<resin:AdminAuthenticator xmlns="http://caucho.com/ns/resin"
+			                            xmlns:resin="urn:java:com.caucho.resin">
+			      <user name="test" password="a7gQtawiv9EJQnShKwT9uQ=="/>
+			  </resin:AdminAuthenticator>
+			]]>
+		</echo>
+
+		<!--
+
+	<host id="cfmlprojects.local" host-name="cfmlprojects.local" root-directory="/workspace/cfdistro/build/dist/localdev">
+		<web-app id="/" root-directory="cfdistro.war"/>
+		<web-app id="/resin-admin" root-directory="${resin.root}/doc/admin">
+			<prologue>
+				<resin:set value="false" var="resin_admin_external"/>
+				<resin:set value="true" var="resin_admin_insecure"/>
+			</prologue>
+		</web-app>
+   	</host>
+
+
+			<replace path="Server/Service/Connector[@protocol='AJP/1.3']/@port" withText="${resin.port.ajp}"/>
+			<copy path="Server/Service/Engine/Host[@name='${resin.host}']/@name" attrValue="true" property="resin.host.exists"/>
+			<print path="Server/Service/Engine/Host[@name='${resin.host}']/@name"/>
+			<replace path="Server/Service/Engine/Host[@name='${resin.host}']" if="resin.host.exists">
+			<![CDATA[
+	<Host appBase="${war.target.dir.absolute}" autoDeploy="true" name="${resin.host}" unpackWARs="true" xmlNamespaceAware="false" xmlValidation="false">
+		<Context path="${war.contextpath}" docBase="./"/>
+	</Host>
+			]]>
+			</replace>
+			<insert path="Server/Service/Engine" position="under" unless="resin.host.exists">
+			<![CDATA[
+	<Host appBase="${war.target.dir.absolute}" autoDeploy="true" name="${resin.host}" unpackWARs="true" xmlNamespaceAware="false" xmlValidation="false">
+		<Context path="${war.contextpath}" docBase="./"/>
+	</Host>
+			]]>
+			</insert>
+		<echo message="export JAVA_OPTS=-Xms256m -Xmx${server.maxmemory} -XX:MaxPermSize=128m -XX:+UseParallelGC"
+			file="${resin.dir}/bin/setenv.sh"/>
+		<chmod dir="${resin.dir}/bin" perm="ugo+rx" 
+		       includes="**/*.sh"/>
+		<xmltask source="${resin.dir}/conf/resin-users.xml" dest="${resin.dir}/conf/resin-users.xml">
+				<insert path="resin-users" position="under">
+					<![CDATA[
+					  <resin:AdminAuthenticator>
+					     <resin:user name="admin" password="${cfadmin.password}"/>
+					  </resin:AdminAuthenticator>
+					<role rolename="manager"/>
+					]]>
+				</insert>
+		</xmltask>
+		<property name="war.target.dir.absolute" location="${war.target.dir}" />
+		<antcontrib:var name="resin.host.exists" unset="true"/>
+		<xmltask source="${resin.dir}/conf/server.xml" dest="${resin.dir}/conf/server.xml">
+			<replace path="Server/Service/Connector[@protocol='HTTP/1.1']/@port" withText="${resin.port.http}"/>
+			<replace path="Server/Service/Connector[@protocol='AJP/1.3']/@port" withText="${resin.port.ajp}"/>
+			<copy path="Server/Service/Engine/Host[@name='${resin.host}']/@name" attrValue="true" property="resin.host.exists"/>
+			<print path="Server/Service/Engine/Host[@name='${resin.host}']/@name"/>
+			<replace path="Server/Service/Engine/Host[@name='${resin.host}']" if="resin.host.exists">
+			<![CDATA[
+	<Host appBase="${war.target.dir.absolute}" autoDeploy="true" name="${resin.host}" unpackWARs="true" xmlNamespaceAware="false" xmlValidation="false">
+		<Context path="${war.contextpath}" docBase="./"/>
+	</Host>
+			]]>
+			</replace>
+			<insert path="Server/Service/Engine" position="under" unless="resin.host.exists">
+			<![CDATA[
+	<Host appBase="${war.target.dir.absolute}" autoDeploy="true" name="${resin.host}" unpackWARs="true" xmlNamespaceAware="false" xmlValidation="false">
+		<Context path="${war.contextpath}" docBase="./"/>
+	</Host>
+			]]>
+			</insert>
+		</xmltask>
+		<fixcrlf srcdir="${resin.dir}/conf" includes="**/*.xml" eol="crlf" />
+		-->
+		<echo message="${resin.deploy.dir}"/>
+		<echo message="${server.deploy.dir}"/>
+	</target>
+
+	<target name="resin.start" depends="resin.install">
+		<echoproperties prefix="resin"/>
+		<echo message="starting resin"/>
+		<property name="background" value="true"/>
+		<sequential>
+			<!-- <echoproperties prefix="runwar"/> -->
+		    <java jar="${resin.dir}/lib/resin.jar" fork="true" spawn="${background}" maxmemory="${runwar.maxmemory}">
+		        <arg value="start"/>
+		        <arg value="-log-directory"/>
+		        <arg value="${resin.server.log.dir}"/>
+		        <arg value="-verbose"/>
+		        <arg value="-watchdog-port"/>
+		        <arg value="${resin.watchdog.port}"/>
+		    	 
+		    </java>
+			<echo message="waiting for resin"/>
+			<sleep seconds="3" />
+			<waitfor maxwait="21" maxwaitunit="second" checkevery="7" checkeveryunit="second" timeoutproperty="toolong">
+				<and>
+					<socket server="127.0.0.1" port="${resin.port.http}" />
+					<!--
+					<http url="http://127.0.0.1:${runwar.port}/" />
+					<http url="http://127.0.0.1:${runwar.port}/${runwar.war.contextpath}build.cfc" />
+					-->
+				</and>
+			</waitfor>
+			<sleep seconds="5" />
+			<antcontrib:runtarget target="if.toolong.echo" />
+			<echo message="stop resin by typing: ant resin.stop"/>
+		</sequential>
+	</target>	
+
+	<target name="resin.stop">
+	    <java jar="${resin.dir}/lib/resin.jar" fork="true">
+	        <arg line="stop"/>
+	    </java>
+		<waitfor maxwait="21" maxwaitunit="second" checkevery="7" checkeveryunit="second" timeoutproperty="toolong">
+			<not>
+				<socket server="127.0.0.1" port="${resin.port.http}" />
+				<!--
+				<http url="http://127.0.0.1:${runwar.port}/" />
+				<http url="http://127.0.0.1:${runwar.port}/${runwar.war.contextpath}build.cfc" />
+				-->
+			</not>
+		</waitfor>
+	    <kill-java name="WatchdogManager" jps="${jps.executable}"/>
+	</target>	
+
+	<target name="deploy.resin" depends="resin.install">
+		<copy todir="${resin.deploy.dir}/${war.name}" overwrite="true">
+			<fileset dir="${war.target.dir}"/>
+		</copy>
+	</target>	
+
+    <!-- uses settings from deploy.xml stuff -->
+    <target name="resin.war.deploy" description="Install application to servlet container">
+		<requires-ext resource="/ext/containers/resin/" />
+	    <taskdef name="deploy" classname="org.apache.catalina.ant.DeployTask" classpathref="resin.ant.lib.path"/>
+
+    </target>
+	
+    <!-- uses settings from deploy.xml stuff -->
+    <target name="resin.war.list" description="Install application to servlet container">
+		<resin-ant action="list"/>
+    </target>
+
+	<!-- uses settings from deploy.xml stuff -->
+    <target name="war.deploy" description="Install application to servlet container">
+		<requires-ext resource="/ext/containers/resin/" />
+		<antcontrib:runtarget target="check.creds" />
+    	<sshsession host="${deploy.remote.host}"
+    	    localtunnels="8080:localhost:8080"
+			username="${deploy.remote.user}"
+			passphrase="${deploy.remote.keyfile.pass}"
+    		keyfile="${deploy.remote.keyfile}" trust="true" port="${deploy.remote.host.port}">
+    	    <sequential>
+    			<resin-ant action="deploy"/>
+    	    </sequential>
+    	</sshsession>
+    </target>
+
+	<target name="war.list" description="List installed applications on servlet container">
+		<requires-ext resource="/ext/containers/resin/" />
+		<antcontrib:runtarget target="check.creds" />
+    	<sshsession host="${deploy.remote.host}"
+    	    localtunnels="8080:localhost:8080"
+			username="${deploy.remote.user}"
+			passphrase="${deploy.remote.keyfile.pass}"
+			keyfile="${deploy.remote.keyfile}" trust="true" port="${deploy.remote.host.port}">
+    	    <sequential>
+    			<resin-ant action="list"/>
+    	    </sequential>
+    	</sshsession>
+    </target>
+
+	<target name="war.reload" description="Reload application on servlet container">
+		<requires-ext resource="/ext/containers/resin/" />
+    	<reload url="${resin.manager.url}"
+			username="${resin.manager.username}"
+			password="${resin.manager.password}"
+			path="${app.path}"/>
+    </target>
+    <target name="war.remove" description="Remove application on servlet container">
+		<requires-ext resource="/ext/containers/resin/" />
+    	<undeploy url="${resin.manager.url}"
+			username="${resin.manager.username}"
+			password="${resin.manager.password}"
+			path="${app.path}"/>
+    </target>
+
+	<macrodef name="resin-ant"
+	          description="runs resin ant tasks">
+	 	<attribute name="action"/>
+		 <sequential>
+		    <taskdef name="deploy" classname="org.apache.catalina.ant.DeployTask" classpathref="resin.ant.lib.path"/>
+	        <taskdef name="undeploy" classname="org.apache.catalina.ant.UndeployTask" classpathref="resin.ant.lib.path"/>
+	        <taskdef name="reload"   classname="org.apache.catalina.ant.ReloadTask" classpathref="resin.ant.lib.path"/>
+	        <taskdef name="list" classname="org.apache.catalina.ant.ListTask" classpathref="resin.ant.lib.path"/>
+	    	<echoproperties prefix="manager"/>
+			<antcontrib:switch value="@{action}">
+			  <case value="list">
+			    <list url="${resin.manager.url}"
+					username="${resin.manager.username}"
+					password="${resin.manager.password}"/>
+			  </case>
+			  <case value="deploy">
+		    	<deploy url="${resin.manager.url}"
+		    			username="${resin.manager.username}"
+		    			password="${resin.manager.password}"
+		    			path="${war.contextpath}"
+		    			update="true"
+		    			war="file://${dist.dir}/${war.name}.war"/>
+			  </case>
+			  <case value="qa">
+			  	<property name="copy.mappings.to.war" value="true" />
+			  </case>
+			  <case value="prod">
+			  	<property name="copy.mappings.to.war" value="true" />
+			  </case>
+			  <default>
+			  	<fail message="Um, the build type '${build.type}' is unknown to me, esse!" />
+			  </default>
+			</antcontrib:switch>
+		 </sequential>
+	</macrodef>
+	
+</project>

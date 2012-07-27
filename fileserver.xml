@@ -1,0 +1,105 @@
+<project name="fileserver" default="fileserver.servlet.install"
+	basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<target name="fileserver.servlet.install">
+		<javac srcdir="${cfdistro.basedir}/java/fileserver/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+			<insert path="web-app/servlet[1]" position="before">
+				<![CDATA[
+				  <servlet>>
+				   <servlet-name>File Servler Servlet</servlet-name>
+				 <servlet-class>servlet.FileServer</servlet-class>
+				  </servlet>
+
+				 <servlet-mapping>
+				  <servlet-name>File Servler Servlet</servlet-name>
+				  <url-pattern>/*</url-pattern>
+				 </servlet-mapping>
+				]]>
+				<!--
+				#fileserver.properties
+files.dir=/movies/m1;/movies/m2;/home/m3;/home/m4;
+callback.server=http://dev.maryno.net/video/command
+callback.user=someuser
+callback.password=somepassword
+callback=ru.freecode.video.VideoServerCallback
+#threads count on client
+max.threads=5
+#speed in byte/s on 1 thread
+max.speed=448576
+#max.speed=2048576
+# users not threads
+max.users=20			
+				-->
+			</insert>
+		</xmltask>
+		<antcall target="fileserver.mappings.update"/>
+	</target>
+
+	<target name="fileserver.mappings.update">
+		<xmltask source="${mappings.file}">
+			<call path="mappings/*">
+				<param name="virtual" path="@virtual" default="NONE" />
+				<param name="physical" path="@physical" default="NONE" />
+				<actions>
+					<antcontrib:var name="rule.exists" unset="true"/>
+					<echo message="@{virtual}" />
+					<xmltask source="${war.target.dir}/WEB-INF/urlrewrite.xml"
+						dest="${war.target.dir}/WEB-INF/urlrewrite.xml">
+						<xmlcatalog refId="commonDTDs"/>
+						<copy path="urlrewrite/rule[from='@{virtual}']" attrValue="true" property="rule.exists"/>
+						<print path="urlrewrite/rule[from='@{virtual}']"/>
+						<replace path="urlrewrite/rule[from='@{virtual}']" if="rule.exists">
+						<![CDATA[
+				        <rule>
+				            <from casesensitive="false">@{virtual}(.*)</from>
+				            <to>@{physical}$1</to>
+				        </rule>
+						]]>
+						</replace>
+						<insert path="urlrewrite" position="under" unless="rule.exists">
+						<![CDATA[
+				        <rule>
+				            <from casesensitive="false">@{virtual}(.*)</from>
+				            <to>@{physical}$1</to>
+				        </rule>
+						]]>
+						</insert>
+					</xmltask>
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+	<macrodef name="urlrewrite">
+		<attribute name="from" />
+		<attribute name="to" default="" />
+		<element name="args" optional="true" />
+		<sequential>
+					<echo message="@{from}" />
+					<xmltask source="${war.target.dir}/WEB-INF/urlrewrite.xml"
+						dest="${war.target.dir}/WEB-INF/urlrewrite.xml">
+						<xmlcatalog refId="commonDTDs"/>
+						<copy path="urlrewrite/rule[from='@{from}']" attrValue="true" property="rule.exists"/>
+						<print path="urlrewrite/rule[from='@{from}']"/>
+						<replace path="urlrewrite/rule[from='@{from}']" if="rule.exists">
+						<![CDATA[
+				        <rule>
+				            <from casesensitive="false">@{from}</from>
+				            <to>@{to}</to>
+				        </rule>
+						]]>
+						</replace>
+						<insert path="urlrewrite" position="under" unless="rule.exists">
+						<![CDATA[
+				        <rule>
+				            <from casesensitive="false">@{from}</from>
+				            <to>@{to}</to>
+				        </rule>
+						]]>
+						</insert>
+					</xmltask>
+		</sequential>
+	</macrodef>
+
+</project>

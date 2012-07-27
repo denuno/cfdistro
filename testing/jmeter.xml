@@ -1,0 +1,59 @@
+<project name="jmeter" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="jmeter.version" value="2.5.1" />
+	<property name="ext.jmeter.dir" location="${ext.dir}/jmeter/${jmeter.version}" />
+	<property name="jmeter.dir" location="./jmeter-${jmeter.version}" />
+	<property name="jmeter.tests.dir" location="${src.dir}/../tests/jmeter" />
+	<property name="jmeter.tests.results.dir" location="${jmeter.tests.dir}/../results/jmeter" />
+	<property name="ext.jmeter.zip.uri" value="http://www.poolsaboveground.com/apache/jmeter/binaries/jakarta-jmeter-${jmeter.version}.zip" />
+	
+	<property name="ext.jmeter.zip" location="${ext.jmeter.dir}/jmeter-${jmeter.version}.zip" />
+	
+	<target name="jmeter.install">
+		<mkdir dir="${ext.jmeter.dir}"/>
+		<sequential>
+		<antcontrib:if>
+			<available file="${ext.jmeter.zip}" />
+			<then/>
+			<else>
+				<get src="${ext.jmeter.zip.uri}" dest="${ext.jmeter.zip}" verbose="true" ignoreerrors="false" />
+			</else>
+		</antcontrib:if>
+		<unzip src="${ext.jmeter.zip}"
+		       dest="${jmeter.dir}">
+			<regexpmapper from="jmeter-${jmeter.version}/(.*)$" to="\1"/>
+		</unzip>
+		<chmod dir="${jmeter.dir}/bin" perm="ugo+rx" 
+		       includes="**/*.sh"/>
+		</sequential>
+	</target>
+	
+	<target name="jmeter.uninstall">
+		<delete dir="${ext.jmeter.dir}"/>
+		<delete dir="${jmeter.dir}"/>
+	</target>
+	
+	<target name="jmeter.runtests">
+		<mkdir dir="${ext.jmeter.dir}"/>
+		<taskdef name="jmeter" classname="org.programmerplanet.ant.taskdefs.jmeter.JMeterTask"/>
+		<jmeter jmeterhome="${jmeter.dir}" resultlog="${jmeter.tests.results.dir}">
+		    <property name="jmeter.save.saveservice.assertion_results" value="all"/>
+		    <property name="jmeter.save.saveservice.output_format" value="xml"/>
+		    <!-- 
+		    reference: http://www.programmerplanet.org/pages/projects/jmeter-ant-task.php
+		    <property name="request.threads" value="1"/>
+			<property name="request.loop" value="10"/>
+			<jvmarg value="-Xincgc"/>
+			<jvmarg value="-Xmx128m"/>
+			<jvmarg value="-Dproperty=value"/>
+		     -->
+			<testplans dir="${jmeter.tests.dir}" includes="*.jmx"/>
+		</jmeter>
+		<xslt
+		    in="${basedir}/loadtests/JMeterResults.jtl"
+		    out="${jmeter.tests.results.dir}/JMeterResults.html"
+		    style="${jmeter.dir}/extras/jmeter-results-report.xsl"
+		/>
+	</target>
+	
+</project>

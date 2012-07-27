@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rm:rmap xmlns:rm="http://www.eclipse.org/buckminster/RMap-1.0"
+	xmlns:bc="http://www.eclipse.org/buckminster/Common-1.0">
+	<rm:searchPath name="indigo">
+		<rm:provider componentTypes="osgi.bundle,eclipse.feature"
+			readerType="p2" source="false" mutable="false">
+			<rm:uri format="http://download.eclipse.org/eclipse/updates/3.7" />
+		</rm:provider>
+	</rm:searchPath>
+	<rm:searchPath name="swtbot">
+		<rm:provider componentTypes="osgi.bundle,eclipse.feature"
+			readerType="p2" source="false" mutable="false">
+			<rm:uri
+				format="http://download.eclipse.org/technology/swtbot/helios/dev-build/update-site" />
+		</rm:provider>
+	</rm:searchPath>
+	<rm:searchPath name="orbit">
+		<rm:provider componentTypes="osgi.bundle" readerType="p2"
+			source="false" mutable="false">
+			<rm:uri
+				format="http://download.eclipse.org/tools/orbit/downloads/drops/R20120526062928/repository" />
+		</rm:provider>
+	</rm:searchPath>
+	<rm:searchPath name="local-repository">
+		<rm:provider componentTypes="osgi.bundle,eclipse.feature"
+			readerType="p2" source="false" mutable="false">
+			<rm:uri format="{0}local-repository">
+				<bc:propertyRef key="build.feature.dir.url" />
+			</rm:uri>
+		</rm:provider>
+	</rm:searchPath>
+	<rm:searchPath name="eclipse-test-framework-local-repository">
+		<rm:provider componentTypes="osgi.bundle,eclipse.feature"
+			readerType="p2" source="false" mutable="false">
+			<rm:uri format="{0}eclipse-test-framework-local-repository">
+				<bc:propertyRef key="build.feature.dir.url" />
+			</rm:uri>
+		</rm:provider>
+	</rm:searchPath>
+	<rm:searchPath name="local-source">
+		<rm:provider componentTypes="osgi.bundle,eclipse.feature"
+			readerType="local" source="true" mutable="false">
+			<rm:uri format="{0}{1}">
+				<bc:propertyRef key="product.checkout.url" />
+				<bc:propertyRef key="buckminster.component" />
+			</rm:uri>
+		</rm:provider>
+	</rm:searchPath>
+
+	<rm:searchPath name="cfd-source">
+		<rm:provider componentTypes="osgi.bundle,eclipse.feature"
+			readerType="local" source="true" mutable="false">
+			<rm:uri format="{0}/{1}">
+				<bc:propertyRef key="buckminster.cfd.basedir" />
+				<bc:propertyRef key="buckminster.component" />
+			</rm:uri>
+		</rm:provider>
+	</rm:searchPath>
+
+
+<!-- 
+	<rm:searchPath name="mxunit-feature-source">
+	   <rm:provider readerType="git" componentTypes="osgi.bundle,eclipse.feature" source="true">
+	      <rm:uri format="{0}/{1}">
+	          <bc:propertyRef key="workspace.root" />
+	          <bc:propertyRef key="buckminster.component" />
+	      </rm:uri>
+	     <rm:property key="git.remote.uri" value="https://github.com/mxunit/org.mxunit.eclipseplugin.feature.git"/>
+	     <rm:property key="git.remote.name" value="upstream"/>
+	   </rm:provider>
+	</rm:searchPath>
+
+	<rm:searchPath name="mxunit-source">
+	   <rm:provider readerType="git" componentTypes="osgi.bundle,eclipse.feature" source="true">
+	      <rm:uri format="{0}/{1}">
+	          <bc:propertyRef key="workspace.root" />
+	          <bc:propertyRef key="buckminster.component" />
+	      </rm:uri>
+	     <rm:property key="git.remote.uri" value="https://github.com/mxunit/org.mxunit.eclipseplugin.git"/>
+	     <rm:property key="git.remote.name" value="upstream"/>
+	   </rm:provider>
+	</rm:searchPath>
+
+	<rm:locator searchPathRef="mxunit-feature-source" pattern="^org\.mxunit\.eclipseplugin\.fea.*" />
+	<rm:locator searchPathRef="mxunit-source" pattern="^org\.mxunit\..*" />
+	
+ -->
+	
+	<rm:locator searchPathRef="indigo" failOnError="false" />
+	<rm:locator searchPathRef="cfd-source" failOnError="false" />
+	<rm:locator searchPathRef="local-source" failOnError="false" />
+	<rm:locator searchPathRef="local-repository" failOnError="false" />
+	<rm:locator searchPathRef="eclipse-test-framework-local-repository"
+		failOnError="false" />
+	<rm:locator searchPathRef="orbit" failOnError="false" />
+	<rm:locator searchPathRef="swtbot" failOnError="false" />
+</rm:rmap>

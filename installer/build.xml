@@ -1,0 +1,316 @@
+<project name="installer" default="buildAndLaunchJar" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<dirname property="installer.basedir" file="${ant.file.installer}" />
+
+	<path id="izpack.lib.path">
+		<fileset dir="${cfdistro.basedir}/ext/izpack/lib">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="${cfdistro.basedir}/ext/launch4j/lib">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+	<macrodef name="parse-ant-tokens">
+		<attribute name="properties.file"/>
+		<attribute name="source.file"/>
+		<attribute name="dest.file"/>
+		<sequential>
+			<echoproperties destfile="${installer.temp.dir}/all.properties"/>
+			<copy overwrite="yes" verbose="yes" file="@{properties.file}" tofile="${installer.temp.dir}/temp.properties">
+				<filterchain>
+					<expandproperties />
+				</filterchain>
+			</copy>
+			<copy overwrite="yes" verbose="no" file="@{source.file}" tofile="${installer.temp.dir}/temp.xml">
+				<filterchain>
+					<filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
+						<param type="propertiesfile" value="${installer.temp.dir}/temp.properties" />
+						<param type="propertiesfile" value="${installer.temp.dir}/all.properties" />
+					</filterreader>
+				</filterchain>
+			</copy>
+			<copy overwrite="yes" verbose="no" file="${installer.temp.dir}/temp.xml" tofile="@{dest.file}" />
+			<delete file="${installer.temp.dir}/temp.properties" />
+			<delete file="${installer.temp.dir}/temp.xml" />
+		</sequential>
+	</macrodef>
+
+
+	<target name="izpack-xml">
+		<loadproperties srcFile="${basedir}/installer/install.properties" />
+		<loadproperties srcFile="${installer.basedir}/install.properties" />
+		<requires-ext resource="${ext.dir}/ant-lib" />
+		<requires-ext resource="${ext.dir}/launch4j" />
+		<requires-ext resource="${ext.dir}/izpack" />
+
+		<!--
+		<taskdef resource="net/jtools/classloadertask/antlib.xml" classpath="${antLibs}/ant-classloadertask.jar" />
+		<classloader loader="project">
+			<classpath>
+				<fileset dir="${antLibs}" includes="*.jar" excludes="ant-classloadertask.jar,ant.jar,ant-launcher.jar" />
+			</classpath>
+		</classloader>
+		<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" classpathref="izpack.lib.path" />
+-->
+		<taskdef name="izpack" classname="com.izforge.izpack.ant.IzPackTask" classpathref="izpack.lib.path" />
+		<taskdef name="launch4j"
+		    classname="net.sf.launch4j.ant.Launch4jTask"
+		    classpath="${cfdistro.basedir}/ext/launch4j/launch4j.jar
+		        :${cfdistro.basedir}/ext/launch4j/lib/xstream.jar" />
+		
+		<delete dir="${installer.temp.dir}" />
+		<mkdir dir="${installer.temp.dir}" />
+		<propertyfile file="${basedir}/buildinfo.properties" comment="Build Information">
+			<entry key="build.date" type="date" pattern="EEEE MMM dd, yyyy" value="now" />
+			<entry key="build.time" type="date" pattern="kk:mm:ss" value="now" />
+			<entry key="build.timestamp" type="date" pattern="MM-dd-yyyy' at 'HH:mm:ss" value="now" />
+			<entry key="build.number" type="int" default="0000" operation="+" pattern="0000" />
+		</propertyfile>
+		<property file="${basedir}/buildinfo.properties" />
+		<!--
+		<echoproperties />
+-->
+		<copy overwrite="yes" verbose="no" file="${installXMLfile}" tofile="${parsedInstallXMLfile}" />
+		<delete dir="${output.dir}" />
+		<mkdir dir="${output.dir}" />
+
+		<!-- i18n -->
+
+		<copy overwrite="yes" verbose="no" file="${mainUserInputSpec}" tofile="${install.generation.dir}/userInputSpec.xml" />
+		<parse-ant-tokens properties.file="${install.i18n.file}"
+			source.file="${install.generation.dir}/userInputSpec.xml"
+			dest.file="${install.generation.dir}/userInputSpec.xml" />
+		<!-- only doing english for now	-->
+		<parse-ant-tokens properties.file="${install.i18n.file}"
+			source.file="${install.i18n.customlangpack.file}"
+			dest.file="${install.generation.dir}/i18n/CustomLangpack.xml" />
+		<parse-ant-tokens properties.file="${install.i18n.file}"
+			source.file="${install.i18n.packslang.file}"
+			dest.file="${install.generation.dir}/i18n/PacksLang.xml" />
+		<parse-ant-tokens 
+			properties.file="${install.i18n.file}"
+			source.file="${install.i18n.userinputlang.file}"
+			dest.file="${install.generation.dir}/i18n/userInputLang.xml" />
+
+		<!-- READ PACKS XML -->
+
+
+		<echo message="Getting pack includes for:" />
+		<ac:for list="${install.packs}" param="packName" xmlns:ac="antlib:net.sf.antcontrib">
+			<sequential>
+				<echo>@{packName}-pack</echo>
+				<property file="${install.packs.dir}/@{packName}/@{packName}.properties" />
+				<echo message="Loaded @{packName} properties" />
+				<echoproperties prefix="@{packName}." />
+
+				<echo>@{packName} i18n</echo>
+				<parse-ant-tokens 
+					properties.file="${install.packs.dir}/@{packName}/i18n/i18n.eng.properties"
+					source.file="${install.packs.dir}/@{packName}/i18n/i18n.xml"
+					dest.file="${installer.temp.dir}/@{packName}/@{packName}-i18n.xml" />
+				<xmltask source="${installer.temp.dir}/@{packName}/@{packName}-i18n.xml">
+					<copy path="i18n/customlangpack/*" buffer="customlangpack.xml" append="true" />
+					<copy path="i18n/packslang/*" buffer="packslang.xml" append="true" />
+					<copy path="i18n/userinputlang/*" buffer="userInputLang.xml" append="true" />
+				</xmltask>
+
+				<parse-ant-tokens 
+					properties.file="${install.packs.dir}/@{packName}/@{packName}.properties"
+					source.file="${install.packs.dir}/@{packName}/@{packName}-pack.xml"
+					dest.file="${installer.temp.dir}/@{packName}/@{packName}-pack.xml" />
+				<parse-ant-tokens 
+					properties.file="${basedir}/build.properties"
+					source.file="${installer.temp.dir}/@{packName}/@{packName}-pack.xml"
+					dest.file="${installer.temp.dir}/@{packName}/@{packName}-pack.xml" />
+
+				<xmltask source="${installer.temp.dir}/@{packName}/@{packName}-pack.xml">
+					<copy path="installation/packs/pack" buffer="packs.xml" append="true" />
+					<copy path="installation/antactions/*" buffer="antactions.xml" append="true" />
+					<copy path="installation/processing/*" buffer="processing.xml" append="true" />
+					<copy path="installation/panels/panel[@classname='UserInputPanel']" buffer="packs.userinput.panels.xml" append="true" />
+					<!--					<copy path="installation/panels/panel[@classname='ProcessPanel']/*" buffer="packs.process.panels.xml" append="true"/>-->
+					<copy path="installation/resources/*" buffer="packs.resources.xml" append="true" />
+					<copy path="installation/variables/*" buffer="packs.variables.xml" append="true" />
+					<copy path="installation/conditions/*" buffer="packs.conditions.xml" append="true" />
+					<copy path="installation/dynamicvariables/*" buffer="packs.dynamicvariables.xml" append="true" />
+					<remove path="installation/panels/panel/*" />
+					<remove path="installation/panels/panel//comment()" />
+					<remove path="installation/panels/panel/text()" />
+					<!--					<attr path="installation/panels/panel" attr="classname" value="UserInputPanel"/>-->
+					<copy path="installation/panels/panel" buffer="packs.panels.xml" append="true" />
+				</xmltask>
+				<!--
+				<parse-ant-tokens 
+					properties.file="${install.packs.dir}/@{packName}/@{packName}.properties"
+					source.file="${install.packs.dir}/@{packName}/@{packName}-pack.xml"
+					dest.file="${installer.temp.dir}/@{packName}/@{packName}-pack.xml" />
+				<xmltask>
+					<print buffer="packs.panels.xml"/>
+					<print buffer="packs.userinput.panels.xml"/>
+					<print buffer="packs.xml"/>
+				</xmltask>
+-->
+			</sequential>
+		</ac:for>
+
+		<!-- INSERT PACKS XML -->
+
+		<echo message="addin pack includes" />
+		<xmltask source="${parsedInstallXMLfile}" dest="${parsedInstallXMLfile}">
+			<insert path="/installation/panels/panel[@classname='UserInputPanel'][last()]" position="after" buffer="packs.panels.xml" />
+			<insert path="/installation/variables[last()]" position="under" buffer="packs.variables.xml" />
+			<insert path="/installation/dynamicvariables[last()]" position="under" buffer="packs.dynamicvariables.xml" />
+			<insert path="/installation/resources[last()]" position="under" buffer="packs.resources.xml" />
+			<insert path="/installation/conditions[last()]" position="under" buffer="packs.conditions.xml" />
+			<insert path="/installation/packs[last()]" position="under" buffer="packs.xml" />
+		</xmltask>
+		<xmltask source="${mainUserInputSpec}" dest="${install.generation.dir}/userInputSpec.xml">
+			<insert path="/userInput/panel[last()]" position="after" buffer="packs.userinput.panels.xml" />
+		</xmltask>
+		<xmltask source="${mainAntActionSpec}" dest="${install.generation.dir}/antActionSpec.xml">
+			<insert path="/antactions" position="under" buffer="antactions.xml" />
+		</xmltask>
+		<xmltask source="${mainProcessPanelSpec}" dest="${install.generation.dir}/processPanelSpec.xml">
+			<insert path="/processing" position="under" buffer="processing.xml" />
+		</xmltask>
+		<xmltask source="${install.generation.dir}/i18n/CustomLangpack.xml" dest="${install.generation.dir}/i18n/CustomLangpack.xml">
+			<insert path="/langpack[last()]" position="under" buffer="customlangpack.xml" />
+		</xmltask>
+		<xmltask source="${install.generation.dir}/i18n/PacksLang.xml" dest="${install.generation.dir}/i18n/PacksLang.xml">
+			<insert path="/langpack[last()]" position="under" buffer="packslang.xml" />
+		</xmltask>
+		<xmltask source="${install.generation.dir}/i18n/userInputLang.xml" dest="${install.generation.dir}/i18n/userInputLang.xml">
+			<insert path="/langpack[last()]" position="under" buffer="userInputLang.xml" />
+		</xmltask>
+
+		<!-- a little hack to expand any contained properties as the filteredreader does not	-->
+		<parse-ant-tokens 
+			properties.file="${basedir}/build.properties"
+			source.file="${parsedInstallXMLfile}"
+			dest.file="${parsedInstallXMLfile}" />
+		<parse-ant-tokens 
+			properties.file="${install.properties.file}"
+			source.file="${parsedInstallXMLfile}"
+			dest.file="${parsedInstallXMLfile}" />
+		<parse-ant-tokens 
+			properties.file="${installer.basedir}/install.properties"
+			source.file="${parsedInstallXMLfile}"
+			dest.file="${parsedInstallXMLfile}" />
+	</target>
+
+	<target name="installer.template.cfdistro" description="build the install izpack jar">
+		<requires-ext resource="${ext.dir}/installer" />
+		<copy todir="${basedir}/installer" verbose="false">
+			<fileset dir="${ext.dir}/installer" />
+		</copy>
+		<move todir="${basedir}/installer/packs/${distro.name}">
+			<fileset dir="${basedir}/installer/packs/cfdistro" />
+		</move>
+		<move file="${basedir}/installer/packs/${distro.name}/cfdistro-pack.xml"
+			tofile="${basedir}/installer/packs/${distro.name}/${distro.name}-pack.xml"/>
+		<move file="${basedir}/installer/packs/${distro.name}/cfdistro.properties"
+			tofile="${basedir}/installer/packs/${distro.name}/${distro.name}.properties"/>
+		<move file="${basedir}/installer/packs/${distro.name}/img/cfdistro-logo.png"
+			tofile="${basedir}/installer/packs/${distro.name}/img/${distro.name}-logo.png"/>
+	</target>
+
+	<target name="buildInstallJar" description="build the install izpack jar" depends="izpack-xml">
+		<delete file="${output.dir}/${install.file.name}.jar" />
+		<!--	run the install build task	-->
+		<izpack input="${parsedInstallXMLfile}" output="${installer.temp.dir}/${install.file.name}.jar" basedir="${installBaseDir}" inheritAll="true" installerType="standard" compression="deflate" compressionlevel="9" />
+		<!--    <delete file="${parsedInstallXMLfile}"/>-->
+		<move file="${installer.temp.dir}/${install.file.name}.jar" todir="${output.dir}" />
+	</target>
+
+	<target name="buildInstallExe" description="build the install" depends="buildInstallJar">
+		<echo>${basedir}/install/application.ico</echo>
+	<launch4j>
+		<config dontWrapJar="false" headerType="gui"
+			outFile="${output.dir}/${install.file.name}.exe"
+			jar="${output.dir}/${install.file.name}.jar"
+			errTitle="Install Error"
+			cmdLine=""
+			chdir="."
+			downloadUrl="http://java.com/download"
+			supportUrl=""
+			customProcName="false"
+			stayAlive="true"
+			icon="installer/install/application.ico"
+			>
+		  <var>-Dappdir=&quot;&quot; </var>
+		  <jre 
+		  	path="./jre/"
+		  	minVersion="1.5.0"
+		  	maxVersion=""
+		  	jdkPreference="">
+		  </jre>
+			<versionInfo
+				fileVersion="${product.version}"
+				txtFileVersion="${product.version.txt}"
+				fileDescription="${product.name.short} Windows Install"
+				copyright="2009"
+				productVersion="${product.version}"
+				txtProductVersion="${product.version.txt}"
+				productName="${product.name.short}"
+				companyName="${company.name}"
+				internalName="${install.file.name}.jar"
+				originalFilename="${install.file.name}.exe"
+				/>
+		  <messages
+			  startupErr="An error occurred while starting the application."
+			  bundledJreErr="This application was configured to use a bundled Java Runtime Environment but the runtime is missing or corrupted."
+			  jreVersionErr="This application requires a Java Runtime Environment.\nAt least version"
+			  launcherErr="The registry refers to a nonexistent Java Runtime Environment installation or the runtime is corrupted."
+			  instanceAlreadyExistsMsg="An application instance is already running."
+		  />
+		</config>
+	</launch4j>
+	</target>
+
+	<target name="buildInstallExeJre" description="build the install" depends="buildInstallExe">
+		<delete file="${output.dir}/${install.file.name}-JRE.exe" />
+		<echo file="${installer.temp.dir}/both.bat" append="false">rem use the next line for a silent install. 
+rem ${winJre} /S /v/qn 
+${winJre}
+${install.file.name}.exe</echo>
+<!--
+    <echo file="${installer.temp.dir}/copyJRE.xml" append="false">
+    <![CDATA[
+			<?xml version="1.0" encoding="iso-8859-1" standalone="yes" ?>
+			<xfragment>
+				<file src="../jre" targetdir="$INSTALL_PATH/jre" />
+			</xfragment>
+		]]>
+    </echo>
+-->
+		<chmod perm="+x" file="${installer.temp.dir}/both.bat" />
+		<symlink link="${installer.temp.dir}/${winJre}" resource="${jreInstallsDir}/${winJre}" />
+		<copy file="${output.dir}/${install.file.name}.exe" todir="${installer.temp.dir}" />
+		<zip destfile="${installer.temp.dir}/install.zip" basedir="${installer.temp.dir}" includes="both.bat,${install.file.name}.exe,${winJre}*/**" />
+		<sfx archive="${installer.temp.dir}/install.zip" mode="win32" execute="both.bat" icon="install/application.ico" output="${output.dir}/${install.file.name}-jre.exe" />
+		<delete file="installer/build/install.zip" />
+		<delete file="${installer.temp.dir}/${install.file.name}.exe" />
+		<delete file="${installer.temp.dir}/both.bat" />
+		<symlink action="delete" link="${installer.temp.dir}/${winJre}" />
+	</target>
+
+	<target name="buildAndLaunchJar" depends="buildInstallJar" description="build the install and launch it">
+		<!--	Run the freaking install after the build	-->
+		<echo message="Launching jar install..." />
+		<java jar="${output.dir}/${install.file.name}.jar" fork="true" failonerror="true" maxmemory="64m" />
+		<echo message="Done." />
+	</target>
+
+	<target name="buildAndLaunchUITestJar" depends="izpack-xml,buildInstallJar" description="builds the UI only, for testing the UI">
+		<echo message="Removing zip files for UI test" />
+		<xmltask source="${parsedInstallXMLfile}" dest="${parsedInstallXMLfile}">
+			<remove path="//file[contains(@src,'zip')]" />
+		</xmltask>
+		<!--	Run the freaking install after the build	-->
+		<echo message="Launching jar install UI test..." />
+		<java jar="${output.dir}/${install.file.name}.jar" fork="true" failonerror="true" maxmemory="64m" />
+		<echo message="Done." />
+	</target>
+
+</project>

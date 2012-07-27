@@ -1,0 +1,712 @@
+<project name="ant-util" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<antcontrib:osfamily property="os.family" />
+	
+	<macrodef name="abspath">
+		<attribute name="path" description="the path to get the absolute dir from" />
+		<attribute name="property" description="The property to set with the value." />
+		<sequential>
+			<!-- Grab data past @{root} in @{full-path}. -->
+			<antcontrib:var name="@{property}" unset="true" />
+			<property name="@{property}" location="@{path}" />
+			<antcontrib:var name="@{property}" value="${@{property}}" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="required-resource">
+		<attribute name="src" />
+		<attribute name="dest" />
+		<attribute name="verbose" default="true" />
+		<attribute name="ignoreerrors" default="false" />
+		<sequential>
+			<add-required extpath="@{dest}" />
+			<antcontrib:if>
+				<available file="@{dest}" />
+				<then/>
+				<else>
+					<get src="@{src}" dest="@{dest}" verbose="@{verbose}" ignoreerrors="@{ignoreerrors}" />
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="add-required">
+	  	<attribute name="extpath"/>
+		<sequential>
+			<antcontrib:if>
+				<available file="${basedir}/requires.txt"/>
+				<then />
+				<else>
+					<echo file="${basedir}/requires.txt" message="" />
+				</else>
+			</antcontrib:if>
+			<replace-windows-slashes property="___extpath" input="@{extpath}"/>
+			<antcontrib:propertyregex override="yes" property="extpath" input="${___extpath}" regexp=".*?/ext/(.*)" select="\1" />
+			<antcontrib:var name="requires.content" unset="true" />
+			<antcontrib:var name="add-required-path.exists" unset="true" />
+			<loadfile property="requires.content" srcFile="${basedir}/requires.txt" />
+			<!-- <echo message="${___extpath}"/><echo message=".*${extpath}.*"/> -->
+			<antcontrib:propertyregex override="true" property="add-required-path.exists" input="${requires.content}"
+				regexp=".*${extpath}.*" select="\1" />
+			<antcontrib:if>
+				<equals arg1="${add-required-path.exists}" arg2="$${add-required-path.exists}" />
+				<then>
+					<echo file="${basedir}/requires.txt" append="true">${extpath}${line.separator}</echo>
+				</then>
+				<else>
+					<echo message="requirement is tracked: ${extpath}"/>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+
+	<scriptdef name="relpath-js" language="javascript">
+		  <attribute name="property"/>
+		  <attribute name="from"/>
+		  <attribute name="to"/>
+		  <![CDATA[
+		      // Imports: Helper classes for Files
+		      importClass(Packages.org.apache.tools.ant.util.FileUtils);
+		      importClass(Packages.java.io.File);
+		      importClass(Packages.java.lang.System);
+		     
+		      // Access to the attributes
+		      propName = attributes.get("property");
+		      baseFile = new File(attributes.get("to"));
+		      file     = new File(attributes.get("from"));
+		      // The relative
+		      relPath = FileUtils.getRelativePath(file, baseFile);
+		      if (!file.isDirectory()) {
+		          relPath = (relPath.length() >= 3) ? relPath.substring(3) : relPath;
+		      }
+		      relPath += "/";
+		
+		      // Store the result in a property
+		      project.setNewProperty(propName, relPath);
+		  ]]>
+	</scriptdef>
+
+	<macrodef name="relpath">
+	  <attribute name="property"/>
+	  <attribute name="from"/>
+	  <attribute name="to"/>
+		<sequential>
+			<antcontrib:var name="___relpathprop" unset="true" />
+			<antcontrib:var name="___relpathfrom" unset="true" />
+			<antcontrib:var name="___relpathto" unset="true" />
+			<property name="___relpathfrom" location="@{from}" />
+			<property name="___relpathto" location="@{to}" />
+			<relpath-js property="___relpathprop" from="${___relpathfrom}" to="${___relpathto}" />
+			<antcontrib:var name="@{property}" value="${___relpathprop}" />			
+			<antcontrib:var name="___relpathprop" unset="true" />
+			<antcontrib:var name="___relpathfrom" unset="true" />
+			<antcontrib:var name="___relpathto" unset="true" />
+		</sequential>
+	</macrodef>
+	
+
+	<macrodef name="version-splitter" description="splits a @{version} (3.9.12.333) into @{property}.major (3)  @{property}.minor (9) @{property}.build (12) @{property}.revision (333).  Optionally bumps one of [major|minor|build|revision] if specified.">
+	  <attribute name="version"/>
+	  <attribute name="property"/>
+	  <attribute name="bump" default=""/>
+		<sequential>
+			<antcontrib:propertyregex override="no" property="@{property}.major" input="@{version}" 
+				regexp="(\d)\.+.*" select="\1" />
+			<antcontrib:propertyregex override="no" property="@{property}.minor" input="@{version}" 
+				regexp="\d+\.(\d+)" select="\1" />
+			<antcontrib:propertyregex override="no" property="@{property}.build" input="@{version}" 
+				regexp="\d+\.\d+\.(\d+)" select="\1" />
+			<property name="@{property}.build" value="00" />
+			<antcontrib:propertyregex override="no" property="@{property}.revision" input="@{version}" 
+				regexp="\d+\.\d+\.\d+\.(\d+)+.*" select="\1" />
+			<property name="@{property}.revision" value="000" />
+			<antcontrib:var name="@{property}.long" value="${@{property}.major}.${@{property}.minor}.${@{property}.build}.${@{property}.revision}" />
+			<mkdir dir="${temp.dir}"/>
+			<echoproperties destfile="${temp.dir}/version.temp.properties" prefix="@{property}"/>
+			<antcontrib:var name="@{property}.major" unset="true" />
+			<antcontrib:var name="@{property}.minor" unset="true" />
+			<antcontrib:var name="@{property}.build" unset="true" />
+			<antcontrib:var name="@{property}.revision" unset="true"/>
+			<antcontrib:switch value="@{bump}">
+				  <case value="major">
+				    <propertyfile  file="${temp.dir}/version.temp.properties">
+			            <entry key="@{property}.major" type="int" operation="+" value="1" pattern="00"/>
+			            <entry key="@{property}.minor" type="int" value="0" pattern="00"/>
+			            <entry key="@{property}.build" type="int" value="0" pattern="00"/>
+			            <entry key="@{property}.revision" type="int" value="0" pattern="000"/>
+				    </propertyfile>
+				  	<echo message="bumped major" />
+				  </case>
+				  <case value="minor">
+				    <propertyfile  file="${temp.dir}/version.temp.properties">
+			            <entry key="@{property}.major" type="int" operation="+" value="1" pattern="00"/>
+			            <entry key="@{property}.build" type="int" value="0" pattern="00"/>
+			            <entry key="@{property}.revision" type="int" value="0" pattern="000"/>
+				    </propertyfile>
+				  	<echo message="bumped minor" />
+				  </case>
+				  <case value="build">
+				    <propertyfile  file="${temp.dir}/version.temp.properties">
+			            <entry key="@{property}.build" type="int" operation="+" value="1" pattern="00"/>
+			            <entry key="@{property}.revision" type="int" value="0" pattern="000"/>
+				    </propertyfile>
+				  	<echo message="bumped build" />
+				  </case>
+				  <case value="revision">
+				    <propertyfile  file="${temp.dir}/version.temp.properties">
+				            <entry key="@{property}.revision" type="int" operation="+" value="1" pattern="000"/>
+				    </propertyfile>
+				  	<echo message="bumped revision" />
+				  </case>
+				  <default>
+				    <antcontrib:var file="${temp.dir}/version.temp.properties" />
+				  </default>
+			</antcontrib:switch>
+		    <property file="${temp.dir}/version.temp.properties"/>
+			<antcontrib:var name="@{property}.long" value="${@{property}.major}.${@{property}.minor}.${@{property}.build}.${@{property}.revision}" />
+			<echo message="Version ${@{property}.long}: Major ${@{property}.major} Minor ${@{property}.minor} Build ${@{property}.build} Revision ${@{property}.revision}"/>
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="javac-ecj">
+		<attribute name="srcdir" />
+		<attribute name="destdir" />
+		<attribute name="classpath" default="" />
+		<attribute name="compliance" default="1.6" />
+		<attribute name="target" default="@{compliance}" />
+		<attribute name="source" default="@{compliance}" />
+		<attribute name="encoding" default="UTF-8" />
+		<attribute name="maxmemory" default="128" />
+		<attribute name="fork" default="true" />
+		<sequential>
+
+			<antcontrib:trycatch property="foo" reference="bar">
+				<try>
+					<!-- http://help.eclipse.org/galileo/index.jsp?topic=/org.eclipse.jdt.doc.isv/guide/jdt_api_compile.htm -->
+					<path id="javac-ecj.compile.classpath" path="rt.jar:@{classpath}" />
+					<echo message="Compiling @{srcdir} (compliance:@{compliance}) to @{destdir}" />
+					<!-- we use the temp file because the cp gets too long for windows sometimes -->
+					<echo file="ecj-classpath.txt">-classpath
+						"${toString:javac-ecj.compile.classpath}"</echo>
+ 					<record name="${temp.dir}/ecjresult.txt" action="start"/>
+					<java jar="${cfdistro.basedir}/lib/ecj-3.6.jar" fork="true"
+						classpathref="build.lib.path" maxmemory="@{maxmemory}" failonerror="true">
+						<arg value="-@{compliance}" />
+						<arg value="-warn:none" />
+						<arg value="-d" />
+						<arg value='@{destdir}' />
+						<arg value="-encoding" />
+						<arg value="@{encoding}" />
+						<arg value="-target" />
+						<arg value="@{target}" />
+						<arg value="-source" />
+						<arg value="@{source}" />
+						<arg line="@ecj-classpath.txt" />
+						<arg value="@{srcdir}" />
+					</java>
+ 					<record name="${temp.dir}/ecjresult.txt" action="stop"/>
+					<delete file="ecj-classpath.txt" />
+				</try>
+				<catch>
+ 					<record name="${temp.dir}/ecjresult.txt" action="start"/>
+					<loadfile srcFile="${temp.dir}/ecjresult.txt" property="ecj.result" />
+					<echo message="Something bad happened while trying to Compile.  Gonna abort now, yo. Sorries."/>
+					<property name="baz" refid="bar" />
+					<echo>From reference: ${baz}</echo>
+					<fail message="error occurred while tyring to compile @{srcdir} : ${ecj.result}" />
+				</catch>
+			</antcontrib:trycatch>
+
+		</sequential>
+	</macrodef>
+
+	<macrodef name="zipdir">
+		<attribute name="destfile" />
+		<attribute name="sourcedir" />
+		<sequential>
+			<echo>Building zip: @{destfile}</echo>
+			<exec executable="zip" dir="@{sourcedir}">
+				<arg value="-qR" />
+				<arg value="@{destfile}" />
+				<arg value="*" />
+				<arg value="-x *.svn* *.git*" />
+			</exec>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="sanitizePath">
+		<attribute name="property" />
+		<attribute name="input" />
+		<sequential>
+			<antcontrib:propertyregex property="@{property}"
+				input="@{input}" regexp="[\\|/]" replace="/" global="true" override="yes" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="sanitizeContextPath">
+		<sequential>
+			<antcontrib:propertyregex property="war.contextpath"
+				input="${war.contextpath}" regexp="^/?([^/]+)" select="/\1/" global="false"
+				override="yes" />
+			<antcontrib:propertyregex property="war.contextpath"
+				input="${war.contextpath}" regexp="^/{1,}" replace="/" global="true"
+				override="yes" />
+		</sequential>
+	</macrodef>
+
+
+	<macrodef name="fix-url-slashes">
+		<attribute name="property" />
+		<sequential>
+			<antcontrib:propertyregex property="@{property}"
+				input="${@{property}}" regexp="/{1,}" replace="/" global="true"
+				override="yes" />
+			<antcontrib:propertyregex property="@{property}"
+				input="${@{property}}" regexp="http(.)?:/" replace="http\1://"
+				global="true" override="yes" />
+			<echo>${@{property}}</echo>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="replace-windows-slashes">
+		<attribute name="input" />
+		<attribute name="property" />
+		<sequential>
+			<antcontrib:propertyregex property="@{property}"
+				input="@{input}" regexp="\\" replace="/" global="true"
+				override="yes" defaultValue="@{input}" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="load-buildtype-properties">
+		<attribute name="buildtype" />
+		<sequential>
+			<antcontrib:trycatch>
+				<try>
+					<!-- note="do it twice to catch any already defined deals" -->
+					<antcontrib:var file="${basedir}/build.@{buildtype}.properties" />
+					<antcontrib:var file="${basedir}/build.@{buildtype}.properties" />
+					<echo message="loaded custom properties: ${basedir}/build.@{buildtype}.properties" />
+				</try>
+				<catch>
+					<echo message="no custom properties: ${basedir}/build.@{buildtype}.properties" />
+					<antcontrib:trycatch>
+						<try>
+							<!-- note="do it twice to catch any already defined deals" -->
+							<antcontrib:var file="${cfdistro.basedir}/buildtypes/build.@{buildtype}.properties" />
+							<antcontrib:var file="${cfdistro.basedir}/buildtypes/build.@{buildtype}.properties" />
+							<echo message="loaded built-in custom properties: ${cfdistro.basedir}/buildtypes/build.@{buildtype}.properties" />
+						</try>
+						<catch>
+							<echo message="no built-in custom properties: ${cfdistro.basedir}/buildtypes/build.@{buildtype}.properties" />
+						</catch>
+					</antcontrib:trycatch>
+				</catch>
+			</antcontrib:trycatch>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="load-properties-if-not-defined">
+		<attribute name="file" />
+		<sequential>
+			<storeUserProperties silent="true"/>
+			<antcontrib:var file="@{file}" />
+			<restoreUserProperties silent="true" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="storeUserProperties">
+		<attribute name="echoprefix" default="" />
+		<attribute name="silent" default="false" />
+		<sequential>
+			<antcontrib:var name="___echoprefix" value="@{echoprefix}" />
+			<removePropsByRegex regex="usersuppliedprops\..*" silent="@{silent}"/>
+			<antcontrib:if>
+				<equals arg1="@{silent}" arg2="false"/>
+				<then><echo message="Storing user supplied properties in usersuppliedprops.*" /></then>
+			</antcontrib:if>			
+			<script language="javascript">
+	     	<![CDATA[
+			importClass(Packages.net.sf.antcontrib.property.Variable);
+			var echopre = project.getProperty("___echoprefix");
+			xslt = new Variable();
+			xslt.project = project;
+			props = project.getUserProperties();
+			keys = props.keySet().toArray()
+			for (i in keys) {
+				if(keys[i].substr(0,4) != 'ant.' && keys[i].substr(0,5) != 'user.') {
+					if(echopre != '' && keys[i].substr(0,echopre.length()) == echopre) {
+						java.lang.System.out.println("Storing:" + keys[i] + "=" + props.get(keys[i]));
+					}
+					xslt.setName('usersuppliedprops.' + keys[i]);
+					xslt.setValue(props.get(keys[i]));
+					xslt.execute();
+				}
+			}
+		     ]]>
+			</script>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="restoreUserProperties">
+		<attribute name="silent" default="false" />
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="@{silent}" arg2="false"/>
+				<then><echo message="Restoring user supplied properties in usersuppliedprops.*" /></then>
+			</antcontrib:if>			
+			<antcontrib:propertyselector property="usersuppliedprops.list"
+				delimiter="," match="usersuppliedprops\.(.*)" select="\1" override="true"
+				distinct="true" casesensitive="false" />
+			<antcontrib:sortlist property="usersuppliedprops.list" value="${usersuppliedprops.list}" override="true" delimiter="," />
+   			<antcontrib:for list="${usersuppliedprops.list}" param="prop">
+				<sequential>
+					<!-- <echo message="setting: @{prop} to ${usersuppliedprops.@{prop}}" 
+						/> -->
+					<antcontrib:propertycopy property="@{prop}"
+						from="usersuppliedprops.@{prop}" silent="true" override="true" />
+				</sequential>
+			</antcontrib:for>
+			<antcontrib:var name="usersuppliedprops.___echoprefix" unset="true" />
+			<antcontrib:var name="usersuppliedprops.list" unset="true" />
+			<antcontrib:var name="usersuppliedprops.basedir" unset="true" />
+			<antcontrib:var name="usersuppliedprops.dist.root.dir" unset="true" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="removePropsByRegex">
+		<attribute name="regex" />
+		<attribute name="silent" default="false" />
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="@{silent}" arg2="false"/>
+				<then><echo message="Removing any properties that match this regex: @{regex}" /></then>
+			</antcontrib:if>			
+			<antcontrib:propertyselector property="removeByRegex.list" override="true"
+				delimiter="," match="(?!user\.|java\.|cfdistro\.|ant\.)+(@{regex})" select="\1" casesensitive="false" />
+			<!-- <echo message="Removing: ${removeByRegex.list}" />  -->
+			<antcontrib:sortlist property="removeByRegex.list" value="${removeByRegex.list}" override="true" delimiter="," />
+			<antcontrib:for list="${removeByRegex.list}" param="prop">
+				<sequential>
+					<antcontrib:var name="@{prop}" unset="true" />
+				</sequential>
+			</antcontrib:for>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="xml-to-property">
+		<attribute name="property" default="false" />
+		<attribute name="namespacePolicy" default="ignore" />
+		<element name="xml" implicit="true" />
+		<sequential>
+			<antcontrib:var unset="true" name="@{property}" />
+			<tempfile property="__xml_file.temp" />
+			<echoxml file="${__xml_file.temp}" namespacePolicy="@{namespacePolicy}"><xml___holder><xml/></xml___holder></echoxml>
+			<replace file="${__xml_file.temp}">
+			<replacefilter>
+			  <replacetoken><![CDATA[<?xml version="1.0" encoding="UTF-8"?>]]></replacetoken>
+			  <replacevalue></replacevalue>
+			</replacefilter>
+			<replacefilter>
+			  <replacetoken><![CDATA[<xml___holder>]]></replacetoken>
+			  <replacevalue></replacevalue>
+			</replacefilter>
+			<replacefilter>
+			  <replacetoken><![CDATA[</xml___holder>]]></replacetoken>
+			  <replacevalue></replacevalue>
+			</replacefilter>
+			</replace>
+			<loadfile srcFile="${__xml_file.temp}" property="@{property}" />
+			<antcontrib:propertyregex property="@{property}" override="true" input="${@{property}}" 
+				regexp="^[\s]+|[\s]+$" replace="" casesensitive="false" />
+
+		</sequential>
+	</macrodef>
+
+	<macrodef name="checksum-zip">
+		<attribute name="srcDir" />
+		<attribute name="zipfile" default="${basedir}/checksum.zip" />
+		<sequential>
+			<mkdir dir="${temp.dir}/checksums" />
+			<checksum todir="${temp.dir}/checksums">
+				<fileset dir="." />
+			</checksum>
+			<zip destfile="${dist.dir}/checksums.zip" basedir="${temp.dir}" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="hash">
+		<attribute name="value"/>
+		<attribute name="property"/>
+		<sequential>
+			<antcontrib:var name="___hashvalue" value="@{value}" />
+			<antcontrib:var name="___hashvalueproperty" value="@{property}" />
+			<script language="javascript">
+	     	<![CDATA[
+			importClass(Packages.net.sf.antcontrib.property.Variable);
+			var value = project.getProperty("___hashvalue");
+			var valueproperty = project.getProperty("___hashvalueproperty");
+			varvar = new Variable();
+			varvar.project = project;
+			varvar.setName(valueproperty);
+			varvar.setValue(value.hashCode());
+			varvar.execute();			
+		     ]]>
+			</script>
+			<antcontrib:var name="___hashvalue" unset="true" />
+			<antcontrib:var name="___hashvalueproperty" unset="true" />
+		</sequential>
+	</macrodef>
+
+
+	<macrodef name="safestring">
+		<attribute name="value"/>
+		<attribute name="property"/>
+		<sequential>
+			<antcontrib:var name="___hashvalue" value="@{value}" />
+			<antcontrib:var name="___hashvalueproperty" value="@{property}" />
+			<script language="javascript">
+	     	<![CDATA[
+			importClass(Packages.net.sf.antcontrib.property.Variable);
+			var value = project.getProperty("___hashvalue");
+			var valueproperty = project.getProperty("___hashvalueproperty");
+			varvar = new Variable();
+			varvar.project = project;
+			varvar.setName(valueproperty);
+			varvar.setValue(value.replaceAll("[^A-z0-9]","_"));
+			varvar.execute();			
+		     ]]>
+			</script>
+			<antcontrib:var name="___hashvalue" unset="true" />
+			<antcontrib:var name="___hashvalueproperty" unset="true" />
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="replace-attributes">
+		<attribute name="string" />
+		<attribute name="propertyname" />
+		<sequential>
+			<antcontrib:var name="@{propertyname}" value="@{string}" />
+			<antcontrib:propertyregex property="@{propertyname}" override="true" input="@{string}" regexp="@src.dir@(.*)" replace="${src.dir}\1" casesensitive="false" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="add-system-path">
+		<attribute name="path" />
+		<attribute name="keyword" default="@{path}" />
+		<sequential>
+			<!--
+			add to windows path:
+			   	reg add “HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment” /v Path /t REG_EXPAND_SZ /d “%path%;c:\test” /f
+			   	2.run:
+			   	nircmd sysrefresh
+			-->
+			<property environment="env"/>
+			<echo message="${env.PATH}"/>
+			<antcontrib:propertyregex override="true" property="add-system-path.path.exists" input="${env.PATH}"
+				regexp="${path.separator}?([^${path.separator}]*@{keyword})" select="\1"/>
+			<antcontrib:if>
+				<equals arg1="${add-system-path.path.exists}" arg2="$${add-system-path.path.exists}" />
+				<then>
+					<echo message="Not found in path: @{keyword}"/>
+					<echo message="Adding path: @{path}"/>
+					<antcontrib:switch value="${os.name}">
+						<case value="Mac OS X">
+							<loadfile property="profile.file.content" srcFile="${user.home}/.profile" />
+							<echo message="${profile.file.content}" />
+							<antcontrib:propertyregex override="true" property="add-system-path.path.exists" input="${profile.file.content}"
+								regexp="${path.separator}?([^${path.separator}]*@{keyword})" select="\1"/>
+							<antcontrib:if>
+								<equals arg1="${add-system-path.path.exists}" arg2="$${add-system-path.path.exists}" />
+								<then>
+									<echo message="Adding path to ${user.home}/.profile"/>
+									<echo file="${user.home}/.profile" append="true">${line.separator}# Adding cfdistro path${line.separator}<![CDATA[PATH="@{path}:$PATH"]]>${line.separator}export PATH${line.separator}</echo>
+								</then>
+								<else>
+									<echo message="Path exists in ${user.home}/.profile.  Try starting a new terminal so it takes effect."/>
+								</else>
+							</antcontrib:if>
+						</case>
+						<case value="Linux">
+							<exec spawn="true" executable="kill">
+								<arg line="-9" />
+								<arg line="${pid.out}" />
+							</exec>
+						</case>
+						<case value="Windows">
+							<exec spawn="true" executable="taskkill">
+								<arg line="/PID ${pid.out}" />
+								<arg line="/F" />
+							</exec>
+						</case>
+						<case value="Windows 7">
+							<exec spawn="true" executable="taskkill">
+								<arg line="/PID ${pid.out}" />
+								<arg line="/F" />
+							</exec>
+						</case>
+						<default>
+							<fail message="Um, the os '${os.name}' is unknown to me, esse!" />
+						</default>
+					</antcontrib:switch>
+				</then>
+				<else>
+					<echo message="Path exists: ${add-system-path.path.exists}"/>
+				</else>
+			</antcontrib:if>				
+
+		</sequential>
+	</macrodef>
+
+	<macrodef name="kill-java"
+	          description="Forcefully stop java process">
+		<attribute name="name"/>
+		<attribute name="jps" default="${java.home}/bin/jps" />
+		<sequential>
+			<!-- Execute the jps and check for any Java process with the provided @{name} attribute -->
+			<exec executable="@{jps}" output="pid.out.file" />
+			<!-- Load in the name / pid file and strip all information except the PID -->
+			<loadfile srcfile="pid.out.file" property="pid.out">
+				<filterchain>
+					<linecontains>
+						<contains value="@{name}"/>
+					</linecontains>
+					<tokenfilter>
+						<deletecharacters chars="@{name}"/>
+					</tokenfilter>
+					<striplinebreaks/>
+				</filterchain>
+			</loadfile>
+			<antcontrib:propertyregex property="pid.out"
+			              input="${pid.out}"
+			              regexp="[\s]?(\d+)?.*"
+			              select="\1" override="true"
+			              casesensitive="false"
+			 />
+			<antcontrib:if>
+				<or>
+					<equals arg1="${pid.out}" arg2="" />
+					<equals arg1="${pid.out}" arg2="$${pid.out}" />
+				</or>
+				<then>
+					<echo message="No process named @{name} found to kill."/>
+				</then>
+				<else>
+					<echo message="Killing java process with pid ${pid.out} (@{name})"/>
+					<antcontrib:switch value="${os.name}">
+						<case value="Mac OS X">
+							<exec spawn="true" executable="kill">
+								<arg line="-9" />
+								<arg line="${pid.out}" />
+							</exec>
+						</case>
+						<case value="Linux">
+							<exec spawn="true" executable="kill">
+								<arg line="-9" />
+								<arg line="${pid.out}" />
+							</exec>
+						</case>
+						<case value="Windows">
+							<exec spawn="true" executable="taskkill">
+								<arg line="/PID ${pid.out}" />
+								<arg line="/F" />
+							</exec>
+						</case>
+						<case value="Windows 7">
+							<exec spawn="true" executable="taskkill">
+								<arg line="/PID ${pid.out}" />
+								<arg line="/F" />
+							</exec>
+						</case>
+						<default>
+							<fail message="Um, the os '${os.name}' is unknown to me, esse!" />
+						</default>
+					</antcontrib:switch>
+				</else>
+			</antcontrib:if>
+	  		<delete file="pid.out.file" />
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="web-inf-servlet">
+ 		<attribute name="web.xml.path" default="${war.target.dir}/WEB-INF/web.xml"/>
+		<attribute name="servletName" />
+		<attribute name="servletClass" />
+		<element name="init-params" implicit="false" />
+		<element name="servlet-mappings" implicit="false" />
+		<sequential>
+			<add-required extpath="@{dest}" />
+			<antcontrib:if>
+				<available file="@{dest}" />
+				<then/>
+				<else>
+					<get src="@{src}" dest="@{dest}" verbose="@{verbose}" ignoreerrors="@{ignoreerrors}" />
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="web-inf-filter">
+ 		<attribute name="web.xml.path" default="${war.target.dir}/WEB-INF/web.xml"/>
+		<attribute name="filter-name" />
+		<attribute name="filter-class" />
+		<element name="init-params" implicit="false" />
+		<element name="filter-mappings" implicit="false" />
+		<sequential>
+			<antcontrib:var name="filters.exist" unset="true" />
+	    	<xml-to-property property="__initparams"><init-params/></xml-to-property>
+	    	<echo>${__initparams}</echo>
+			<xmltask source="@{web.xml.path}" dest="@{web.xml.path}">
+				<xmlcatalog refId="commonDTDs" />
+				<remove path="web-app/filter[filter-name/text()='@{filter-name}']"/>
+				<copy path="web-app/filter/@filter-name" attrValue="true" property="filters.exist" />
+				<insert path="web-app/filter" position="after" if="filters.exist">
+				<![CDATA[<filter><filter-name>@{filter-name}</filter-name><filter-class>@{filter-class}</filter-class>${__initparams}</filter>]]></insert>
+				<insert path="web-app/servlet[1]" position="before" unless="filters.exist">
+				<![CDATA[<filter><filter-name>@{filter-name}</filter-name><filter-class>@{filter-class}</filter-class>${__initparams}</filter>]]></insert>
+			</xmltask>
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="propertylist">
+ 		<attribute name="property" />
+		<attribute name="separator" default=" " />
+		<sequential>
+			<antcontrib:propertyselector property="allprops.list"
+	                         delimiter=","
+	                         match=".*"
+	                         select="\0" />
+	        <property name="__proplist" value=" " />
+			<antcontrib:for list="${allprops.list}" param="prop">
+			  <sequential>
+			    <antcontrib:propertycopy name="appprop" from="@{prop}" override="true" />
+			    <antcontrib:var name="__proplist" value="${__proplist}@{prop}=&quot;${appprop}&quot; " />
+			  </sequential>
+			</antcontrib:for>
+		    <antcontrib:var name="@{property}" value="${__proplist}" />
+		    <antcontrib:var name="allprops.list" unset="true" />
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="cmdline-arg-list">
+ 		<attribute name="property" />
+		<attribute name="separator" default=" " />
+		<sequential>
+			<property name="allpropslist" value="" />
+			<antcontrib:propertyselector property="allpropslist"
+				delimiter="," match="usersuppliedprops\.(.*)" select="\1" override="true"
+				distinct="true" casesensitive="false" />
+	        <property name="__proplist" value=" " />
+			<antcontrib:for list="${allpropslist}" param="prop">
+			  <sequential>
+			    <antcontrib:propertycopy name="appprop" from="@{prop}" override="true" />
+			    <antcontrib:var name="__proplist" value="${__proplist}@{prop}=&quot;${appprop}&quot; " />
+			  </sequential>
+			</antcontrib:for>
+		    <antcontrib:var name="@{property}" value="${__proplist}" />
+		    <antcontrib:var name="allpropslist" unset="true" />
+		</sequential>
+	</macrodef>
+	
+	
+</project>

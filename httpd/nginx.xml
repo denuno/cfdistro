@@ -1,0 +1,554 @@
+<?xml version="1.0"?>
+<project name="nginx-ant" default="runTests" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<dirname property="httpd-ant.basedir" file="${ant.file.httpd-ant}" />
+	<property file="${httpd-ant.basedir}/httpd.properties"/>
+		
+	<!-- <typedef name="numgt" classpath="${ext.dir}/ant-lib/den.ant.conditions.jar" 
+		classname="den.ant.conditions.NumGreaterThan" /> <target name="checkResinVersion"> 
+		<condition property="resin4"> <not> <numgt arg1="${resin.version}" arg2="4" 
+		/> </not> </condition> <echo message="valueA is greater than valueB" /> </target> -->
+
+	<!--INTERNAL TARGETS -->
+	<property name="ext.nginx.version" value="0" />
+	<property name="ext.nginx.version.minor" value="8.52" />
+	<property name="nginx.version.long" value="${ext.nginx.version}.${ext.nginx.version.minor}" />
+	<property name="nginx.host" value="${server.host}"/>
+	<property name="nginx.host.aliases" value=""/>
+	<property name="ext.nginx.dir" location="${ext.dir}/nginx" />
+	<property name="ext.nginx.src.uri" value="http://sysoev.ru/nginx/nginx-${nginx.version.long}.tar.gz" />
+	<property name="ext.nginx.src.archive" location="${ext.nginx.dir}/nginx-${nginx.version.long}.tar.gz" />
+	<property name="nginx.dir" location="${temp.dir}/server/nginx" />
+	<property name="nginx.port.http" value="${server.port.http}"/>
+	<property name="pcre.version" value="8.10" />
+
+
+	<target name="nginx.compile">
+		<sequential>
+				<mkdir dir="${nginx.dir}"/>
+				<antcontrib:if>
+					<available file="${ext.nginx.src.archive}" />
+					<then/>
+					<else>
+						<get src="${ext.nginx.src.uri}" dest="${ext.nginx.src.archive}" verbose="true" ignoreerrors="false" />
+						<get src="ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-${pcre.version}.zip" 
+						dest="${ext.nginx.dir}" verbose="true" ignoreerrors="false" />
+					</else>
+				</antcontrib:if>
+				<unzip src="${ext.nginx.dir}/pcre-${pcre.version}.zip" dest="${nginx.dir}"/>
+				<chmod file="${nginx.dir}/pcre-${pcre.version}/configure" perm="ugo+rx"/>				
+				<gunzip src="${ext.nginx.src.archive}" dest="${ext.nginx.dir}/nginx.tar"/>
+				<untar src="${ext.nginx.dir}/nginx.tar" dest="${ext.nginx.dir}"/>
+				<delete file="${ext.nginx.dir}/nginx.tar" />
+				<chmod file="${ext.nginx.dir}/nginx-${nginx.version.long}/configure" perm="ugo+rx"/>				
+				<exec executable="${ext.nginx.dir}/nginx-${nginx.version.long}/configure" 
+					dir="${ext.nginx.dir}/nginx-${nginx.version.long}">
+				 	<arg line="--prefix=${nginx.dir} --with-pcre=../pcre-${pcre.version} --with-http_ssl_module"/>
+				</exec>
+				<echo>making... ${ext.nginx.dir}/nginx-${nginx.version.long}</echo>
+				<exec executable="/usr/bin/make" dir="${ext.nginx.dir}/nginx-${nginx.version.long}/" />
+				<exec executable="/usr/bin/make" dir="${ext.nginx.dir}/nginx-${nginx.version.long}/">
+				 	<arg line="install"/>
+				</exec>
+		</sequential>
+	</target>
+
+	<target name="nginx.install">
+		<mkdir dir="${ext.nginx.dir}"/>
+		<sequential>
+		<antcontrib:if>
+			<available file="${nginx.dir}" />
+			<then>
+			<echo message="server dir ${nginx.dir} already exists, not installing!  Remove with: ant server.uninstall"/> 
+			</then>
+			<else>
+				<antcontrib:if>
+					<available file="${ext.nginx.zip}" />
+					<then/>
+					<else>
+						<get src="${ext.nginx.zip.uri}" dest="${ext.nginx.zip}" verbose="true" ignoreerrors="false" />
+					</else>
+				</antcontrib:if>
+				<unzip src="${ext.nginx.zip}"						
+				       dest="${nginx.dir}">
+					<regexpmapper from="apache-nginx-${nginx.version.long}/(.*)$" to="\1"/>
+				</unzip>
+			</else>
+		</antcontrib:if>
+		<!--
+		<antcontrib:runtarget target="nginx.configure" />
+		-->
+		</sequential>
+	</target>
+
+	<target name="httpd.init" description="adds vhost to httpd">
+		<antcontrib:for list="/etc/httpd,/etc/httpd/conf,/etc/apache2,/etc/apache2/conf" param="confdir">
+		  <sequential>
+			<antcontrib:if>
+				<available file="@{confdir}/httpd.conf"/>
+				<then>
+					<property name="httpd.conf.file" value="@{confdir}/httpd.conf" />
+				</then>
+			</antcontrib:if>
+		  </sequential>
+		</antcontrib:for>
+		<antcontrib:if>
+			<available file="${httpd.conf.file}"/>
+			<then>
+				<echo message="httpd.conf.file: using ${httpd.conf.file}"/> 
+			</then>
+			<else>
+				<fail message="httpd.conf file not found.  Specify it with property: httpd.conf.file"/>
+			</else>
+		</antcontrib:if>
+
+		<antcontrib:for list="/etc/httpd/conf.d,/etc/httpd/extra,/etc/apache2/conf.d/,/etc/apache2/extra" param="confdir">
+		  <sequential>
+			<antcontrib:if>
+				<available file="@{confdir}" type="dir"/>
+				<then>
+					<property name="httpd.cfml.conf.file" value="@{confdir}/httpd-cfml.conf" />
+					<property name="httpd.vhosts.dir" value="@{confdir}/vhosts" />
+				</then>
+			</antcontrib:if>
+		  </sequential>
+		</antcontrib:for>
+		<antcontrib:if>
+			<available file="${httpd.vhosts.dir}" type="dir"/>
+			<then>
+				<echo message="${httpd.vhosts.dir} vhost dir exists"/> 
+			</then>
+			<else>
+				<echo message="${httpd.vhosts.dir} will be created for vhost information"/> 
+			</else>
+		</antcontrib:if>
+		<loadfile property="httpd.conf.file.content" srcFile="${httpd.conf.file}">
+		</loadfile>
+		<antcontrib:propertyregex override="false" property="httpd.log.dir" input="${httpd.conf.file.content}"
+			regexp="${line.separator}ErrorLog\s+[&quot;](.*[\\|/])" select="\1"/>
+		<antcontrib:propertyregex override="true" property="httpd.log.dir" input="${httpd.log.dir}"
+			regexp="(.*)[\\|/]$" select="\1"/>
+		<echo message="${httpd.log.dir}"/>
+		<antcontrib:propertyregex override="false" property="httpd.serverroot" input="${httpd.conf.file.content}"
+			regexp="${line.separator}ServerRoot\s+[&quot;](.*)[&quot;]" select="\1"/>
+		<echo message="httpd.serverroot: httpd server root:${httpd.serverroot}"/>
+		<echo message="httpd.cfml.conf.file: httpd cfml conf file (${server.host}): using ${httpd.cfml.conf.file} -- Existing:"/> 
+		<loadfile property="httpd.conf.cfml.content" srcFile="${httpd.cfml.conf.file}" failonerror="false">
+		</loadfile>
+		<echo message="${httpd.conf.cfml.content}" />
+		<echo message="httpd.vhosts.dir: httpd vhosts dir:  ${httpd.vhosts.dir}"/> 
+		<property name="httpd.host.dir" value="${httpd.vhosts.dir}/${distro.name}" />
+		<property name="httpd.host.dir.abs" location="${httpd.host.dir}" />
+		<antcontrib:var name="httpd.host.dir" value="${httpd.host.dir.abs}" />
+		<echo message="httpd.host.dir: host config files will be in: ${httpd.host.dir}"/>
+		<property name="httpd.distro.conf.name" value="${distro.name}.conf" />
+		<antcontrib:if>
+			<available file="${httpd.distro.conf.dir}"/>
+			<then>
+				<echo message="source conf files in ${httpd.distro.conf.dir} will be parsed for tokens before copying"/> 
+			</then>
+			<else>
+				<fail message="source conf dir (${httpd.distro.conf.dir}) not found.  Specify it with property: httpd.distro.conf.dir"/>
+			</else>
+		</antcontrib:if>
+		<property name="httpd.host.documentroot.abs" location="${httpd.host.documentroot}" />
+		<antcontrib:var name="httpd.host.documentroot" value="${httpd.host.documentroot.abs}" />
+		<antcontrib:if>
+			<available file="${httpd.host.documentroot}" type="dir"/>
+			<then>
+				<echo message="httpd.host.documentroot: host pub dir (DocumentRoot): ${httpd.host.documentroot}"/> 
+			</then>
+			<else>
+				<echo message="WARNING: host pub dir or DocumentRoot (${httpd.host.documentroot}) not found.  Specify it with property: httpd.host.documentroot"/>
+			</else>
+		</antcontrib:if>
+		<antcontrib:if>
+			<available file="${httpd.distro.conf.dir}/${httpd.distro.conf.name}"/>
+			<then>
+				<echo message="httpd.distro.conf.name: using conf template: ${httpd.distro.conf.name}"/>
+				<property name="httpd.host.conf.name" value="${httpd.distro.conf.name}"/>
+				<!--
+				<antcontrib:propertyregex property="httpd.host.conf.name" input="${httpd.distro.conf.name}" regexp="(.*)\.conf" select="\1-${build.type}.conf" />
+				-->
+				<echo message="httpd.conf.name: ${httpd.host.conf.name}"/>
+			</then>
+			<else>
+				<fail message="host conf file name (name only, not the full path) ${httpd.distro.conf.name} not found.  Specify it with property: httpd.distro.conf.name (and put it in ${httpd.distro.conf.dir})"/>
+			</else>
+		</antcontrib:if>
+	</target>
+
+	<target name="httpd.cfml.install" depends="httpd.init,needsProxyAjpModules,needsProxyHttpModules" description="adds a link from httpd.conf to httpd.conf.cfml (${httpd.conf.cfml})">
+		<loadfile property="httpd.conf.cfml.included" srcFile="${httpd.conf.file}">
+			<filterchain>
+				<linecontainsregexp>
+					<regexp pattern="Include.*httpd-cfml.conf.[\s]?" />
+				</linecontainsregexp>
+			</filterchain>
+		</loadfile>
+		<antcontrib:if>
+			<isset property="httpd.conf.cfml.included"/>
+			<then>
+				<echo message="${httpd.cfml.conf.file} already included in ${httpd.conf.file}" />
+			</then>
+			<else>
+				<echo
+					message="adding ${httpd.cfml.conf.file} include to ${httpd.conf.file}" />
+				<replaceregexp byline="false" file="${httpd.conf.file}"
+					flags="m">
+					<regexp pattern="Include.*httpd-cfml.conf.[\s]?" />
+					<substitution expression="" />
+				</replaceregexp>
+				<echo file="${httpd.conf.file}" append="true"><![CDATA[Include "${httpd.cfml.conf.file}"]]>${line.separator}</echo>
+			</else>
+		</antcontrib:if>
+		<echo file="${httpd.cfml.conf.file}" append="true"><![CDATA[]]></echo>
+	</target>
+	
+	<target name="httpd.host.build" depends="httpd.init" description="adds vhost to httpd">
+		<loadfile property="httpd.conf.cfml.included" srcFile="${httpd.conf.file}">
+			<filterchain>
+				<linecontainsregexp>
+					<regexp pattern="Include.*httpd-cfml.conf.[\s]?" />
+				</linecontainsregexp>
+			</filterchain>
+		</loadfile>
+		<antcontrib:if>
+			<isset property="httpd.conf.cfml.included"/>
+			<then/>
+			<else>
+				<echo message="WARNING: did not detect include of ${httpd.cfml.conf.file} in ${httpd.conf.file}" />
+			</else>
+		</antcontrib:if>
+		<property name="httpd.generated.dir" value="httpd.host.dir" />
+		<echo message="replacing token values from files in ${httpd.distro.conf.dir} while copying to ${httpd.generated.dir}" />
+		<tempfile property="temp.file"/>
+		<echoproperties destfile="${temp.file}"/>
+		<copy todir="${httpd.generated.dir}" verbose="false" overwrite="true">
+			<filterchain>
+				<filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
+					<param type="propertiesfile" value="${temp.file}" />
+				</filterreader>
+				<!-- <filterreader classname="org.apache.tools.ant.filters.ExpandProperties"/> -->
+			</filterchain>
+			<fileset dir="${httpd.distro.conf.dir}" includes="**" />
+		</copy>
+		<delete file="${temp.file}"/>
+		<move file="${httpd.generated.dir}/${httpd.distro.conf.name}" tofile="${httpd.generated.dir}/${httpd.host.conf.name}" overwrite="true" />
+	</target>
+
+	<target name="httpd.host.install" depends="httpd.init" description="adds vhost to httpd">
+		<echo message="adding ${httpd.host.dir}/${httpd.host.conf.name} include directive to ${httpd.cfml.conf.file}" />
+		<replaceregexp byline="false"
+			file="${httpd.cfml.conf.file}" flags="m">
+			<regexp pattern="Include.*${httpd.host.conf.name}.[\s]?" />
+			<substitution expression="" />
+		</replaceregexp>
+		<echo file="${httpd.cfml.conf.file}" append="true"><![CDATA[Include "${httpd.host.dir}/${httpd.host.conf.name}"]]>${line.separator}</echo>
+	</target>
+
+	<target name="httpd.cfml.uninstall" description="removes httpd vhost" depends="httpd.init">
+		<echo message="removing include in ${httpd.conf.file}" />
+		<replaceregexp byline="false" file="${httpd.conf.file}"
+			flags="m">
+			<regexp pattern="Include.*httpd-cfml.conf.[\s]?" />
+			<substitution expression="" />
+		</replaceregexp>
+		<delete file="${httpd.cfml.conf.file}"/>
+	</target>
+
+	<target name="httpd.host.uninstall" description="removes httpd vhost Include directive" depends="httpd.init">
+		<echo message="removing host ${httpd.distro.conf.name}" />
+		<replaceregexp byline="false"
+			file="${httpd.cfml.conf.file}" flags="m">
+			<regexp pattern="Include.*${httpd.distro.conf.name}.[\s]?" />
+			<substitution expression="" />
+		</replaceregexp>
+	</target>
+	
+	<target name="httpd.host.delete" description="deletes httpd vhost files" depends="httpd.host.uninstall">
+		<echo message="deleting host dir ${httpd.distro.conf.name}" />
+		<delete dir="httpd.host.dir"/>
+	</target>	
+	
+	<target name="httpd.check-proxy-modules" depends="httpd.init">
+		<loadfile property="modProxyMatches" srcFile="${httpd.conf.file}">
+			<filterchain>
+				<linecontainsregexp>
+					<regexp pattern="^[\s]?LoadModule[\s]proxy" />
+				</linecontainsregexp>
+			</filterchain>
+		</loadfile>
+		<echo message="${modProxyMatches}" />
+		<condition property="hasProxyAjpModules">
+			<and>
+				<contains string="${modProxyMatches}" substring="proxy_module"
+					casesensitive="false" />
+				<contains string="${modProxyMatches}" substring="proxy_ajp"
+					casesensitive="false" />
+			</and>
+		</condition>
+		<condition property="hasProxyHttpModules">
+			<and>
+				<contains string="${modProxyMatches}" substring="proxy_module"
+					casesensitive="false" />
+				<contains string="${modProxyMatches}" substring="proxy_http"
+					casesensitive="false" />
+			</and>
+		</condition>
+	</target>
+
+	<target name="needsProxyAjpModules" unless="hasProxyAjpModules"
+		depends="httpd.check-proxy-modules">
+		<echo>LoadModule proxy_ajp_module doesn't seem to be loaded!</echo>
+	</target>
+	<target name="needsProxyHttpModules" unless="hasProxyHttpModules"
+		depends="httpd.check-proxy-modules">
+		<echo>LoadModule proxy_http_module doesn't seem to be loaded!</echo>
+	</target>
+
+	<target name="createVhostConfHttp" if="tomcat-connector.tomcat.protocal.isHttp" depends="httpd.init">
+		<mkdir dir="${INSTALL_PATH}/conf/vhost" />
+		<echo file="${INSTALL_PATH}/conf/vhost/${server.host}-http.conf">
+			<![CDATA[
+				<VirtualHost *:80>
+				   ServerName ${server.host}
+				
+				   DocumentRoot "${tomcat-connector.webserver.docroot}"
+				
+				   ProxyPreserveHost On
+				   ProxyRequests Off
+				   <Proxy *>
+				      Order deny,allow
+				      Allow from all
+				   </Proxy>
+				   ProxyPass / http://${tomcat-connector.tomcat.host}:${tomcat-connector.tomcat.http.port}/
+				   ProxyPassReverse / http://${tomcat-connector.tomcat.host}:${tomcat-connector.tomcat.http.port}/
+				</VirtualHost>
+			]]>
+		</echo>
+		<antcall target="httpd.conf.cfml.host.add" inheritRefs="true">
+			<param name="railoconf.addhost" value="${server.host}-http.conf" />
+		</antcall>
+	</target>
+
+	<target name="createVhostConfHttpRewrite"
+		if="tomcat-connector.tomcat.protocal.isHttp, tomcat-connector.webserver.useModRewrite" depends="httpd.init">
+		<mkdir dir="${INSTALL_PATH}/conf/vhost" />
+		<echo file="${INSTALL_PATH}/conf/vhost/${server.host}-http-rewrite.conf">
+			<![CDATA[
+				<VirtualHost *:80>
+				   ServerName ${server.host}
+				
+				   DocumentRoot "${tomcat-connector.webserver.docroot}"
+				
+				   ProxyPreserveHost On
+				   ProxyPassReverse / http://${tomcat-connector.tomcat.host}:${tomcat-connector.tomcat.http.port}/
+				
+				   RewriteEngine On
+				   RewriteRule ^/(.*\.cf[cm])$ http://${tomcat-connector.tomcat.host}:${tomcat-connector.tomcat.http.port}/$1 [P,QSA]
+				</VirtualHost>
+			]]>
+		</echo>
+		<antcall target="httpd.conf.cfml.host.add" inheritRefs="true">
+			<param name="railoconf.addhost" value="${server.host}-http-rewrite.conf" />
+		</antcall>
+	</target>
+
+	<target name="createVhostConfAjpRewrite"
+		if="tomcat-connector.tomcat.protocal.isAjp, tomcat-connector.webserver.useModRewrite" depends="httpd.init">
+		<mkdir dir="${INSTALL_PATH}/conf/vhost" />
+		<echo file="${INSTALL_PATH}/conf/vhost/${server.host}-ajp-rewrite.conf">
+			<![CDATA[
+				<VirtualHost *:80>
+				   ServerName ${server.host}
+				
+				   DocumentRoot "${tomcat-connector.webserver.docroot}"
+				
+				   ProxyPreserveHost On
+				   ProxyPassReverse / ajp://${tomcat-connector.tomcat.host}:${tomcat-connector.tomcat.ajp.port}/
+				
+				   RewriteEngine On
+				   RewriteRule ^/(.*\.cf[cm])$ ajp://${tomcat-connector.tomcat.host}:${tomcat-connector.tomcat.ajp.port}/$1 [P,QSA]
+				</VirtualHost>
+			]]>
+		</echo>
+		<antcall target="httpd.conf.cfml.host.add" inheritRefs="true">
+			<param name="railoconf.addhost" value="${server.host}-ajp-rewrite.conf" />
+		</antcall>
+	</target>
+
+	<target name="createVhostConfAjp" if="tomcat-connector.tomcat.protocal.isAjp" depends="httpd.init">
+		<mkdir dir="${INSTALL_PATH}/conf/vhost" />
+		<echo file="${INSTALL_PATH}/conf/vhost/${server.host}-ajp.conf">
+			<![CDATA[
+				<VirtualHost *:80>
+				   ServerName ${server.host}
+				
+				   DocumentRoot "${tomcat-connector.webserver.docroot}"
+				
+				   ProxyPreserveHost On
+				   ProxyPassReverse / ajp://${tomcat-connector.tomcat.host}:${tomcat-connector.tomcat.ajp.port}/
+				
+				   RewriteEngine On
+				   RewriteRule ^/(.*\.cf[cm])$ ajp://${tomcat-connector.tomcat.host}:${tomcat-connector.tomcat.ajp.port}/$1 [P,QSA]
+				</VirtualHost>
+			]]>
+		</echo>
+		<antcall target="httpd.conf.cfml.host.add" inheritRefs="true">
+			<param name="railoconf.addhost" value="${server.host}-ajp-rewrite.conf" />
+		</antcall>
+	</target>
+
+	<target name="unLinkHttpdConfToRailoConf" depends="httpd.init">
+		<replaceregexp byline="false" file="${httpd.conf.file}"
+			flags="m">
+			<regexp pattern="^[\s]+?Include.*httpd-railo.conf.$" />
+			<substitution expression="" />
+		</replaceregexp>
+	</target>
+
+	<target name="linkHttpdConfToRailoConf"
+		depends="unLinkHttpdConfToRailoConf, needsProxyAjpModules,needsProxyHttpModules">
+		<echo file="${httpd.conf.file}" append="true">
+			<![CDATA[Include "${INSTALL_PATH}/conf/httpd-railo.conf"]]>
+		</echo>
+	</target>
+
+	<target name="runTests">
+		<property name="ext.dir" value="../../../../../ext/" />
+		<property name="INSTALL_PATH" location="./test/output" />
+		<property name="izPackDir" location="../../." />
+		<property name="httpd.conf" value="./test/httpd.conf" />
+		<property name="server.host" value="localhost" />
+		<property name="tomcat-connector.webserver.docroot" value="/www/localhost" />
+		<property name="tomcat-connector.webserver.useModRewrite"
+			value="true" />
+		<property name="tomcat-connector.tomcat.protocal.isAjp"
+			value="true" />
+		<property name="tomcat-connector.tomcat.protocal.isHttp"
+			value="true" />
+		<property name="tomcat-connector.tomcat.host" value="tomcathost.fun" />
+		<property name="tomcat-connector.tomcat.ajp.port" value="8009" />
+		<property name="tomcat-connector.tomcat.http.port" value="8080" />
+		<antcall target="createVhostConfAjp" />
+		<antcall target="createVhostConfAjpRewrite" />
+		<antcall target="createVhostConfHttp" />
+		<antcall target="createVhostConfHttpRewrite" />
+		<antcall target="linkHttpdConfToRailoConf" />
+	</target>
+
+	<target name="do-if-resin-conf" if="resin.conf.present">
+		<echo message="resin.conf.exists" />
+		<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" />
+		<xmltask source="${resin.install.dir}/conf/resin.conf" dest="${resin.install.dir}/conf/resin.conf">
+			<attr path="//:host-deploy[@path]" attr="path" value="conf/vhosts" />
+			<insert path="//:host-deploy/:host-default" position="under">
+				<![CDATA[
+        <web-app id="/" root-directory="${path}" xmlns="http://caucho.com/ns/resin" />
+				]]>
+			</insert>
+			<insert path="//:resin/:class-loader" position="under">
+				<![CDATA[
+		    <tree-loader path="${INSTALL_PATH}/lib" xmlns="http://caucho.com/ns/resin"/>
+				]]>
+			</insert>
+		</xmltask>
+		<xmltask source="${resin.install.dir}/conf/app-default.xml"
+			dest="${resin.install.dir}/conf/app-default.xml">
+			<insert path="//:cluster/:web-app-default/:welcome-file-list"
+				position="under">
+				<![CDATA[
+		    <welcome-file xmlns="http://caucho.com/ns/resin">index.cfm</welcome-file>
+				]]>
+			</insert>
+			<insert path="//:cluster/:web-app-default" position="under">
+				<![CDATA[
+<servlet servlet-name="CFMLServlet" servlet-class="railo.loader.servlet.CFMLServlet" xmlns="http://caucho.com/ns/resin">
+<init-param>
+<param-name>railo-web-directory</param-name>
+<param-value>{web-root-directory}/WEB-INF/railo/</param-value>
+<description>Railo Web Directory directory</description>
+</init-param>
+<!-- init-param>
+<param-name>railo-server-directory</param-name>
+<param-value>./</param-value>
+<description>directory where railo root directory is stored</description>
+</init-param -->   
+<load-on-startup>1</load-on-startup>
+</servlet>
+<servlet servlet-name="AMFServlet" servlet-class="railo.loader.servlet.AMFServlet" xmlns="http://caucho.com/ns/resin">
+<load-on-startup>2</load-on-startup>
+</servlet>
+
+<servlet-mapping url-pattern="*.cfm" servlet-name="CFMLServlet" xmlns="http://caucho.com/ns/resin"/>
+<servlet-mapping url-pattern="*.cfml" servlet-name="CFMLServlet" xmlns="http://caucho.com/ns/resin"/>
+<servlet-mapping url-pattern="*.cfc" servlet-name="CFMLServlet" xmlns="http://caucho.com/ns/resin"/>
+<servlet-mapping url-pattern="*.cfm/*" servlet-name="CFMLServlet" xmlns="http://caucho.com/ns/resin"/>
+<servlet-mapping url-pattern="*.cfml/*" servlet-name="CFMLServlet" xmlns="http://caucho.com/ns/resin"/>
+<servlet-mapping url-pattern="*.cfc/*" servlet-name="CFMLServlet" xmlns="http://caucho.com/ns/resin"/>
+<servlet-mapping url-pattern="/flashservices/gateway/*" servlet-name="AMFServlet" xmlns="http://caucho.com/ns/resin"/>
+
+<mime-mapping extension=".docm" mime-type="application/vnd.ms-word.document.macroEnabled.12" />
+<mime-mapping extension=".docx" mime-type="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+<mime-mapping extension=".dotm" mime-type="application/vnd.ms-word.template.macroEnabled.12" />
+<mime-mapping extension=".dotx" mime-type="application/vnd.openxmlformats-officedocument.wordprocessingml.template" />
+<mime-mapping extension=".potm" mime-type="application/vnd.ms-powerpoint.template.macroEnabled.12" />
+<mime-mapping extension=".potx" mime-type="application/vnd.openxmlformats-officedocument.presentationml.template" />
+<mime-mapping extension=".ppam" mime-type="application/vnd.ms-powerpoint.addin.macroEnabled.12" />
+<mime-mapping extension=".ppsm" mime-type="application/vnd.ms-powerpoint.slideshow.macroEnabled.12" />
+<mime-mapping extension=".ppsx" mime-type="application/vnd.openxmlformats-officedocument.presentationml.slideshow" />
+<mime-mapping extension=".pptm" mime-type="application/vnd.ms-powerpoint.presentation.macroEnabled.12" />
+<mime-mapping extension=".pptx" mime-type="application/vnd.openxmlformats-officedocument.presentationml.presentation" />
+<mime-mapping extension=".xlam" mime-type="application/vnd.ms-excel.addin.macroEnabled.12" />
+<mime-mapping extension=".xlsb" mime-type="application/vnd.ms-excel.sheet.binary.macroEnabled.12" />
+<mime-mapping extension=".xlsm" mime-type="application/vnd.ms-excel.sheet.macroEnabled.12" />
+<mime-mapping extension=".xlsx" mime-type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+<mime-mapping extension=".xltm" mime-type="application/vnd.ms-excel.template.macroEnabled.12" />
+<mime-mapping extension=".xltx" mime-type="application/vnd.openxmlformats-officedocument.spreadsheetml.template" />
+				]]>
+			</insert>
+		</xmltask>
+	</target>
+
+	<target name="configureResin" depends="do-if-resin-conf">
+		<mkdir dir="${resin.install.dir}/conf/vhosts/${railo.hostname}" />
+		<echo file="${resin.install.dir}/conf/vhosts/${railo.hostname}/host.xml">
+    	<![CDATA[
+<host xmlns="http://caucho.com/ns/resin"
+    xmlns:resin="http://caucho.com/ns/resin/core">
+    <resin:set var="path" value="${Railo.webroot}" />
+    <host-alias>${railo.hostname}</host-alias>
+<!--      <host-alias>alurium.net</host-alias>-->
+<!--      <host-alias>100.100.100.100</host-alias>-->
+</host>]]>
+		</echo>
+
+	</target>
+
+	<target name="testConfigureResin">
+		<property name="ext.dir" value="../../../../../ext/" />
+		<property name="INSTALL_PATH" value="./tmpinstall" />
+		<property name="izPackDir" location="../../." />
+		<property name="railo.hostname" value="localhost" />
+		<property name="installBaseDir" value="${basedir}/../../../install" />
+		<property name="install.generation.dir" value="${installBaseDir}/generated" />
+
+		<loadproperties srcFile="resin.properties" />
+		<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask"
+			classpath="${ext.dir}/ant-lib/xmltask-v1.15.1.jar" />
+		<antcall target="expandResinToTempDir" />
+		<antcall target="do-if-resin-conf" />
+
+	</target>
+
+
+	<target name="expandResinToTempDir">
+		<unzip dest="${INSTALL_PATH}" src="${resin.install.zip}">
+			<patternset>
+				<include name="**/conf/*" />
+			</patternset>
+		</unzip>
+	</target>
+
+</project>

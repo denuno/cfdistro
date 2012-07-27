@@ -1,0 +1,26 @@
+<project name="mura.pkg" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+	<dirname property="mura.pkg.basedir" file="${ant.file.mura.pkg}" />
+
+	<property name="cfdistro.build.file" value="../../build.xml"/>
+	<import file="${cfdistro.build.file}"/>
+
+	<target name="install" description="installs package ${pkg}">
+		<antcontrib:var name="src.xml.file" value="${mura.pkg.basedir}/src.xml" />
+		<antcontrib:runtarget target="src.import" />
+		<antcontrib:runtarget target="configure" />
+	</target>
+
+	<target name="configure" description="installs package ${pkg}">
+		<copy file="${mura.pkg.basedir}/settings.ini.cfm" todir="${src.dir}/config" overwrite="true">
+			 <filterchain>
+			    <expandproperties/>
+			  </filterchain>
+		</copy>
+		<mapping physical="@src.dir@/" virtual="/" />
+		<build-if-not-built />
+		<dsn-import dsn="${distro.name}" schemafile="${mura.pkg.basedir}/mura.schema.xml" datafile="${mura.pkg.basedir}/mura.data.xml" />
+	</target>
+
+	<target name="uninstall" description="installs package ${pkg}">
+	</target>
+</project>

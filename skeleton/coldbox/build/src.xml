@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<src>
+	<project>
+	<!--
+		<src dest="@src.dir@/../" type="svn" 
+		uri="http://subversion.assembla.com/svn/cfdistro/trunk/cfdistro" 
+		user="" password="" />
+	-->
+	</project>
+	<sources>
+		
+		<src dest="@src.dir@/coldbox" type="git" 
+		uri="http://github.com/ColdBox/coldbox-platform.git" 
+		user="" password="" />
+
+		<src dest="@src.dir@/coldbox/dashboard" type="git" 
+		uri="http://github.com/ColdBox/coldbox-dashboard.git" 
+		user="" password="" path="src/" />
+<!-- mxunit 2.1
+		<src dest="@src.dir@/mxunit" type="svn" 
+		uri="http://mxunit.googlecode.com/svn/mxunit/tags/2.0.1"
+		user="" password="" />
+
+	mxunit trunk
+		<src dest="@src.dir@/mxunit" type="svn" 
+		uri="http://mxunit.googlecode.com/svn/mxunit/trunk"
+		user="" password="" />
+
+		<src dest="@src.dir@/cfwheels" type="svn" 
+		uri="http://cfwheels.googlecode.com/svn/trunk/" 
+		user="" password="" />
+				
+		<src dest="@src.dir@/ModelGlue" type="svn" 
+		uri="http://svn.model-glue.com/trunk/ModelGlue/" 
+		user="" password="" />
+
+		coldspring 1.2
+		<src dest="./" type="cvs" 
+		uri=":pserver:anoncvs@cvs.coldspringframework.org:/coldspring" 
+		dirname="coldspring" module="coldspring"
+		user="anoncvs" password="anoncvs" />
+
+		coldspring 2.0
+		<src dest="@src.dir@/coldspring" type="git" 
+		uri="git://coldspring.git.sourceforge.net/gitroot/coldspring/coldspring" 
+		user="" password="" />
+ -->
+		
+	</sources>
+</src>

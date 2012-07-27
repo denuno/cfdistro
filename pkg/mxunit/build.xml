@@ -1,0 +1,18 @@
+<project name="default" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+	<dirname property="default.basedir" file="${ant.file.default}" />
+
+	<property name="cfdistro.build.file" value="../../build.xml"/>
+	<import file="${cfdistro.build.file}"/>
+
+	<target name="install" description="installs package ${pkg}">
+		<antcontrib:var name="src.xml.file" value="${default.basedir}/src.xml" />
+		<antcontrib:runtarget target="src.import" />
+		<mapping physical="@src.dir@/mxunit" virtual="/mxunit" />
+	</target>
+
+	<target name="configure" description="installs package ${pkg}">
+	</target>
+
+	<target name="uninstall" description="installs package ${pkg}">
+	</target>
+</project>

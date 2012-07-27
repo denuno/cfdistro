@@ -1,0 +1,735 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<database xmlns="http://db.apache.org/ddlutils/schema/1.1" name="mu">
+  <table name="TADCAMPAIGNS" description="">
+    <column name="CAMPAIGNID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="USERID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="DATECREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="STARTDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="ENDDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="ISACTIVE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="NOTES" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+  </table>
+  <table name="TADCREATIVES" description="">
+    <column name="CREATIVEID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="USERID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="DATECREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CREATIVETYPE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="FILEID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="MEDIATYPE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="REDIRECTURL" primaryKey="false" required="false" type="VARCHAR" size="200" default="NULL" autoIncrement="false" />
+    <column name="ALTTEXT" primaryKey="false" required="false" type="VARCHAR" size="200" default="NULL" autoIncrement="false" />
+    <column name="NOTES" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="ISACTIVE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="HEIGHT" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="WIDTH" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="TEXTBODY" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+  </table>
+  <table name="TADIPWHITELIST" description="">
+    <column name="IP" primaryKey="false" required="true" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="true" type="VARCHAR" size="25" autoIncrement="false" />
+  </table>
+  <table name="TADPLACEMENTDETAILS" description="">
+    <column name="DETAILID" primaryKey="true" required="true" type="INTEGER" size="10" autoIncrement="true" />
+    <column name="PLACEMENTID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="PLACEMENTTYPE" primaryKey="false" required="true" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="PLACEMENTVALUE" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+  </table>
+  <table name="TADPLACEMENTS" description="">
+    <column name="PLACEMENTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="CAMPAIGNID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="ADZONEID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="CREATIVEID" primaryKey="false" required="false" type="CHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="DATECREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="STARTDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="ENDDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="COSTPERIMP" primaryKey="false" required="false" type="DECIMAL" size="18,5" default="NULL" autoIncrement="false" />
+    <column name="COSTPERCLICK" primaryKey="false" required="false" type="DECIMAL" size="18,2" default="NULL" autoIncrement="false" />
+    <column name="ISEXCLUSIVE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="BILLABLE" primaryKey="false" required="false" type="DECIMAL" size="18,2" default="NULL" autoIncrement="false" />
+    <column name="BUDGET" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ISACTIVE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="NOTES" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+  </table>
+  <table name="TADSTATS" description="">
+    <column name="STATID" primaryKey="true" required="true" type="INTEGER" size="10" autoIncrement="true" />
+    <column name="PLACEMENTID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="STATHOUR" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="STATDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="TYPE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="COUNTER" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TADZONES" description="">
+    <column name="ADZONEID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="DATECREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CREATIVETYPE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="NOTES" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="ISACTIVE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="HEIGHT" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="WIDTH" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TCAPTCHA" description="">
+    <column name="LETTERID" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="LETTER" primaryKey="false" required="false" type="CHAR" size="1" default="NULL" autoIncrement="false" />
+    <column name="IMAGEFILE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TCLASSEXTEND" description="">
+    <column name="SUBTYPEID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" autoIncrement="false" />
+    <column name="BASETABLE" primaryKey="false" required="false" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="BASEKEYFIELD" primaryKey="false" required="false" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="DATATABLE" primaryKey="false" required="false" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="TYPE" primaryKey="false" required="false" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="SUBTYPE" primaryKey="false" required="false" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="ISACTIVE" primaryKey="false" required="false" type="TINYINT" size="3" autoIncrement="false" />
+    <column name="NOTES" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="LASTUPDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" autoIncrement="false" />
+    <column name="DATECREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" autoIncrement="false" />
+    <column name="LASTUPDATEBY" primaryKey="false" required="false" type="VARCHAR" size="100" autoIncrement="false" />
+  </table>
+  <table name="TCLASSEXTENDATTRIBUTES" description="">
+    <column name="ATTRIBUTEID" primaryKey="true" required="true" type="INTEGER" size="10" autoIncrement="true" />
+    <column name="EXTENDSETID" primaryKey="false" required="false" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="100" autoIncrement="false" />
+    <column name="LABEL" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="HINT" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="TYPE" primaryKey="false" required="false" type="VARCHAR" size="100" autoIncrement="false" />
+    <column name="ORDERNO" primaryKey="false" required="false" type="INTEGER" size="10" autoIncrement="false" />
+    <column name="ISACTIVE" primaryKey="false" required="false" type="TINYINT" size="3" autoIncrement="false" />
+    <column name="REQUIRED" primaryKey="false" required="false" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="VALIDATION" primaryKey="false" required="false" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="REGEX" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="MESSAGE" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="DEFAULTVALUE" primaryKey="false" required="false" type="VARCHAR" size="100" autoIncrement="false" />
+    <column name="OPTIONLIST" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="OPTIONLABELLIST" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <index name="IX_TCLASSEXTENDATTRIBUTES_2">
+      <index-column name="EXTENDSETID" />
+    </index>
+  </table>
+  <table name="TCLASSEXTENDDATA" description="">
+    <column name="DATAID" primaryKey="true" required="true" type="INTEGER" size="10" autoIncrement="true" />
+    <column name="BASEID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="ATTRIBUTEID" primaryKey="false" required="true" type="INTEGER" size="10" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" autoIncrement="false" />
+    <column name="ATTRIBUTEVALUE" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <index name="IX_TCLASSEXTENDDATA_2">
+      <index-column name="BASEID" />
+    </index>
+    <index name="IX_TCLASSEXTENDDATA_3">
+      <index-column name="ATTRIBUTEID" />
+    </index>
+  </table>
+  <table name="TCLASSEXTENDDATAUSERACTIVITY" description="">
+    <column name="DATAID" primaryKey="true" required="true" type="INTEGER" size="10" autoIncrement="true" />
+    <column name="BASEID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="ATTRIBUTEID" primaryKey="false" required="true" type="INTEGER" size="10" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" autoIncrement="false" />
+    <column name="ATTRIBUTEVALUE" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <index name="IX_TCLASSEXTENDDATAUSERACTIVITY_2">
+      <index-column name="BASEID" />
+    </index>
+    <index name="IX_TCLASSEXTENDDATAUSERACTIVITY_3">
+      <index-column name="ATTRIBUTEID" />
+    </index>
+  </table>
+  <table name="TCLASSEXTENDSETS" description="">
+    <column name="EXTENDSETID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SUBTYPEID" primaryKey="false" required="false" type="CHAR" size="35" autoIncrement="false" />
+    <column name="CATEGORYID" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="ORDERNO" primaryKey="false" required="false" type="INTEGER" size="10" autoIncrement="false" />
+    <column name="ISACTIVE" primaryKey="false" required="false" type="TINYINT" size="3" autoIncrement="false" />
+    <index name="IX_TCLASSEXTENDSETS_2">
+      <index-column name="SUBTYPEID" />
+    </index>
+  </table>
+  <table name="TCONTENT" description="">
+    <column name="TCONTENT_ID" primaryKey="true" required="true" type="INTEGER" size="10" autoIncrement="true" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="MODULEID" primaryKey="false" required="false" type="VARCHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="PARENTID" primaryKey="false" required="false" type="VARCHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="CONTENTID" primaryKey="false" required="false" type="VARCHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="CONTENTHISTID" primaryKey="false" required="false" type="VARCHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="REMOTEID" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="REMOTEURL" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="REMOTEPUBDATE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="REMOTESOURCEURL" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="REMOTESOURCE" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="CREDITS" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="FILEID" primaryKey="false" required="false" type="VARCHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="TEMPLATE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="TYPE" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="SUBTYPE" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="ACTIVE" primaryKey="false" required="false" type="TINYINT" size="3" default="'0'" autoIncrement="false" />
+    <column name="ORDERNO" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="TITLE" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="MENUTITLE" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="SUMMARY" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="FILENAME" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="METADESC" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="METAKEYWORDS" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="BODY" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="LASTUPDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBYID" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="DISPLAYSTART" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="DISPLAYSTOP" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="DISPLAY" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="APPROVED" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="ISNAV" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="RESTRICTED" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="RESTRICTGROUPS" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="TARGET" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="TARGETPARAMS" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="RESPONSECHART" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="RESPONSEMESSAGE" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="RESPONSESENDTO" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="RESPONSEDISPLAYFIELDS" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="MODULEASSIGN" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="DISPLAYTITLE" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="NOTES" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="INHERITOBJECTS" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="ISFEATURE" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="RELEASEDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="ISLOCKED" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="NEXTN" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="SORTBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="SORTDIRECTION" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="FEATURESTART" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="FEATURESTOP" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="FORCESSL" primaryKey="false" required="true" type="TINYINT" size="3" default="'0'" autoIncrement="false" />
+    <column name="AUDIENCE" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="KEYPOINTS" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="SEARCHEXCLUDE" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="PATH" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="TAGS" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <index name="IX_TCONTENT">
+      <index-column name="CONTENTID" />
+    </index>
+    <index name="IX_TCONTENT_1">
+      <index-column name="CONTENTHISTID" />
+    </index>
+    <index name="IX_TCONTENT_2">
+      <index-column name="SITEID" />
+    </index>
+    <index name="IX_TCONTENT_3">
+      <index-column name="PARENTID" />
+    </index>
+    <index name="IX_TCONTENT_4">
+      <index-column name="REMOTEID" />
+    </index>
+  </table>
+  <table name="TCONTENTASSIGNMENTS" description="">
+    <column name="CONTENTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="CONTENTHISTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="true" required="true" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="USERID" primaryKey="true" required="true" type="VARCHAR" size="35" autoIncrement="false" />
+  </table>
+  <table name="TCONTENTCATEGORIES" description="">
+    <column name="CATEGORYID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="PARENTID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="DATECREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="NOTES" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="ISINTERESTGROUP" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ISACTIVE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ISOPEN" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="SORTBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="SORTDIRECTION" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="RESTRICTGROUPS" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="PATH" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <index name="IX_TCONTENTCATEGORIES">
+      <index-column name="SITEID" />
+    </index>
+  </table>
+  <table name="TCONTENTCATEGORYASSIGN" description="">
+    <column name="CONTENTHISTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="CATEGORYID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="CONTENTID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="ISFEATURE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ORDERNO" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="FEATURESTART" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="FEATURESTOP" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TCONTENTCOMMENTS" description="">
+    <column name="COMMENTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="CONTENTID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="CONTENTHISTID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="URL" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="COMMENTS" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="ENTERED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="EMAIL" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="IP" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="ISAPPROVED" primaryKey="false" required="false" type="TINYINT" size="3" default="'0'" autoIncrement="false" />
+    <index name="IX_TCONTENTCOMMENTS">
+      <index-column name="CONTENTID" />
+    </index>
+  </table>
+  <table name="TCONTENTDISPLAYTITLEAPPROVALS" description="">
+    <column name="CONTENTID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="ISAPPROVED" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="EMAIL" primaryKey="false" required="false" type="VARCHAR" size="150" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TCONTENTEVENTREMINDERS" description="">
+    <column name="CONTENTID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="true" type="VARCHAR" size="25" autoIncrement="false" />
+    <column name="EMAIL" primaryKey="false" required="true" type="VARCHAR" size="200" autoIncrement="false" />
+    <column name="REMINDDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="REMINDHOUR" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="REMINDMINUTE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="REMINDINTERVAL" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ISSENT" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TCONTENTFEEDADVANCEDPARAMS" description="">
+    <column name="PARAMID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="FEEDID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="PARAM" primaryKey="false" required="false" type="DECIMAL" size="18" default="NULL" autoIncrement="false" />
+    <column name="RELATIONSHIP" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="FIELD" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="CONDITION" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CRITERIA" primaryKey="false" required="false" type="VARCHAR" size="200" default="NULL" autoIncrement="false" />
+    <column name="DATATYPE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TCONTENTFEEDITEMS" description="">
+    <column name="FEEDID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="ITEMID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="TYPE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TCONTENTFEEDS" description="">
+    <column name="FEEDID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="PARENTID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="250" default="NULL" autoIncrement="false" />
+    <column name="ISACTIVE" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="ISPUBLIC" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="ISDEFAULT" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="ISFEATURESONLY" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="DESCRIPTION" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="MAXITEMS" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ALLOWHTML" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="LANG" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBY" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="DATECREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="RESTRICTED" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="RESTRICTGROUPS" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="VERSION" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CHANNELLINK" primaryKey="false" required="false" type="VARCHAR" size="250" default="NULL" autoIncrement="false" />
+    <column name="TYPE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="SORTBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="SORTDIRECTION" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="NEXTN" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="DISPLAYNAME" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="DISPLAYRATINGS" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="DISPLAYCOMMENTS" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <index name="IX_TCONTENTFEEDS">
+      <index-column name="SITEID" />
+    </index>
+  </table>
+  <table name="TCONTENTOBJECTS" description="">
+    <column name="CONTENTHISTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="OBJECTID" primaryKey="true" required="true" type="VARCHAR" size="100" autoIncrement="false" />
+    <column name="OBJECT" primaryKey="true" required="true" type="VARCHAR" size="50" autoIncrement="false" />
+    <column name="CONTENTID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="ORDERNO" primaryKey="true" required="true" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="COLUMNID" primaryKey="true" required="true" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <unique name="PRIMARY_KEY_49">
+      <unique-column name="CONTENTHISTID" />
+      <unique-column name="OBJECTID" />
+      <unique-column name="OBJECT" />
+      <unique-column name="COLUMNID" />
+      <unique-column name="ORDERNO" />
+    </unique>
+    <index name="IX_TCONTENTOBJECTS">
+      <index-column name="SITEID" />
+    </index>
+  </table>
+  <table name="TCONTENTPUBLICSUBMISSIONAPPROVALS" description="">
+    <column name="CONTENTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="ISAPPROVED" primaryKey="false" required="true" type="INTEGER" size="10" autoIncrement="false" />
+    <column name="EMAIL" primaryKey="false" required="true" type="VARCHAR" size="150" autoIncrement="false" />
+    <column name="SITEID" primaryKey="true" required="true" type="VARCHAR" size="25" autoIncrement="false" />
+  </table>
+  <table name="TCONTENTRATINGS" description="">
+    <column name="CONTENTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="USERID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="true" required="true" type="VARCHAR" size="25" autoIncrement="false" />
+    <column name="RATE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ENTERED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="CURRENT_TIMESTAMP()" autoIncrement="false" />
+    <index name="IDX_ENTERED">
+      <index-column name="ENTERED" />
+    </index>
+  </table>
+  <table name="TCONTENTRELATED" description="">
+    <column name="CONTENTHISTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="RELATEDID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="CONTENTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="true" required="true" type="VARCHAR" size="25" autoIncrement="false" />
+  </table>
+  <table name="TCONTENTSTATS" description="">
+    <column name="CONTENTID" primaryKey="true" required="true" type="CHAR" size="35" default="'" autoIncrement="false" />
+    <column name="SITEID" primaryKey="true" required="true" type="VARCHAR" size="25" default="'" autoIncrement="false" />
+    <column name="VIEWS" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="RATING" primaryKey="false" required="true" type="DOUBLE" size="17" default="'0'" autoIncrement="false" />
+    <column name="TOTALVOTES" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="UPVOTES" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="DOWNVOTES" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="COMMENTS" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+  </table>
+  <table name="TCONTENTTAGS" description="">
+    <column name="TAGID" primaryKey="true" required="true" type="INTEGER" size="10" autoIncrement="true" />
+    <column name="CONTENTID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="CONTENTHISTID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="true" type="VARCHAR" size="25" autoIncrement="false" />
+    <column name="TAG" primaryKey="false" required="true" type="VARCHAR" size="100" autoIncrement="false" />
+    <index name="IX_TCONTENTTAGS_2">
+      <index-column name="CONTENTHISTID" />
+    </index>
+    <index name="IX_TCONTENTTAGS_3">
+      <index-column name="SITEID" />
+    </index>
+    <index name="IX_TCONTENTTAGS_4">
+      <index-column name="CONTENTID" />
+    </index>
+    <index name="IX_TCONTENTTAGS_5">
+      <index-column name="TAG" />
+    </index>
+  </table>
+  <table name="TEMAILRETURNSTATS" description="">
+    <column name="EMAILID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="EMAIL" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="URL" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="CREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TEMAILS" description="">
+    <column name="EMAILID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="SUBJECT" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="BODYTEXT" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="BODYHTML" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="CREATEDDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="DELIVERYDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="STATUS" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="GROUPLIST" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="LASTUPDATEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBYID" primaryKey="false" required="false" type="VARCHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="NUMBERSENT" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="REPLYTO" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="FORMAT" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="FROMLABEL" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="ISDELETED" primaryKey="false" required="true" type="TINYINT" size="3" default="'0'" autoIncrement="false" />
+    <index name="IX_TEMAILS">
+      <index-column name="SITEID" />
+    </index>
+  </table>
+  <table name="TEMAILSTATS" description="">
+    <column name="EMAILID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="EMAIL" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="EMAILOPEN" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="RETURNCLICK" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="BOUNCE" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="SENT" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="CREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TFILES" description="">
+    <column name="FILEID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="CONTENTID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="MODULEID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="FILENAME" primaryKey="false" required="false" type="VARCHAR" size="200" default="NULL" autoIncrement="false" />
+    <column name="IMAGE" primaryKey="false" required="false" type="BLOB" size="2147483647" autoIncrement="false" />
+    <column name="IMAGESMALL" primaryKey="false" required="false" type="BLOB" size="2147483647" autoIncrement="false" />
+    <column name="IMAGEMEDIUM" primaryKey="false" required="false" type="BLOB" size="2147483647" autoIncrement="false" />
+    <column name="FILESIZE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="CONTENTTYPE" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="CONTENTSUBTYPE" primaryKey="false" required="false" type="VARCHAR" size="200" default="NULL" autoIncrement="false" />
+    <column name="FILEEXT" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TFORMRESPONSEPACKETS" description="">
+    <column name="RESPONSEID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="FORMID" primaryKey="false" required="false" type="CHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="FIELDLIST" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="DATA" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="ENTERED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <index name="IX_TFORMRESPONSEPACKETS">
+      <index-column name="FORMID" />
+      <index-column name="SITEID" />
+    </index>
+  </table>
+  <table name="TFORMRESPONSEQUESTIONS" description="">
+    <column name="RESPONSEID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="FORMID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="FORMFIELD" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="FORMVALUE" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="POLLVALUE" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TGLOBALS" description="">
+    <column name="APPRELOAD" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LOADLIST" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+  </table>
+  <table name="TMAILINGLIST" description="">
+    <column name="MLID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="DESCRIPTION" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="LASTUPDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="ISPURGE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ISPUBLIC" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TMAILINGLISTMEMBERS" description="">
+    <column name="MLID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="EMAIL" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="FNAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="LNAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="COMPANY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="ISVERIFIED" primaryKey="false" required="true" type="TINYINT" size="3" default="'0'" autoIncrement="false" />
+  </table>
+  <table name="TPERMISSIONS" description="">
+    <column name="CONTENTID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="GROUPID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="TYPE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TREDIRECTS" description="">
+    <column name="REDIRECTID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="URL" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="CREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TSESSIONTRACKING" description="">
+    <column name="TRACKINGID" primaryKey="true" required="true" type="INTEGER" size="10" autoIncrement="true" />
+    <column name="CONTENTID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="USERID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="REMOTE_ADDR" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="SERVER_NAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="QUERY_STRING" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="REFERER" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="USER_AGENT" primaryKey="false" required="false" type="VARCHAR" size="200" default="NULL" autoIncrement="false" />
+    <column name="SCRIPT_NAME" primaryKey="false" required="false" type="VARCHAR" size="200" default="NULL" autoIncrement="false" />
+    <column name="URLTOKEN" primaryKey="false" required="true" type="VARCHAR" size="130" autoIncrement="false" />
+    <column name="ENTERED" primaryKey="false" required="true" type="TIMESTAMP" size="23,10" default="0000-00-00 00:00:00" autoIncrement="false" />
+    <column name="COUNTRY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="LANG" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="LOCALE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="KEYWORDS" primaryKey="false" required="false" type="VARCHAR" size="200" default="NULL" autoIncrement="false" />
+    <column name="ORIGINALURLTOKEN" primaryKey="false" required="false" type="VARCHAR" size="130" default="NULL" autoIncrement="false" />
+    <index name="IX_TSESSIONTRACKING">
+      <index-column name="SITEID" />
+    </index>
+    <index name="IX_TSESSIONTRACKING_1">
+      <index-column name="CONTENTID" />
+    </index>
+    <index name="IX_TSESSIONTRACKING_2">
+      <index-column name="URLTOKEN" />
+    </index>
+    <index name="IX_TSESSIONTRACKING_3">
+      <index-column name="ENTERED" />
+    </index>
+    <index name="IX_TSESSIONTRACKING_4">
+      <index-column name="USERID" />
+    </index>
+  </table>
+  <table name="TSETTINGS" description="">
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="SITE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="MAXNESTLEVEL" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="PAGELIMIT" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="LOCKING" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="DOMAIN" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="EXPORTLOCATION" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="FILEDIR" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CONTACT" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="MAILSERVERIP" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="MAILSERVERUSERNAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="MAILSERVERPASSWORD" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="EMAILBROADCASTER" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="EXTRANET" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="EXTRANETPUBLICREG" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="EXTRANETPUBLICREGNOTIFY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="EXTRANETSSL" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="CACHE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="VIEWDEPTH" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="NEXTN" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="DATACOLLECTION" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="COLUMNCOUNT" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="COLUMNNAMES" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="PRIMARYCOLUMN" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="PUBLICSUBMISSION" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ADMANAGER" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ARCHIVEDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="CONTACTNAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CONTACTADDRESS" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CONTACTCITY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CONTACTSTATE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CONTACTZIP" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CONTACTEMAIL" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="CONTACTPHONE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="PRIVATEUSERPOOLID" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="PUBLICUSERPOOLID" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="ADVERTISERUSERPOOLID" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="ORDERNO" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="EMAILBROADCASTERLIMIT" primaryKey="false" required="true" type="INTEGER" size="10" default="'0'" autoIncrement="false" />
+    <column name="FEEDMANAGER" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="DISPLAYPOOLID" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="GALLERYMAINSCALEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="GALLERYMAINSCALE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="GALLERYSMALLSCALEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="GALLERYSMALLSCALE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="GALLERYMEDIUMSCALEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="GALLERYMEDIUMSCALE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="SENDLOGINSCRIPT" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="MAILINGLISTCONFIRMSCRIPT" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="PUBLICSUBMISSIONAPPROVALSCRIPT" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="REMINDERSCRIPT" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="LOGINURL" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="EDITPROFILEURL" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="COMMENTAPPROVALDEFAULT" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="DEPLOY" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="LASTDEPLOYMENT" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="ACCOUNTACTIVATIONSCRIPT" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="GOOGLEAPIKEY" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="USEDEFAULTSMTPSERVER" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="THEME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="MAILSERVERSMTPPORT" primaryKey="false" required="false" type="VARCHAR" size="5" default="NULL" autoIncrement="false" />
+    <column name="MAILSERVERPOPPORT" primaryKey="false" required="false" type="VARCHAR" size="5" default="NULL" autoIncrement="false" />
+    <column name="MAILSERVERTLS" primaryKey="false" required="false" type="VARCHAR" size="5" default="NULL" autoIncrement="false" />
+    <column name="MAILSERVERSSL" primaryKey="false" required="false" type="VARCHAR" size="5" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TSYSTEMOBJECTS" description="">
+    <column name="OBJECT" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="NAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="ORDERNO" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TUSERADDRESSES" description="">
+    <column name="ADDRESSID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="USERID" primaryKey="false" required="false" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="ADDRESSNAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="ADDRESS1" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="ADDRESS2" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CITY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="STATE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="ZIP" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="COUNTRY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="PHONE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="FAX" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="ISPRIMARY" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="ADDRESSNOTES" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="ADDRESSURL" primaryKey="false" required="false" type="VARCHAR" size="200" default="NULL" autoIncrement="false" />
+    <column name="LONGITUDE" primaryKey="false" required="false" type="DOUBLE" size="17" default="NULL" autoIncrement="false" />
+    <column name="LATITUDE" primaryKey="false" required="false" type="DOUBLE" size="17" default="NULL" autoIncrement="false" />
+    <column name="ADDRESSEMAIL" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="HOURS" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <index name="IX_TUSERADDRESSES_2">
+      <index-column name="LONGITUDE" />
+    </index>
+    <index name="IX_TUSERADDRESSES_3">
+      <index-column name="LATITUDE" />
+    </index>
+    <index name="IX_TUSERADDRESSES_4">
+      <index-column name="USERID" />
+    </index>
+  </table>
+  <table name="TUSERS" description="">
+    <column name="USERID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="GROUPNAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="FNAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="LNAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="USERNAME" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="PASSWORD" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="PASSWORDCREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="EMAIL" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="COMPANY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="JOBTITLE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="MOBILEPHONE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="WEBSITE" primaryKey="false" required="false" type="VARCHAR" size="255" default="NULL" autoIncrement="false" />
+    <column name="TYPE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="SUBTYPE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="EXT" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="CONTACTFORM" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="ADMIN" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="S2" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="LASTLOGIN" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATE" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBY" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="LASTUPDATEBYID" primaryKey="false" required="false" type="VARCHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="PERM" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="INACTIVE" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="ISPUBLIC" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="SUBSCRIBE" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="NOTES" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="DESCRIPTION" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="INTERESTS" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="KEEPPRIVATE" primaryKey="false" required="false" type="TINYINT" size="3" default="NULL" autoIncrement="false" />
+    <column name="PHOTOFILEID" primaryKey="false" required="false" type="VARCHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="PHOTOFILEEXT" primaryKey="false" required="false" type="VARCHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="IMNAME" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="IMSERVICE" primaryKey="false" required="false" type="VARCHAR" size="50" default="NULL" autoIncrement="false" />
+    <column name="CREATED" primaryKey="false" required="false" type="TIMESTAMP" size="23,10" default="CURRENT_TIMESTAMP()" autoIncrement="false" />
+    <column name="REMOTEID" primaryKey="false" required="false" type="VARCHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="TAGS" primaryKey="false" required="false" type="CLOB" size="2147483647" autoIncrement="false" />
+  </table>
+  <table name="TUSERSFAVORITES" description="">
+    <column name="FAVORITEID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="USERID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="FAVORITENAME" primaryKey="false" required="false" type="VARCHAR" size="100" default="NULL" autoIncrement="false" />
+    <column name="FAVORITE" primaryKey="false" required="true" type="CLOB" size="2147483647" autoIncrement="false" />
+    <column name="TYPE" primaryKey="false" required="true" type="VARCHAR" size="30" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="false" type="VARCHAR" size="25" default="NULL" autoIncrement="false" />
+    <column name="DATECREATED" primaryKey="false" required="true" type="TIMESTAMP" size="23,10" default="CURRENT_TIMESTAMP()" autoIncrement="false" />
+    <column name="COLUMNNUMBER" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="ROWNUMBER" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+    <column name="MAXRSSITEMS" primaryKey="false" required="false" type="INTEGER" size="10" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TUSERSINTERESTS" description="">
+    <column name="USERID" primaryKey="true" required="true" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+    <column name="CATEGORYID" primaryKey="true" required="true" type="CHAR" size="35" default="NULL" autoIncrement="false" />
+  </table>
+  <table name="TUSERSMEMB" description="">
+    <column name="USERID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="GROUPID" primaryKey="true" required="true" type="CHAR" size="35" autoIncrement="false" />
+  </table>
+  <table name="TUSERSTAGS" description="">
+    <column name="TAGID" primaryKey="true" required="true" type="INTEGER" size="10" autoIncrement="true" />
+    <column name="USERID" primaryKey="false" required="true" type="CHAR" size="35" autoIncrement="false" />
+    <column name="SITEID" primaryKey="false" required="true" type="VARCHAR" size="25" autoIncrement="false" />
+    <column name="TAG" primaryKey="false" required="true" type="VARCHAR" size="100" autoIncrement="false" />
+    <index name="IX_TUSERSTAGS_2">
+      <index-column name="USERID" />
+    </index>
+    <index name="IX_TUSERSTAGS_3">
+      <index-column name="SITEID" />
+    </index>
+    <index name="IX_TUSERSTAGS_4">
+      <index-column name="TAG" />
+    </index>
+  </table>
+</database>

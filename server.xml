@@ -1,0 +1,192 @@
+<project name="server" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<target name="get.server.log.dir">
+		<antcontrib:runtarget target="${server.type}.server.log.dir" />
+	</target>
+
+	<property name="server.deploy.dir" location="${war.target.dir}/../"/>
+	<property name="server.host" value="localhost"/>
+	<property name="server.ip" value="127.0.0.1"/>
+	<property name="server.port" value="8088"/>
+	<property name="server.port.http" value="8088"/>
+	<property name="server.port.ajp" value="8009"/>
+	<property name="server.dir" location="${basedir}/../server/${server.type}" />
+	<property name="server.log.dir" value="${log.dir}"/>
+	<property name="server.type" value="runwar" />
+	<property name="server.charset" value="UTF-8" />
+	<property name="server.url" value="http://${server.host}:${server.port.http}${war.contextpath}/index.cfm" />
+	<property name="deploy.remote.unzip.cmd" value="/usr/bin/unzip"/>
+	<property name="deploy.remote.keyfile" value=""/>
+	<property name="deploy.remote.dir" value="./"/>
+	<property name="server.memory.max" value="256M"/>
+	<property name="server.memory.perm" value="64M"/>
+	<property name="server.memory.perm.max" value="${server.memory.perm}"/>
+	<property name="server.java.opts" value=""/>
+	<property name="server.gc" value=""/>
+	<!-- -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -Dsun.rmi.dgc.client.gcInterval=600000 -Dsun.rmi.dgc.server.gcInterval=600000 -->
+	<property name="server.jvm.args" value="-XX:+HeapDumpOnOutOfMemoryError -Xms${server.memory.max} -Xmx${server.memory.max} -XX:PermSize=${server.memory.perm} -XX:MaxPermSize=${server.memory.perm.max} ${server.gc} -Djava.net.preferIPv4Stack=true ${server.java.opts}" />
+
+	<property name="jboss.version.major" value="7.1" />
+	<antcontrib:if>
+		<equals arg1="${jboss.version.major}" arg2="7.1" />
+		<then>
+			<import file="containers/jboss/jboss7.xml" />
+		</then>
+		<else>
+			<import file="containers/jboss/jboss.xml" />
+		</else>
+	</antcontrib:if>
+
+	<import file="containers/tomcat/tomcat.xml" />
+	<import file="containers/jetty/jetty.xml" />
+	<import file="containers/resin/resin.xml" />
+	<import file="containers/glassfish/glassfish.xml" />
+	<import file="java/runwar/build.xml" />
+
+
+	<target name="server.etc.hosts">
+		<antcontrib:switch value="${os.name}">
+			<case value="Mac OS X">
+				<property name="etc.hosts.file" value="/etc/hosts"/>
+			</case>
+			<case value="Linux">
+				<property name="etc.hosts.file" value="/etc/hosts"/>
+			</case>
+			<case value="Windows">
+				<property environment="env"/>
+				<property name="etc.hosts.file" value="${env.SystemRoot}\System32\drivers\etc\hosts" />
+				<echo message="${etc.hosts.file}" />
+			</case>
+			<case value="Windows 7">
+				<property environment="env"/>
+				<property name="etc.hosts.file" value="${env.SystemRoot}\System32\drivers\etc\hosts" />
+				<echo message="${etc.hosts.file}" />
+			</case>
+			<default>
+				<fail message="Um, the os '${os.name}' is unknown to me, esse!" />
+			</default>
+		</antcontrib:switch>
+		<replaceregexp byline="false" file="${etc.hosts.file}" flags="msi">
+			<regexp pattern="^${server.ip}[\s]+${server.host}[\s]?$" />
+			<substitution expression="" />
+		</replaceregexp>
+		<echo file="${etc.hosts.file}" append="true"><![CDATA[${server.ip}	${server.host}]]>${line.separator}</echo>
+	</target>
+
+	<target name="server.processes">
+		<sequential>
+			<requires-ext resource="/ext/containers/util/" />
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy"/>
+			<exec executable="sh" osfamily="unix">
+				<arg value="-c"/>
+				<arg value="ps aux | grep 'java\|tomcat\|jetty'"/>
+			</exec>
+			<exec executable="tasklist" osfamily="windows">
+				<arg value="/FI"/>
+				<arg value="IMAGENAME eq java.exe"/>
+			</exec>
+		</sequential>
+	</target>
+
+	<macrodef name="sshexec-server">
+		<attribute name="command" />
+		<attribute name="host" />
+		<attribute name="username" />
+		<attribute name="passphrase"/>
+		<attribute name="keyfile" default=""/>
+		<attribute name="port" />
+		<sequential>
+			<echo message="com: @{command}" />
+			<sshexec verbose="false"
+				command="@{command}"
+				host="@{host}"
+				username="@{username}"
+				passphrase="@{passphrase}"
+				keyfile="@{keyfile}" trust="true" port="@{port}" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="server-run">
+		<element name="stuff" implicit="true"/>
+		<sequential>
+			<antcontrib:runtarget target="server.start" />
+			<antcontrib:trycatch property="_erredesse">
+				<try>
+					<stuff />
+				</try>
+				<catch>
+					<echo message="something erred esse! ${_erredesse}"/>
+					<property name="server-run.failed" value="true"/>
+				</catch>
+			</antcontrib:trycatch>
+			<antcontrib:runtarget target="server.stop" />
+			<fail if="server-run.failed" message="something erred esse! ${_erredesse}" />
+		</sequential>
+	</macrodef>
+
+	<target name="server.log.tail" depends="get.server.log.dir">
+		<antcontrib:for param="file">
+			<fileset dir="${server.log.dir}" includes="*.log"/>
+			<sequential>
+				<echo message="*** last 25 lines from @{file} ***" />
+				<antcontrib:var name="logfile.tail" unset="true" />
+				<loadfile srcfile="@{file}" property="logfile.tail">
+					<filterchain>
+						<tailfilter lines="25"/>
+					</filterchain>
+				</loadfile>
+				<echo message="${logfile.tail}"/>
+			</sequential>
+		</antcontrib:for>
+	</target>
+
+	<target name="server.install" description="installs ${server.type} server">
+		<antcontrib:runtarget target="${server.type}.install" />
+	</target>
+
+	<target name="server.uninstall" description="uninstalls ${server.type} server">
+		<antcontrib:runtarget target="${server.type}.uninstall" />
+	</target>
+
+	<target name="server.configure" description="configure ${server.type} server">
+		<antcontrib:runtarget target="${server.type}.configure" />
+	</target>
+
+	<target name="server.start.fg" description="starts ${server.type} server in foreground">
+		<antcontrib:var name="background" value="false" />
+		<antcontrib:runtarget target="${server.type}.start" />
+	</target>
+
+	<target name="server.start" description="starts ${server.type} server">
+		<antcontrib:runtarget target="${server.type}.start" />
+	</target>
+
+	<target name="server.stop" description="stop ${server.type} server">
+		<antcontrib:runtarget target="${server.type}.stop" />
+	</target>
+
+	<target name="server.restart" description="restarts ${server.type} server">
+		<antcontrib:runtarget target="${server.type}.stop" />
+		<antcontrib:runtarget target="${server.type}.start" />
+	</target>
+
+	<target name="server.deploy" description="deploys war to ${server.type} server">
+		<copy todir="${server.deploy.dir}/${war.name}.war">
+			<fileset dir="${war.target.dir}">
+				<include name="**" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="gae.deploy" description="deploys war to GAE">
+		<exec executable="${gae.appconfig.executable}" output="gae.deploy.log">
+			<arg value="update"/>
+			<arg value="${war.target.dir}"/>
+		</exec>
+		<loadfile srcfile="gae.deploy.log" property="gae.deploy.log">
+		</loadfile>
+		<echo message="${gae.deploy.log}"/>
+	</target>
+
+</project>

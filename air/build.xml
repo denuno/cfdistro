@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="air-build" default="air.build" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+	
+	<target name="air.init">
+		<property name="air.native" location="false" />
+		<delete dir="${air.build.dir}" />
+		<mkdir dir="${air.build.dir}" />
+		<cfdistro target="build" properties="build.type=air copy.mappings.to.war=${copy.mappings.to.war}" />
+		<antcontrib:if>
+			<not><available file="${basedir}/../air/${air.cert.store}" /></not>
+			<then>
+				<echo message="Generating AIR cert" />
+				<exec executable="${air.adt.path}">
+		            <arg value="-certificate"/>
+		            <arg value="-cn"/>
+		            <arg value="${air.cert.cn}"/>
+		            <arg value="-ou"/>
+		            <arg value="${air.cert.ou}"/>
+		            <arg value="-o"/>
+		            <arg value="${air.cert.o}"/>
+		            <arg value="-c"/>
+		            <arg value="${air.cert.c}"/>
+		            <arg value="${air.cert.key.type}"/>
+		            <arg value="${basedir}/../air/${air.cert.store}"/>
+		            <arg value="${air.cert.store.password}"/>
+				</exec>
+			</then>
+		</antcontrib:if>
+		<property name="air.file.abs" location="${air.file}" />
+		<property name="air.build.dir.abs" location="${air.build.dir}" />
+		<copy todir="${air.build.dir}" verbose="false" overwrite="true">
+			<fileset dir="${basedir}/../air" excludes="**/${air.cert.store}, **/airtemp/**"/>
+		</copy>
+		<copy file="${cfdistro.basedir}/lib/${jetty-runner.jar}" todir="${air.build.dir}" />
+		<echo file="${air.build.dir}/start"><![CDATA[#!/bin/sh
+if test -n "${JAVA_HOME}"; then
+  if test -z "${JAVA_EXE}"; then
+    JAVA_EXE=$JAVA_HOME/bin/java
+  fi
+fi
+ 
+if test -z "${JAVA_EXE}"; then
+  JAVA_EXE=java
+fi
+cd $(dirname $0)
+exec $JAVA_EXE -Xmx200m -jar ${jetty-runner.jar} --port 0 --path ${war.contextpath} $* ${distro.name}.war]]>
+		</echo>
+		<chmod file="${air.build.dir}/start" perm="ugo+rx"/>
+		<echo file="${air.build.dir}/start.bat"><![CDATA[java -Xmx200m -jar "${jetty-runner.jar}" --port 0 --path ${war.contextpath} %1 "${distro.name}.war"]]></echo>
+		<antcontrib:switch value="${os.family}">
+		  <case value="unix">
+		  	<antcontrib:if>
+		  		<equals arg1="${os.name}" arg2="Mac OS X" />
+		  		<then>
+				  	<property name="air.native.ext" value="dmg" />
+		  		</then>
+		  		<else>
+				  	<property name="air.native.ext" value="bin" />
+		  		</else>
+		  	</antcontrib:if>
+		  </case>
+		  <case value="windows">
+		  	<property name="air.native.ext" value="exe" />
+		  </case>
+		  <default>
+		  	<fail message="Um, the os '${os.family}' is unknown to me, esse!" />
+		  </default>
+		</antcontrib:switch>
+
+		<mkdir dir="${dist.dir}" />
+	</target>
+	
+	<target name="air.localdev">
+		<echo message="building ${air.file.abs}"/>
+		<load-buildtype-properties buildtype="air" />
+		<antcontrib:var name="copy.mappings.to.war" value="false"/>
+		<antcall target="air.build"/>
+	</target>
+
+	<target name="air.build" depends="air.init">
+		<echo message="building ${air.file.abs}"/>
+		<exec executable="${air.adt.path}">
+            <arg value="-package"/>
+            <arg value="-storetype"/>
+            <arg value="${air.cert.store.type}"/>
+            <arg value="-keystore"/>
+            <arg value="${basedir}/../air/${air.cert.store}"/>
+            <arg value="-storepass"/>
+            <arg value="${air.cert.store.password}"/>
+            <arg value="${air.file.abs}"/>
+            <arg value="${air.build.dir.abs}/Application.xml"/>
+            <arg value="-C"/>
+            <arg value="${air.build.dir.abs}"/> 
+            <arg value="${air.build.dir.abs}"/>
+		</exec>
+		<!--
+		<delete dir="${air.build.dir}" />
+		-->
+	</target>
+
+	<target name="air.installer" depends="air.init">
+		<echo message="building native installer for ${air.file.abs}"/>
+		<copy todir="${war.target.dir}" verbose="false">
+			<fileset dir="${basedir}/../pub" />
+		</copy>
+		<echo message="creating native installer"/>
+		<exec executable="${air.adt.path}">
+            <arg value="-package"/> 
+            <arg value="-storetype"/> 
+            <arg value="${air.cert.store.type}"/> 
+            <arg value="-keystore"/> 
+            <arg value="${basedir}/../air/${air.cert.store}"/> 
+            <arg value="-storepass"/> 
+            <arg value="${air.cert.store.password}"/> 
+            <arg value="-target"/> 
+            <arg value="native"/> 
+            <arg value="${dist.dir}/${distro.name}.${air.native.ext}"/> 
+            <arg value="${air.build.dir.abs}/Application.xml"/> 
+            <arg value="-C"/> 
+            <arg value="${air.build.dir.abs}"/> 
+            <arg value="${air.build.dir.abs}"/> 
+		</exec>
+		<!--
+		<delete dir="${air.build.dir}" />
+		-->
+	</target>
+
+	<target name="air.sign" depends="air.init">
+		<echo message="signing ${air.file.abs}"/>
+		<exec executable="${air.adt.path}" dir="${basedir}/../air/">
+            <arg value="-sign"/> 
+            <arg value="-storetype"/> 
+            <arg value="${air.cert.store.type}"/> 
+            <arg value="-keystore"/> 
+            <arg value="${air.cert.store}"/> 
+            <arg value="-storepass"/> 
+            <arg value="${air.cert.store.password}"/> 
+            <arg value="${air.file.abs}i"/> 
+            <arg value="${air.file.abs}"/> 
+		</exec>
+	</target>
+
+		<target name="air.run">
+		<exec executable="${air.adl.path}">
+			<arg line="${basedir}/../air/Application.xml" />
+		</exec>
+	</target>
+	
+</project>

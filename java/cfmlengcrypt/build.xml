@@ -1,0 +1,82 @@
+<project name="cfmlengcrypt" default="cfmlengcrypt.compile" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<dirname property="cfmlengcrypt.basedir" file="${ant.file.cfmlengcrypt}" />
+
+	<path id="cfmlengcrypt.lib.path">
+		<fileset dir="${cfmlengcrypt.basedir}/lib">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+	<target name="cfmlengcrypt.compile">
+		<delete dir="${cfmlengcrypt.basedir}/bin/" />
+		<mkdir dir="${cfmlengcrypt.basedir}/bin/" />
+		<echo message="${toString:cfmlengcrypt.lib.path}"/>
+		<javac-ecj srcdir="${cfmlengcrypt.basedir}/src/" destdir="${cfmlengcrypt.basedir}/bin/" classpath="${toString:cfmlengcrypt.lib.path}" />
+	</target>
+
+	<target name="cfmlengcrypt.jar" depends="cfmlengcrypt.compile">
+		<manifestclasspath property="cfmlengcrypt.lib.list" jarfile="${cfdistro.basedir}/lib/cfmlengcrypt.jar">
+		    <classpath refid="cfmlengcrypt.lib.path"/>
+		</manifestclasspath>
+		<jar destfile="${cfdistro.basedir}/lib/cfmlengcrypt.jar" basedir="${cfmlengcrypt.basedir}/bin/" includes="**/*.class">
+			<manifest>
+				<attribute name="Main-Class" value="cfmlengcrypt.Main" />
+				<attribute name="Class-Path" value="${cfmlengcrypt.lib.list}" />
+			</manifest>
+		</jar>
+		<delete dir="${cfmlengcrypt.basedir}/bin" />
+	</target>
+
+	<target name="cfmlengcrypt.encrypt" depends="cfmlengcrypt.jar">
+		<antcontrib:var name="dsn.password.encrypted" unset="true" />		
+		<java jar="${cfdistro.basedir}/lib/cfmlengcrypt.jar" fork="true" classpathref="cfmlengcrypt.lib.path" outputproperty="dsn.password.encrypted">
+			<arg value="acf" />
+			<arg value="${dsn.password.plaintext}" />
+		</java>
+		<echo message="ACF DSN encrypted: ${dsn.password.encrypted}"/>
+		<antcontrib:var name="dsn.password.plaintext" unset="true" />		
+	</target>
+
+	<target name="railo.encrypt" depends="cfmlengcrypt.jar">
+		<antcontrib:var name="railo.password.encrypted" unset="true" />		
+		<cfmlengcrypt engine="railo" plaintext="${railo.password.plaintext}" property="railo.password.encrypted" />
+		<antcontrib:var name="dsn.password.plaintext" unset="true" />		
+	</target>
+
+
+	<target name="sha.encrypt" depends="cfmlengcrypt.jar">
+		<antcontrib:var name="sha.result" unset="true" />		
+		<sha plaintext="admin123" property="sha.result" />
+		<echo message="${sha.result}"/>
+	</target>
+
+	<macrodef name="cfmlengcrypt">
+		<attribute name="engine" default="railo" />
+		<attribute name="plaintext" />
+		<attribute name="property" />
+		<sequential>
+			<antcontrib:var name="@{property}" unset="true" />
+			<java jar="${cfdistro.basedir}/lib/cfmlengcrypt.jar" fork="true" classpathref="cfmlengcrypt.lib.path" outputproperty="@{property}">
+				<arg value="@{engine}" />
+				<arg value="@{plaintext}" />
+			</java>
+			<echo message="@{engine} encrypted: @{plaintext} = ${@{property}} > $${@{property}}"/>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="sha">
+		<attribute name="plaintext" />
+		<attribute name="property" />
+		<sequential>
+			<antcontrib:var name="@{property}" unset="true" />
+			<java jar="${cfdistro.basedir}/lib/cfmlengcrypt.jar" fork="true" classpathref="cfmlengcrypt.lib.path" outputproperty="@{property}">
+				<arg value="sha" />
+				<arg value="@{plaintext}" />
+			</java>
+			<echo message="encrypted: @{plaintext} = ${@{property}} > $${@{property}}"/>
+		</sequential>
+	</macrodef>
+
+	
+</project>

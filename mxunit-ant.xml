@@ -1,0 +1,36 @@
+   <target name="runtests" description="Make output directories and run the MXUnit task">
+     <mkdir dir="${junit.out.dir.html}" />
+     <mkdir dir="${output.dir}" />
+     
+     
+     <taskdef name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" classpath="${mxunit.jar}"   />
+       <mxunittask server="localhost" port="8500"
+                   defaultrunner="/mxunit/runner/HttpAntRunner.cfc"
+                   outputdir="${output.dir}"
+                   verbose="true"
+                   testResultsSummary="my.summary">
+
+          <testcase name="mxunit.tests.framework.AssertTest" packageName="mxunit.asserttests" />
+          <testcase name="mxunit.tests.framework.AssertDecoratorTest" packageName="mxunit.assertdecoratortests" />
+          
+          <directory runner="/mxunit/runner/HttpAntRunner.cfc"
+                     remoteMethod="run"
+                     path="C:\CFusionMX7\wwwroot\mxunit\tests\framework" 
+                     packageName="mxunit.framework"
+                     recurse="false" />
+          
+          <directory runner="/mxunit/runner/HttpAntRunner.cfc"
+                     remoteMethod="run"
+                     path="C:\CFusionMX7\wwwroot\mxunit\tests\runner" 
+                     packageName="mxunit.runner"
+                     recurse="false" />         
+                     
+         <directory runner="/mxunit/runner/HttpAntRunner.cfc"
+                     remoteMethod="run"
+                     path="C:\CFusionMX7\wwwroot\mxunit\tests\PluginDemoTests" 
+                     packageName="mxunit.plugintests"
+                     recurse="false"  />
+                     
+                    
+      </mxunittask>
+  </target>

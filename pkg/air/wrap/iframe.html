@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head profile="http://www.w3.org/2002/12/namespace">
+<script type="text/javascript" src="AIRAliases.js"></script>
+<script type="text/javascript" src="AIRIntrospector.js"></script>
+<script type="text/javascript"> 
+        var process;
+        var hasStartupError = false; 
+        var openairURL;
+        
+        function launchProcess()
+        {
+        	if(air.NativeProcess.isSupported)
+            {
+                air.trace("NativeProcess supported.");
+    			setupAndLaunch();
+            }
+            else
+            {
+                air.trace("NativeProcess not supported.");
+            	alert("NativeProcess not supported!");
+            }
+        }
+
+        function setupAndLaunch()
+        {     
+            air.NativeApplication.nativeApplication.addEventListener( air.Event.EXITING, onExiting );
+
+            var nativeProcessStartupInfo = new air.NativeProcessStartupInfo();
+            if (air.Capabilities.os.toLowerCase().indexOf("win") > -1)
+			{
+				executable = "@air.start.server@.bat";
+			}
+			else if (air.Capabilities.os.toLowerCase().indexOf("mac") > -1)
+			{
+				executable = "@air.start.server@";
+			}
+            var file = air.File.applicationDirectory.resolvePath(executable);
+            if(!file.exists) {
+            	var message = "Cannot find the start script yo! :" + file.nativePath; 
+            	alert(message);
+                air.trace(message);
+            	hasStartupError = true;
+                air.NativeApplication.nativeApplication.exit(); 
+            } else {
+	            //var file = air.File.applicationDirectory.resolvePath("wee.sh");
+	            nativeProcessStartupInfo.executable = file;
+	
+	            var processArgs = new air.Vector["<String>"]();
+	            processArgs.push("runwar.start.fg");
+	            nativeProcessStartupInfo.arguments = processArgs;
+	
+	            process = new air.NativeProcess();
+	            process.start(nativeProcessStartupInfo);
+	            process.addEventListener(air.ProgressEvent.STANDARD_OUTPUT_DATA, onOutputData);
+	            process.addEventListener(air.ProgressEvent.STANDARD_ERROR_DATA, onErrorData);
+	            process.addEventListener(air.NativeProcessExitEvent.EXIT, onExit);
+	            process.addEventListener(air.IOErrorEvent.STANDARD_OUTPUT_IO_ERROR, onIOError);
+	            process.addEventListener(air.IOErrorEvent.STANDARD_ERROR_IO_ERROR, onIOError);
+            }
+
+            
+        }
+
+        var interface = {}; 
+        interface.openWindow = function(windowUrl,windowWitdh,windowHeight){ 
+        	var options = new air.NativeWindowInitOptions();  
+        	//options.systemChrome = "none";  
+        	//options.type = "lightweight";
+        	var width=windowWitdh, height=windowHeight;
+        	var bounds = new air.Rectangle( 
+        	(air.Capabilities.screenResolutionX - width) / 2,  
+        	(air.Capabilities.screenResolutionY - height) / 2,  
+        	width, height); 
+        	 
+        	var html = air.HTMLLoader.createRootWindow(true, options, true, bounds);  
+        	var req = new air.URLRequest(windowUrl) ; 
+        	html.load(req); 
+            html.window.closeNativeWindow = html.stage.nativeWindow.close;
+
+        	html.stage.nativeWindow.activate(); 
+        	html.stage.nativeWindow.alwaysInFront = true;
+        } 
+        interface.setUrl = function(newUrl){ 
+            top.window.frames["_mainFrame"].location.href = newUrl;
+            top.window.frames["_mainFrame"].parentSandboxBridge = interface;
+        }
+        interface.exit = function(){ 
+        	applicationExit();
+        }
+        interface.setTimeout = function(runFunction,timeout){
+            setTimeout(runFunction, timeout);
+        }
+        
+        interface.setApplicationWindowSize = function(width, height) {
+            var firstWindow = air.NativeApplication.nativeApplication.openedWindows[0];            
+        	firstWindow.width = width;
+        	firstWindow.height = height;
+        }
+        
+
+        function onOutputData()
+        {
+        	var outpt = process.standardOutput.readUTFBytes(process.standardOutput.bytesAvailable).replace(/^\s+|\s+$/g, '');
+            air.trace("Got: ", outpt);
+            if(outpt.indexOf("INFO::Started") != -1) {
+                air.trace("STARTED");
+                openairURL = 'http://127.0.0.1:' + outpt.replace(/.*:/,"") + '@air.open.url@';
+                var request = new air.URLRequest(openairURL);  
+                request.method = air.URLRequestMethod.GET;   
+                var loader = new air.URLLoader();
+                loader.addEventListener(air.Event.COMPLETE, initialPageLoaded);    
+                loader.addEventListener(air.HTTPStatusEvent.HTTP_RESPONSE_STATUS, initialPageStatus);    
+                try {  
+                  loader.load(request);    
+                } catch (error) {  
+                  alert("Error connecting to login server.");    
+                }                 
+            }
+/*
+			if(outpt.indexOf("Exception") != -1) { 
+            	alert(outpt);
+            }
+ */
+ 		}
+        
+        function initialPageStatus(event)
+        {
+        //if httpStatus is 401, 403, 404, 500, 501, socket is closed.
+        alert("Event: httpStatus (" + event.status + ")");
+        }
+        
+        function initialPageLoaded(event) {
+            //top.window.frames["_mainFrame"].location.href = 'http://localhost:8088/shennydo/rpc/?projectid=1&/wiki/thispage';
+            top.window.frames["_mainFrame"].location.href = openairURL;
+            top.window.frames["_mainFrame"].parentSandboxBridge = interface;
+            var firstWindow = air.NativeApplication.nativeApplication.openedWindows[0];            
+            firstWindow.activate();
+            var element = document.getElementById("spinner");
+            element.parentNode.removeChild(element);
+            document.getElementById("_mainFrame").style.display = '';        	
+        }
+
+        function onErrorData(event)
+        {
+        	var errorText = process.standardError.readUTFBytes(process.standardError.bytesAvailable);
+            air.trace("ERROR -", errorText); 
+            alert("ERROR - "+ errorText); 
+        }
+
+        function onExit(event)
+        {
+            air.trace("Process exited with ", event.exitCode);
+        }
+
+        function onIOError(event)
+        {
+             air.trace(event.toString());
+        }
+
+        function applicationExit(){ 
+            var exitingEvent = new air.Event(air.Event.EXITING, false, true); 
+            air.NativeApplication.nativeApplication.dispatchEvent(exitingEvent); 
+            if (!exitingEvent.isDefaultPrevented()) { 
+                air.NativeApplication.nativeApplication.exit(); 
+            } 
+        }
+        
+        function onExiting(exitingEvent) { 
+            var winClosingEvent; 
+            air.trace(exitingEvent.toString());
+        	process.exit();
+            for (var i = 0; i < air.NativeApplication.nativeApplication.openedWindows.length; i++) { 
+                var win = air.NativeApplication.nativeApplication.openedWindows[i]; 
+                winClosingEvent = new air.Event(air.Event.CLOSING,false,true); 
+                win.dispatchEvent(winClosingEvent); 
+                if (!winClosingEvent.isDefaultPrevented()) { 
+                    win.close(); 
+                } else { 
+                    exitingEvent.preventDefault(); 
+                } 
+            } 
+             
+            if (!exitingEvent.isDefaultPrevented()) { 
+                //perform cleanup 
+            } 
+        }
+        
+        // LAUNCH ON LOGIN
+        try 
+        { 
+            air.NativeApplication.nativeApplication.startAtLogin = true; 
+        } 
+        catch ( e ) 
+        { 
+            air.trace( "Cannot set startAtLogin: " + e.message ); 
+        } 
+         
+        air.NativeApplication.nativeApplication.addEventListener( air.InvokeEvent.INVOKE, onInvoke ); 
+         
+        function onInvoke( event ) 
+        { 
+            if( event.reason == air.InvokeEventReason.LOGIN ) 
+            { 
+                //do background processing... 
+                air.trace( "Running in background..." ); 
+            }             
+            else 
+            { 
+                window.nativeWindow.activate(); 
+            } 
+        } 
+
+        function openWindow() 
+        { 
+        } 
+
+        
+</script>
+<style>
+	body {
+		-webkit-animation-name: bodyBackground;
+		-webkit-animation-duration: 90s;
+		-webkit-animation-iteration-count: infinite;
+		-webkit-animation-timing-function: linear;
+	}
+	
+	@-webkit-keyframes bodyBackground {
+		from {
+			background-color: #000;
+		}
+		50% {
+			background-color: #fff;
+		}
+		to {
+			background-color: #000;
+		}
+	}
+	
+	#spinner {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		margin: -100px 0 0 -100px;
+		height: 200px;
+		width: 200px;
+		text-indent: 250px;
+		white-space: nowrap;
+		overflow: hidden;
+		background-color: #000;
+		-webkit-mask-image: url(spinner.png);
+		-webkit-animation-name: spinnerRotate, spinnerColor;
+		-webkit-animation-duration: 2s, 10s;
+		-webkit-animation-iteration-count: infinite;
+		-webkit-animation-timing-function: linear;
+	}
+	
+	@-webkit-keyframes spinnerRotate {
+		from {
+			-webkit-transform:rotate(0deg);
+		}
+		to {
+			-webkit-transform:rotate(360deg);
+		}
+	}
+	
+	@-webkit-keyframes spinnerColor {
+		from {
+			background-color: rgba(0, 0, 0, .5);
+		}
+		25% {
+			background-color: rgba(102, 0, 102, .5);
+		}
+		50% {
+			background-color: rgba(0, 102, 102, .5);
+		}
+		75% {
+			background-color: rgba(102, 102, 0, .5);
+		}
+		to {
+			background-color: rgba(0, 0, 0, .5);
+		}
+	}
+
+        </style>
+</head>
+<body onload="launchProcess()">
+<div>
+  	<!--  <a href="" onclick="window.location = 'iframe.html'">Wee</a>   -->
+	<p id="spinner"></p>
+	<iframe src="" documentroot="app:/" width="100%" height="600"
+		id="_mainFrame" name="_mainFrame" style="display:none;background-color:white"> </iframe>
+</div>
+
+</body>
+</html>
+

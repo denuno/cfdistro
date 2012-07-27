@@ -1,0 +1,5 @@
+#! /bin/sh
+#open /usr/bin/screen
+curfile=$BASH_SOURCE
+dirpath=${curfile%/*}
+open $dirpath/run.command

@@ -1,0 +1,88 @@
+<project name="fileservelet" default="fileservelet.servlet.install"
+	basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<antcontrib:if>
+		<equals arg1="${default.cfengine}" arg2="acf" />
+		<then>
+			<path id="fileservlet.lib.path">
+				<fileset dir="${cfdistro.basedir}/lib">
+					<include name="*.jar" />
+				</fileset>
+				<fileset dir="${war.target.dir}/WEB-INF/cfusion/lib">
+					<include name="*.jar" />
+				</fileset>
+			</path>
+		</then>
+		<else>
+			<path id="fileservlet.lib.path">
+				<fileset dir="${cfdistro.basedir}/lib">
+					<include name="*.jar" />
+				</fileset>
+				<fileset dir="${war.target.dir}/WEB-INF/lib">
+					<include name="*.jar" />
+				</fileset>
+			</path>
+		</else>
+	</antcontrib:if>
+
+	<target name="fileservelet.servlet.install">
+		<echo>fart:${toString:fileservlet.lib.path}</echo>
+		<mkdir dir="${war.target.dir}/WEB-INF/classes"/>
+		<javac-ecj srcdir="${cfdistro.basedir}/java/fileservlet/src/servlet/${default.cfengine}" destdir="${war.target.dir}/WEB-INF/classes" classpath="${toString:fileservlet.lib.path}"/>
+
+		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+			<insert path="web-app/servlet[1]" position="before">
+				<![CDATA[
+				<servlet>
+				    <servlet-name>fileServlet</servlet-name>
+				    <servlet-class>servlet.${default.cfengine}.FileServlet</servlet-class>
+				</servlet>
+				<init-param>
+					<param-name>filePath</param-name>
+					<param-value></param-value>
+				</init-param>
+				<init-param>
+					<param-name>defaultFileNames</param-name>
+					<param-value>index.cfm default.cfm</param-value>
+				</init-param>
+				<servlet-mapping>
+				    <servlet-name>fileServlet</servlet-name>
+				    <url-pattern>/docs/*</url-pattern>
+				</servlet-mapping>
+				]]>
+			</insert>
+		</xmltask>
+	</target>
+
+	<macrodef name="fileservlet">
+		<attribute name="servletname" default="fileServlet" />
+		<attribute name="directory" />
+		<attribute name="urlpattern" default="" />
+		<element name="args" optional="true" />
+		<sequential>
+			<mkdir dir="${war.target.dir}/WEB-INF/classes"/>
+			<echo message="Adding fileServlet for @{urlpattern} serving content from: @{directory}" />
+			<javac-ecj srcdir="${cfdistro.basedir}/java/fileservlet/src/servlet/${default.cfengine}" destdir="${war.target.dir}/WEB-INF/classes" classpath="${toString:fileservlet.lib.path}"/>
+			
+			<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+				<insert path="web-app/servlet[1]" position="before">
+					<![CDATA[
+					<servlet>
+					    <servlet-name>@{servletname}</servlet-name>
+					    <servlet-class>servlet.${default.cfengine}.FileServlet</servlet-class>
+						<init-param>
+							<param-name>filePath</param-name>
+							<param-value>@{directory}</param-value>
+						</init-param>
+					</servlet>
+					<servlet-mapping>
+					    <servlet-name>@{servletname}</servlet-name>
+					    <url-pattern>@{urlpattern}</url-pattern>
+					</servlet-mapping>
+					]]>
+				</insert>
+			</xmltask>
+		</sequential>
+	</macrodef>
+
+</project>

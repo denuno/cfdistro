@@ -1,0 +1,5 @@
+importtargetdefinition -A "${buckminster.cfd.basedir}/build-target-platform.target"
+import '-D' 'feature.name=${build.feature.name}' "${buckminster.cfd.basedir}/buckminster-build.cquery"
+build --thorough
+#perform '-Q' '-D' 'target.os=*' '-D' 'target.ws=*' '-D' 'target.arch=*' '-Dcbi.include.source=false' '${build.feature.name}#site.p2'
+perform ${perform.target}

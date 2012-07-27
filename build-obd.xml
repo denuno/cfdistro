@@ -1,0 +1,621 @@
+<project name="build-obd" default="obd.build" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="ext.obd.version" value="1.3" />
+	<property name="ext.obd.dir" location="${ext.dir}/openbd/${ext.obd.version}" />
+	<property name="ext.obd.war" location="${ext.obd.dir}/openbd.war" />
+	<property name="ext.obd.war.uri" value="http://www.openbluedragon.org/download/${ext.obd.version}/openbd.war" />
+	<property name="ext.obd.war" location="${ext.obd.dir}/openbd.war" />
+	<property name="server.charset" value="utf-8" />
+	<property name="obd.charset" value="${server.charset}" />
+		
+	<target name="obd.requires">
+		<mkdir dir="${ext.obd.dir}"/>
+		<antcontrib:if>
+			<equals arg1="${ext.obd.version}" arg2="nightly" />
+			<then>
+			    <tstamp>
+			      <format property="yesterday"
+			         offset="-1" unit="day"
+			         pattern="MM/dd/yyyy HH:MM a"/>
+			    </tstamp>
+				<echo>Deleting openbd.war if older than ${yesterday}, because you be running on the edge, esse!</echo>
+				<delete>
+				<fileset dir="${ext.obd.dir}">
+					<include name="**/openbd.war"/>
+				    <date datetime="${yesterday}" when="before"/>
+				</fileset>
+				</delete>
+			</then>
+		</antcontrib:if>
+		<required-resource
+			src="${ext.obd.war.uri}" 
+			dest="${ext.obd.war}" />
+		<requires-ext-file file="${ext.dir}/jboss/jboss-classloading.xml"/>
+	</target>
+
+	
+	<target name="obd.war.init" depends="clean,obd.requires">
+		<unzip src="${ext.obd.war}"
+		       dest="${war.target.dir}">
+		</unzip>
+		<loadfile property="obd.web.mxl" srcfile="${war.target.dir}/WEB-INF/web.xml" />
+		<antcontrib:propertyregex override="yes" property="obd.web.mxl" input="${obd.web.mxl}" regexp="&lt;web-app[^&gt;]+&gt;" replace="&lt;web-app&gt;" global="true" />
+		<echo file="${war.target.dir}/WEB-INF/web.xml" message="${obd.web.mxl}" />
+		<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+			<replace path="/server/system/defaultcharset/text()" withText="${obd.charset}"/>
+			<replace path="/server/system/password/text()" withText="${cfadmin.password}"/>
+		</xmltask>
+	</target>
+	
+	<target name="obd.build">
+		<antcontrib:runtarget target="war.init" />
+		<antcontrib:if>
+			<notequals arg1="${cfml.error.500.template}" arg2="" />
+			<then>
+			</then>
+		</antcontrib:if>
+
+		<antcontrib:switch value="${build.type}">
+		  <case value="localdev">
+			<requires-ext resource="${ext.railo.dir}/error.cfm"/>
+			<copy file="${ext.railo.dir}/error.cfm" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag" overwrite="true" />
+			<obd-cache-template when="always" />
+		  	<obd-error-template path="/WEB-INF/lib/railo-server/context/library/tag/error.cfm"/>
+		  </case>
+		  <case value="dev">
+			<copy file="${ext.railo.dir}/error.cfm" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag" overwrite="true" />
+			<obd-cache-template when="always" />
+		  	<obd-error-template path="/WEB-INF/lib/railo-server/context/library/tag/error.cfm"/>
+		  </case>
+		  <case value="qa">
+			<property name="copy.mappings.to.war" value="true"/>
+			<obd-cache-template when="never" />
+		  </case>
+		  <case value="prod">
+			<property name="copy.mappings.to.war" value="true"/>
+			<obd-cache-template when="never" />
+		  </case>
+		  <default>
+		  	<fail message="Um, the build type '${build.type}' is unknown to me, esse!" />
+		  </default>
+		</antcontrib:switch>
+	</target>	
+
+	<target name="obd.add.libs" if="add.libs.dir">
+		<echo message="Copying libs: ${add.libs.dir} to: ${war.target.dir}/WEB-INF/lib" /> 
+		<copy todir="${war.target.dir}/WEB-INF/lib" overwrite="true">
+			<fileset dir="${add.libs.dir}"/>
+		</copy>
+	</target>
+	
+	<target name="obd.mappings.xml.build" depends="exists.mappings.xml" if="exists.mappings.xml">
+		<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+			<copy path="/server/cfmappings" attrValue="true" property="cfmappings.exists"/>
+			<insert path="/server" position="under" unless="cfmappings.exists">
+			<![CDATA[
+			<cfmappings>
+			</cfmappings>
+			]]>
+			</insert>
+		</xmltask>
+	   <xmltask sourcebuffer="mappings.buff">
+	      <call path="mappings/*">
+	        <param name="virtual" path="@virtual" default="NONE"/>
+	        <param name="physical" path="@physical" default="NONE"/>
+	        <actions>
+				<obd-mapping physical="@{physical}" virtual="@{virtual}" />
+	        </actions>
+	      </call>  
+	    </xmltask>  
+	</target>
+
+	<target name="obd.customtags.xml.build" depends="exists.customtags.xml" if="exists.customtags.xml">
+		<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+			<copy path="/server/cfmlcustomtags/text()" attrValue="true" property="cfmlcustomtags.exists"/>
+			<insert path="/server" position="under" unless="cfmlcustomtags.exists">
+			<![CDATA[
+			<cfmlcustomtags>
+			</cfmlcustomtags>
+			]]>
+			</insert>
+		</xmltask>
+	   <xmltask source="customtags.xml">
+	      <call path="mappings/*">
+	        <param name="virtual" path="@virtual" default="NONE"/>
+	        <param name="physical" path="$@physical" default="NONE"/>
+	        <actions>
+	        	<antcontrib:var name="mapping.exists" unset="true"/>
+	  				<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+	  					<copy path="/server/cfmlcustomtags/mapping[@name='@{virtual}']/@name" attrValue="true" property="mapping.exists"/>
+	  					<replace path="/server/cfmlcustomtags/mapping[@name=@{virtual}]/text()" if="mapping.exists">
+	  					<![CDATA[
+	  					    <mapping name="@{virtual}">
+	  					      <directory>@{physical}</directory>
+	  					      <name>@{virtual}</name>
+	  					    </mapping>
+	  					]]>
+	  					</replace>
+	  					<insert path="/server/cfmlcustomtags" position="under" unless="mapping.exists">
+	  					<![CDATA[
+	  					    <mapping name="@{virtual}">
+	  					      <directory>@{physical}</directory>
+	  					      <name>@{virtual}</name>
+	  					    </mapping>
+	  					]]>
+	  					</insert>	  				
+	  				</xmltask>
+	        	<antcontrib:switch value="${mapping.exists}">
+	        	  <case value="@{physical}">
+	        	    <echo message="Updated Custom Tag Mapping - @{physical}" />
+	        	  </case>
+	        	  <default>
+	        	    <echo message="Added Custom Tag Mapping - @{physical}" />
+	        	  </default>
+	        	</antcontrib:switch>
+	        </actions>
+	      </call>  
+	    </xmltask>  
+	</target>	
+
+	<target name="obd.mail.xml.build" depends="exists.mail.xml" if="exists.mail.xml">
+<!--		<xmltask sourcebuffer="mail.buff" outputter="simple">
+					<call path="mail/settings">
+						<param name="log" path="@log" default="./temp/logs/mail.log" />
+						<param name="spool-enable" path="@spool-enable" default="yes" />
+						<param name="spool-interval" path="@spool-interval" default="5" />
+						<param name="timeout" path="@timeout" default="30" />
+						<actions>
+							<xmltask source="${war.target.dir}/WEB-INF/lib/railo-server/context/railo-server.xml" dest="${war.target.dir}/WEB-INF/lib/railo-server/context/railo-server.xml">
+								<attr path="/railo-configuration/mail" attr="log" value="@{log}" />
+								<attr path="/railo-configuration/mail" attr="spool-enable" value="@{spool-enable}" />
+								<attr path="/railo-configuration/mail" attr="spool-interval" value="@{spool-interval}" />
+								<attr path="/railo-configuration/mail" attr="timeout" value="@{timeout}" />
+							</xmltask>
+						</actions>
+					</call>
+				</xmltask>
+-->
+				<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+					<replace path="/server/cfmail">
+						<![CDATA[
+						  <cfmail>
+						    <interval>240</interval>
+						    <smtpserver> </smtpserver>
+						    <smtpport></smtpport>
+						    <charset>UTF-8</charset>
+						  </cfmail>
+							]]>
+						</replace>
+				</xmltask>
+				<xmltask sourcebuffer="mail.buff">
+					<call path="mail/servers/*">
+						<param name="smtp" path="@smtp" default="smtp.gmail.com" />
+						<param name="port" path="@port" default="587" />
+						<param name="username" path="@username" default="" />
+						<param name="password" path="@password" default="" />
+						<param name="ssl" path="@ssl" default="false" />
+						<param name="tls" path="@tls" default="true" />				
+						<actions>
+							<antcontrib:var name="mailserver.exists" unset="true" />
+							<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+								<copy path="/server/cfmail/smtpserver/text()" attrValue="true"  property="existing.smtpservers"/>
+							</xmltask>
+							<echo message="${existing.smtpservers}"/>
+							<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+								<print path="/server/cfmail/smtpserver/text()"/>
+								<copy path="/server/cfmail/smtpserver/text()" attrValue="true"  property="existing.smtpservers"/>
+								
+								<replace path="/server/cfmail">
+									<![CDATA[
+									  <cfmail>
+									    <interval>240</interval>
+									    <smtpserver>${existing.smtpservers},@{username}:@{password}@@@{smtp}</smtpserver>
+									    <smtpport>@{port}</smtpport>
+									    <charset>UTF-8</charset>
+									  </cfmail>
+				  					]]>
+			  					</replace>
+							</xmltask>
+							<antcontrib:switch value="${mailserver.exists}">
+								<case value="@{smtp}">
+									<echo message="Updated mail server - @{smtp}	 @{username}" />
+								</case>
+								<default>
+									<echo message="Added mail server - @{smtp} 	@{username}" />
+								</default>
+							</antcontrib:switch>
+						</actions>
+					</call>
+				</xmltask>
+
+	</target>	
+	
+	<target name="obd.datasources.build" depends="exists.datasources.xml" if="exists.datasources.xml">
+
+		<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+			<copy path="/server/cfquery/text()" attrValue="true" property="datasources.exists"/>
+			<insert path="/server" position="under" unless="datasources.exists">
+			<![CDATA[
+			<cfquery>
+			</cfquery>
+			]]>
+			</insert>
+		</xmltask>
+	   <xmltask sourcebuffer="datasources.buff">
+	      <call path="datasources/*">
+	        <param name="name" path="@name" default="datasource"/>
+	        <param name="blob" path="@blob" default="false"/>
+	        <param name="clob" path="@clob" default="false"/>
+	        <param name="class" path="@class" default="org.gjt.mm.mysql.Driver"/>
+	        <param name="host" path="@host" default="localhost"/>
+	        <param name="port" path="@port" default="3306"/>
+	        <param name="database" path="@database" default="database"/>
+	        <param name="username" path="@username" default="sa"/>
+	        <param name="password" path="@password" default=""/>
+	        <param name="sqlstoredprocedures" path="@sqlstoredprocedures" default="true"/>
+	        <param name="sqlinsert" path="@sqlinsert" default="true"/>
+	        <param name="sqlselect" path="@sqlselect" default="true"/>
+	        <param name="sqlupdate" path="@sqlupdate" default="true"/>
+	        <param name="sqldelete" path="@sqldelete" default="true"/>
+	        <param name="maintainconnection" path="@maintainconnection" default="true"/>
+	        <param name="logintimeout" path="@logintimeout" default="120"/>
+	        <param name="connectionretries" path="@connectionretries" default="0"/>
+	        <param name="connectionlimit" path="@connectionlimit" default="-1"/>
+	        <param name="connectiontimeout" path="@connectiontimeout" default="120"/>
+	        <param name="custom" path="@custom" default="autoReconnect=false&amp;zeroDateTimeBehavior=convertToNull&amp;useOldAliasMetadataBehavior=true&amp;CharacterEncoding=UTF-8&amp;allowMultiQueries=false"/>
+	        <param name="jdbc" path="@jdbc" default="mysql"/>
+	        <param name="jdbcstring" path="@jdbcstring" default="jdbc:mysql://{host}:{port}/{database}"/>
+	        <actions>
+	        	<antcontrib:var name="datasource.exists" unset="true"/>
+	  				<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+	  					<copy path="/server/cfquery/datasource[@name='@{name}']/@name" attrValue="true" property="datasource.exists"/>
+	  					<replace path="/server/cfquery/datasource[@name='@{name}']" if="datasource.exists">
+	  					<![CDATA[
+	  					    <datasource name="@{name}">
+	  					      <password>@{password}</password>
+	  					      <connectionretries>@{connectionretries}</connectionretries>
+	  					      <sqlupdate>@{sqlupdate}</sqlupdate>
+	  					      <sqldelete>@{sqldelete}</sqldelete>
+	  					      <username>@{username}</username>
+	  					      <drivername>@{class}</drivername>
+	  					      <sqlstoredprocedures>@{sqlstoredprocedures}</sqlstoredprocedures>
+	  					      <perrequestconnections>@{maintainconnection}</perrequestconnections>
+	  					      <sqlinsert>@{sqlinsert}</sqlinsert>
+	  					      <sqlselect>@{sqlselect}</sqlselect>
+	  					      <connectiontimeout>@{connectiontimeout}</connectiontimeout>
+	  					      <databasename>@{database}</databasename>
+	  					      <initstring></initstring>
+	  					      <logintimeout>@{logintimeout}</logintimeout>
+	  					      <hoststring>jdbc:@{jdbc}://@{host}:@{port}/@{database}</hoststring>
+	  					      <maxconnections>@{connectionlimit}</maxconnections>
+	  					      <name>@{name}</name>
+	  					    </datasource>
+	  					]]>
+	  					</replace>
+	  					<insert path="/server/cfquery" position="under" unless="datasource.exists">
+	  					<![CDATA[
+	  					    <datasource name="@{name}">
+	  					      <password>@{password}</password>
+	  					      <connectionretries>@{connectionretries}</connectionretries>
+	  					      <sqlupdate>@{sqlupdate}</sqlupdate>
+	  					      <sqldelete>@{sqldelete}</sqldelete>
+	  					      <username>@{username}</username>
+	  					      <drivername>@{class}</drivername>
+	  					      <sqlstoredprocedures>@{sqlstoredprocedures}</sqlstoredprocedures>
+	  					      <perrequestconnections>@{maintainconnections}</perrequestconnections>
+	  					      <sqlinsert>@{sqlinsert}</sqlinsert>
+	  					      <sqlselect>@{sqlselect}</sqlselect>
+	  					      <connectiontimeout>@{connectiontimeout}</connectiontimeout>
+	  					      <databasename>@{database}</databasename>
+	  					      <initstring></initstring>
+	  					      <logintimeout>@{logintimeout}</logintimeout>
+	  					      <hoststring>jdbc:@{jdbc}://@{host}:@{port}/@{database}</hoststring>
+	  					      <maxconnections>@{connectionlimit}</maxconnections>
+	  					      <name>@{name}</name>
+	  					    </datasource>
+	  					]]>
+	  					</insert>	  				
+	  				</xmltask>
+	        	<antcontrib:switch value="${datasource.exists}">
+	        	  <case value="@{name}">
+	        	    <echo message="Updated Datasource - @{name}" />
+	        	  </case>
+	        	  <default>
+	        	    <echo message="Added Datasource - @{name}" />
+	        	  </default>
+	        	</antcontrib:switch>
+	        </actions>
+	      </call>  
+	    </xmltask>  		
+	  	<echo message="imported datasources from ${basedir}/datasources.${build.type}.xml" />
+	</target>
+	
+	<target name="obd.scheduledtasks.build" depends="exists.scheduledtasks.xml" if="exists.scheduledtasks.xml">
+		<filter token="server.port.http" value="${server.port.http}"/>
+		<filter token="war.name" value="${war.name}"/>
+		<filter token="war.contextpath" value="${war.contextpath}"/>
+		<copy file="scheduledtasks.xml" toFile="${war.target.dir}/WEB-INF/bluedragon/scheduler.xml" filtering="true"/>
+		<xmltask source="${war.target.dir}/WEB-INF/bluedragon/scheduler.xml">
+			<call path="schedule/*">
+				<param name="hidden" path="@hidden" default="false" />
+				<param name="interval" path="@interval" default="60" />
+				<param name="publish" path="@publish" default="false" />
+				<param name="name" path="@name"/>
+				<param name="port" path="@port" default="" />
+				<param name="proxyPort" path="@proxyPort" default="" />				
+				<param name="readonly" path="@readonly" default="" />				
+				<param name="resolveUrl" path="@resolveUrl" default="false" />				
+				<param name="startDate" path="@startDate" default="" />				
+				<param name="endDate" path="@endDate" default="" />				
+				<param name="startTime" path="@startTime" default="" />				
+				<param name="endTime" path="@endTime" default="" />				
+				<param name="timeout" path="@timeout" default="" />				
+				<param name="url" path="@url" default="" />								
+				<actions>
+					<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+	  					<copy path="/server/cfschedule/text()" attrValue="true" property="schedule.exists"/>
+						<insert path="/server" position="under" unless="schedule.exists">
+						<![CDATA[<cfschedule></cfschedule>]]>
+						</insert>
+	  					<copy path="/server/cfschedule/task[@name='@{name}']/@name" attrValue="true" property="task.exists"/>
+	  					<replace path="/server/cfschedule/task[@name=@{name}]/text()" if="task.exists">
+						<![CDATA[
+						    <task name="@{name}">
+						      <porttouse>-1</porttouse>
+						      <tasktype>DAILY</tasktype>
+						      <password>pass</password>
+						      <resolvelinks>@{resolveUrl}</resolvelinks>
+						      <username>den</username>
+						      <starttime>@{startTime}</starttime>
+						      <requesttimeout>@{timeout}</requesttimeout>
+						      <proxyport>80</proxyport>
+						      <proxypassword></proxypassword>
+						      <publishpath></publishpath>
+						      <enddate>@{endDate}</enddate>
+						      <urltouse>@{url}</urltouse>
+						      <proxyusername></proxyusername>
+						      <publish>false</publish>
+						      <proxyserver></proxyserver>
+						      <publishfile></publishfile>
+						      <interval>@{interval}</interval>
+						      <startdate>@{startDate}</startdate>
+						      <endtime>@{endTime}</endtime>
+						      <name>@{name}</name>
+						    </task>
+	  					]]>
+	  					</replace>
+	  					<insert path="/server/cfschedule" position="under" unless="task.exists">
+	  					<![CDATA[
+						    <task name="@{name}">
+						      <porttouse>-1</porttouse>
+						      <tasktype>DAILY</tasktype>
+						      <password>pass</password>
+						      <resolvelinks>@{resolveUrl}</resolvelinks>
+						      <username>den</username>
+						      <starttime>@{startTime}</starttime>
+						      <requesttimeout>@{timeout}</requesttimeout>
+						      <proxyport>80</proxyport>
+						      <proxypassword></proxypassword>
+						      <publishpath></publishpath>
+						      <enddate>@{endDate}</enddate>
+						      <urltouse>@{url}</urltouse>
+						      <proxyusername></proxyusername>
+						      <publish>false</publish>
+						      <proxyserver></proxyserver>
+						      <publishfile></publishfile>
+						      <interval>@{interval}</interval>
+						      <startdate>@{startDate}</startdate>
+						      <endtime>@{endTime}</endtime>
+						      <name>@{name}</name>
+						    </task>
+	  					]]>
+	  					</insert>	  				
+					</xmltask>
+					<antcontrib:switch value="${task.exists}">
+						<case value="@{name}">
+							<echo message="Updated scheduled task - @{name}	 @{username}" />
+						</case>
+						<default>
+							<echo message="Added scheduled task - @{name} 	@{username}" />
+						</default>
+					</antcontrib:switch>
+				</actions>
+			</call>
+		</xmltask>
+
+	</target>
+
+	<target name="copy-to-bin">
+		<delete dir="${temp.dir}/bin" />
+		<mkdir dir="${temp.dir}/bin" />
+		<copy todir="${temp.dir}/bin" verbose="true">
+			<fileset dir="${basedir}/WEB-INF/obd/cfclasses/" />
+			<chainedmapper>
+				<regexpmapper from="^CF_.+_(.+)\d{4}/+(.*)" to="\1/\2"/>
+				<regexpmapper from="(.*)_cf(.).+\.class$$" to="\1.cf\2"/>
+			</chainedmapper>
+		</copy>
+	</target>
+
+	<target name="obd.set.log.dir">
+		<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+			<attr path="/obd-configuration/remote-clients" attr="log" value="${log.dir}"/>
+			<attr path="/obd-configuration/remote-clients" attr="log-level" value="info"/>
+			<attr path="/obd-configuration/scope" attr="requesttimeout-log" value="${log.dir}/requesttimeout.log"/>
+			<attr path="/obd-configuration/mail" attr="log" value="${log.dir}/mail.log"/>
+			<attr path="/obd-configuration/debugging" attr="memory-log" value="${log.dir}/memory.log"/>
+		</xmltask>
+	</target>	
+
+	<target name="obd.set.debug">
+		<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+			<attr path="/obd-configuration/debugging" attr="debug" value="no"/>
+		</xmltask>
+	</target>	
+
+	<target name="obd.set.inspect.templates">
+		<echo message="Will inspect each template ${cfmlengine.inspect.templates}"/>
+		<antcontrib:switch value="${cfmlengine.inspect.templates}">
+		  <case value="always">
+			<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+				<replace path="/server/system/file/trustcache/text()" withText="false" />
+			</xmltask>
+		  </case>
+		  <case value="once">
+			<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+				<replace path="/server/system/file/trustcache/text()" withText="false" />
+			</xmltask>
+		  </case>
+		  <case value="never">
+			<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+				<replace path="/server/system/file/trustcache/text()" withText="true" />
+			</xmltask>
+		  </case>
+		  <default>
+		  	<fail message="cfmlengine.inspect.templates: ${cfmlengine.inspect.templates} must be always, once or never" />
+		  </default>
+		</antcontrib:switch>
+	</target>
+	
+	<macrodef name="obd-customtag">
+		<attribute name="physical" />
+		<attribute name="virtual" />
+		<sequential>
+			<obd-mapping physical="@{physical}" virtual="@{virtual}" type="cfmlcustomtags" />
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="obd-mapping">
+		<attribute name="physical" />
+		<attribute name="virtual" />
+		<attribute name="type" default="cfmappings" />
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="${copy.mappings.to.war}" arg2="true" />
+				<then>
+					<copy todir="${war.target.dir}/@{virtual}" verbose="false">
+						<fileset dir="@{physical}"/>
+					</copy>
+				</then>
+				<else>
+		        	<antcontrib:var name="mapping.exists" unset="true"/>
+		  				<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+		  					<copy path="/server/@{type}/mapping[@name='@{virtual}']/@name" attrValue="true" property="mapping.exists"/>
+		  					<replace path="/server/@{type}/mapping[@name=@{virtual}]/text()" if="mapping.exists">
+		  					<![CDATA[
+		  					    <mapping name="@{virtual}">
+		  					      <directory>$@{physical}</directory>
+		  					      <name>@{virtual}</name>
+		  					    </mapping>
+		  					]]>
+		  					</replace>
+		  					<insert path="/server/@{type}" position="under" unless="mapping.exists">
+		  					<![CDATA[
+		  					    <mapping name="@{virtual}">
+		  					      <directory>$@{physical}</directory>
+		  					      <name>@{virtual}</name>
+		  					    </mapping>
+		  					]]>
+		  					</insert>
+		  				</xmltask>
+		        	<antcontrib:switch value="${mapping.exists}">
+		        	  <case value="@{virtual}">
+		        	    <echo message="Updated Mapping - @{virtual}	 @{physical}" />
+		        	  </case>
+		        	  <default>
+		        	    <echo message="Added Mapping - @{virtual} 	@{physical}" />
+		        	  </default>
+		        	</antcontrib:switch>
+					</else>
+				</antcontrib:if>
+		</sequential>
+	</macrodef>		
+	
+	<macrodef name="obd-error-template">
+		<attribute name="path" default="" />
+		<attribute name="type" default="500" />
+		<sequential>
+			<echo>setting @{type} template to @{path}</echo>
+        	<antcontrib:switch value="@{type}">
+        	  <case value="500">
+    			<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+    				<remove path="/server/system/errorhandler" />
+    				<insert path="/server/system" position="above"><![CDATA[<errorhandler>@{path}</errorhandler>]]></insert>
+    			</xmltask>
+        	  </case>
+          	  <case value="404">
+    			<xmltask source="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml" dest="${war.target.dir}/WEB-INF/bluedragon/bluedragon.xml">
+    				<remove path="/server/system/missingtemplatehandler" />
+    				<insert path="/server/system" position="above"><![CDATA[<missingtemplatehandler>@{path}</missingtemplatehandler>]]></insert>
+    			</xmltask>
+          	  </case>
+        	</antcontrib:switch>
+		</sequential>
+	
+	</macrodef>	
+
+	<macrodef name="obd-extension-install">
+		<attribute name="extension-zip" />
+		<attribute name="extension-tag" />
+		<attribute name="builtin" default="false" />
+		<sequential>
+			<property name="extension.temp.dir" value="${temp.dir}/extensions-tmp"/>
+			<mkdir dir="${extension.temp.dir}" />
+			<unzip src="@{extension-zip}" dest="${extension.temp.dir}" />
+			<antcontrib:if><available file="${extension.temp.dir}/lib"/>
+			<then>
+				<copy todir="${war.target.dir}/WEB-INF/lib/">
+					<fileset dir="${extension.temp.dir}/lib"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/tag"/>
+			<then>
+				<copy todir="${war.target.dir}/WEB-INF/customtags">
+					<fileset dir="${extension.temp.dir}/tag"/>
+				</copy>
+				<obd-customtag physical="${war.target.dir}/WEB-INF/customtags/@{extension-tag}" virtual="/@{extension-tag}" />
+			</then>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="obd-inspect-template">
+		<attribute name="when" default="" />
+		<sequential>
+		</sequential>
+	</macrodef>	
+	
+	<target name="obd.set.security">
+	</target>
+
+	<!-- these are overridden prior -->
+	<target name="clean">
+		<antcall target="cfdistro.clean"/>
+	</target>
+	
+	<target name="copySources">
+		<antcall target="cfdistro.copySources"/>
+	</target>
+
+	<target name="exists.datasources.xml">
+		<antcall target="cfdistro.exists.datasources.xml"/>
+	</target>
+
+	<target name="exists.mappings.xml">
+		<antcall target="cfdistro.exists.mappings.xml"/>
+	</target>
+
+	<target name="exists.customtags.xml">
+		<antcall target="cfdistro.exists.customtags.xml"/>
+	</target>
+
+	<target name="exists.mail.xml">
+		<antcall target="cfdistro.exists.mail.xml" />
+	</target>
+
+	<target name="exists.scheduledtasks.xml">
+		<antcall target="cfdistro.exists.scheduledtasks.xml" />
+	</target>
+
+</project>

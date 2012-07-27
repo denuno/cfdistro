@@ -1,0 +1,26 @@
+<project name="revisions" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<macrodef name="user-create">
+		<attribute name="username"/>
+		<attribute name="password"/>
+		<attribute name="group"/>
+		<sequential>
+			<echo message="${os.name}"/>
+			<echo message="${os.family}"/>
+			<antcontrib:switch value="${os.name}">
+			  <case value="Mac OS X">
+			  </case>
+			  <case value="Linux">
+			  	# create group - change group id as needed
+			  	groupadd -g 502 jboss
+			  	# create user - change user id as needed
+			  	useradd -u 502 -g jboss -c "JBoss Admin" jboss
+			  </case>
+			  <default>
+			  	<fail message="Um, the os '${os.name}' is unknown to me, esse!" />
+			  </default>
+			</antcontrib:switch>
+		</sequential>
+	</macrodef>
+
+</project>

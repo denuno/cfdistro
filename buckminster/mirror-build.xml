@@ -1,0 +1,88 @@
+<project name="mirror-build" default="build.all.mirrors" basedir=".">
+	<condition property="file.path.prefix" value="/">
+		<os family="windows" />
+	</condition>
+	<property name="file.path.prefix" value="" />
+
+	<pathconvert property="product.checkout.unprefixed" dirsep="/">
+		<path location="../" />
+	</pathconvert>
+	<pathconvert property="build.feature.dir.unprefixed" dirsep="/">
+		<path location="${basedir}" />
+	</pathconvert>
+
+	<property name="webserver.root.dir" value="/apache-tomcat-6.0.20/webapps/ROOT" />
+
+	<property name="base.target.dir" value="${webserver.root.dir}/mirrors/" />
+	<makeurl file="${base.target.dir}" property="base.target.url" />
+	<property name="product.checkout" value="${file.path.prefix}${product.checkout.unprefixed}" />
+	<property name="build.dir" location="${product.checkout}/build/" />
+	<property name="director.dir" location="${build.dir}/director/" />
+
+	<target name="install.p2.director">
+		<condition property="p2.director.installed">
+			<available file="${director.dir}" />
+		</condition>
+		<antcall target="install.p2.director.internal" />
+	</target>
+
+	<target name="install.p2.director.internal" unless="p2.director.installed">
+		<unzip dest="${build.dir}" src="director_latest.zip" />
+	</target>
+
+	<target name="build.mirror">
+		<fail unless="p2.repo.url" message="p2.repo.url must be set to the source repository" />
+		<fail unless="destination" message="destination must be set to the destination p2 repository folder name" />
+		<java fork="true" dir="${director.dir}" logError="true" classname="org.eclipse.core.launcher.Main" failonerror="true">
+			<classpath>
+				<fileset dir="${director.dir}/plugins">
+					<include name="org.eclipse.equinox.launcher_*.jar" />
+				</fileset>
+			</classpath>
+			<arg line="-data ${director.dir}/${destination}-workspace" />
+			<arg line="-application org.eclipse.equinox.p2.metadata.repository.mirrorApplication" />
+			<arg line="-source ${p2.repo.url}" />
+			<arg line="-destination ${base.target.url}${destination}" />
+		</java>
+		<java fork="true" dir="${director.dir}" logError="true" classname="org.eclipse.core.launcher.Main" failonerror="true">
+			<classpath>
+				<fileset dir="${director.dir}/plugins">
+					<include name="org.eclipse.equinox.launcher_*.jar" />
+				</fileset>
+			</classpath>
+			<arg line="-data ${director.dir}/${destination}-workspace" />
+			<arg line="-application org.eclipse.equinox.p2.artifact.repository.mirrorApplication" />
+			<arg line="-source ${p2.repo.url}" />
+			<arg line="-destination ${base.target.url}${destination}" />
+			<arg line="-verbose" />
+			<!-- Required in order to clone indigo, as it currently contains invalid MD5 hashes for some ius -->
+			<sysproperty key="eclipse.p2.MD5Check" value="false" />
+		</java>
+	</target>
+
+	<target name="build.all.mirrors" depends="install.p2.director" description="Builds all mirrors">
+		<antcall target="build.mirror" inheritall="false">
+			<param name="p2.repo.url" value="http://download.eclipse.org/releases/indigo" />
+			<param name="destination" value="indigo" />
+		</antcall>
+		<antcall target="build.mirror" inheritall="false">
+			<param name="p2.repo.url" value="http://download.eclipse.org/tools/orbit/downloads/drops/R20100114021427/updateSite" />
+			<param name="destination" value="orbit" />
+		</antcall>
+		<antcall target="build.mirror" inheritall="false">
+			<param name="p2.repo.url" value="http://download.eclipse.org/tools/buckminster/headless-3.7" />
+			<param name="destination" value="buckminster" />
+		</antcall>
+		<antcall target="build.mirror" inheritall="false">
+			<param name="p2.repo.url" value="http://download.eclipse.org/technology/swtbot/indigo/dev-build/update-site" />
+			<param name="destination" value="swtbot" />
+		</antcall>
+	</target>
+	
+    <target name="clean">
+        <delete dir="${base.target.dir}/indigo" />
+        <delete dir="${base.target.dir}/orbit" />
+        <delete dir="${base.target.dir}/buckminster" />
+        <delete dir="${base.target.dir}/swtbot" />
+    </target>
+</project>

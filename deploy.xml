@@ -1,0 +1,452 @@
+<project name="deploy" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="remoteprops" value="" />
+	<property name="remote" value="" />
+	<antcontrib:runtarget target="check.creds" />
+
+	<propertyset id="remote-properties">
+	  <propertyref prefix="remote.${remote}."/>
+	</propertyset>
+
+	<antcontrib:for list="${toString:remote-properties}" param="prop">
+		<sequential>
+			<antcontrib:propertyregex property="remoteprop"
+			              input="@{prop}"
+			              regexp="remote\..+?\.(.*)="
+			              select="remote.\1"
+			              casesensitive="false" override="true" />
+			<antcontrib:propertyregex property="remotepropval"
+			              input="@{prop}"
+			              regexp=".+?=(.*)"
+			              select="\1"
+			              casesensitive="false" override="true" />
+			<echo message="${remoteprop} is ${remotepropval} "/>
+			<antcontrib:var name="${remoteprop}" value="${remotepropval}"/>
+		</sequential>
+	</antcontrib:for>
+
+	<macrodef name="verifyRemoteProperties">
+		<sequential>
+			<fail message="remote.user ${remote.user}" unless="remote.user" />
+			<fail message="remote.host ${remote.host}" unless="remote.host" />
+		</sequential>
+	</macrodef>
+	
+	
+	<target name="get.server.log.dir">
+		<antcontrib:runtarget target="${server.type}.server.log.dir" />
+	</target>
+
+	<target name="remote.sshexec.test">
+		<sequential>
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy" />
+			<deploy-sshexec command="ls" />
+		</sequential>
+	</target>
+
+	<target name="remote.scp">
+		<sequential>
+			<fail unless="scp.dir" message="specify ${scp.dir} dir (relative to project root) to copy to remote" />
+			<property name="scp.include" value="**"/>
+			<deploy-scp toDir="${remote.user}@${remote.host}:${remote.dir}${distro.name}">
+				<scpfiles>
+					<fileset dir="${basedir}/../${scp.dir}">
+						<exclude name="**/cache.properties"/>
+						<exclude name="**/temp/**"/>
+						<exclude name="**/cfdistro/ext/**"/>
+						<exclude name="**/cfdistro/artifacts/**"/>
+						<exclude name="**/.git/**"/>
+						<include name="${scp.include}"/>
+					</fileset>
+				</scpfiles>
+			</deploy-scp>
+		</sequential>
+	</target>
+
+	<target name="remote.scp.test">
+		<sequential>
+			<deploy-scp file="${basedir}/buildinfo.properties" todir="${remote.user}@${remote.host}:." />
+		</sequential>
+	</target>
+
+	<target name="remote.scp.from.test">
+		<sequential>
+			<antcontrib:runtarget target="check.creds" />
+			<deploy-scp file="${remote.user}@${remote.host}:./buildinfo.properties" todir="${basedir}/" />
+		</sequential>
+	</target>
+
+	<target name="remote.cfdistro.dist">
+		<sequential>
+			<verifyRemoteProperties />
+			<antcontrib:runtarget target="check.creds" />
+			<antcontrib:runtarget target="cfdistro.dist" />
+			<deploy-sshexec 
+				command="rm -rf ${distro.name};rm -rf ${distro.name}.zip" />
+			<deploy-scp file="${dist.zip.file}" 
+				toDir="${remote.user}@${remote.host}:." />
+			<deploy-sshexec 
+				command="${remote.unzip.cmd} -o ${distro.name}.zip > /dev/null" />
+		</sequential>
+	</target>
+	
+	<target name="remote.server">
+		<antcontrib:runtarget target="check.creds" />
+		<sequential>
+			<echo message="${remoteprops}" />
+			<echoproperties prefix="deploy"/>
+			<deploy-sshexec
+				command="${distro.name}/${distro.name} ${server.type}.install ${remoteprops}" />
+		</sequential>
+	</target>
+
+	<target name="remote.runtarget">
+		<sequential>
+			<verifyRemoteProperties />
+			<antcontrib:runtarget target="check.creds" />
+			<property name="target" value="build" />
+			<deploy-sshexec
+				command="${distro.name}/${distro.name} ${target} ${remoteprops}" />
+		</sequential>
+	</target>
+
+	<target name="remote.server.deploy">
+		<sequential>
+			<verifyRemoteProperties />
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy"/>
+			<deploy-scp file="${dist.zip.file}" 
+				toDir="${remote.user}@${remote.host}:." />
+			<deploy-sshexec
+				command="${remote.unzip.cmd} -o ${distro.name}.zip" />
+			<deploy-sshexec
+				command="mv ${distro.name} ${remote.dir}" />
+		</sequential>
+	</target>
+
+	<target name="remote.cfdistro.install">
+		<sequential>
+			<verifyRemoteProperties />
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy"/>
+			<deploy-scp file="${dist.zip.file}" 
+				toDir="${remote.user}@${remote.host}:." />
+			<deploy-sshexec 
+				command="${remote.unzip.cmd} -o ${distro.name}.zip > /dev/null" />
+		</sequential>
+	</target>
+
+	<target name="remote.cfdistro.update">
+		<sequential>
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy"/>
+			<deploy-sshexec
+				command="${distro.name}/${distro.name} cfdistro.update" />
+		</sequential>
+	</target>
+
+	<target name="remote.server.start">
+		<sequential>
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy"/>
+			<deploy-sshexec
+				command="${distro.name}/${distro.name} ${server.type}.start" />
+		</sequential>
+	</target>
+
+	<target name="remote.server.stop">
+		<sequential>
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy"/>
+			<deploy-sshexec
+				command="${distro.name}/${distro.name} ${server.type}.stop" />
+		</sequential>
+	</target>
+
+	<target name="remote.server.processes">
+		<sequential>
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy"/>
+			<deploy-sshexec
+				command="ps aux | grep 'java\|tomcat\|jetty'" />
+		</sequential>
+	</target>
+
+	<target name="remote.server.log.tail">
+		<sequential>
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy"/>
+			<deploy-sshexec
+				command="${distro.name}/${distro.name} server.log.tail" />
+		</sequential>
+	</target>
+	
+	
+	<target name="remote.start">
+		<sequential>
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy" />
+			<deploy-sshexec command="${distro.name}/${distro.name} server.start ${remoteprops}" />
+		</sequential>
+	</target>
+
+	<target name="remote.stop">
+		<sequential>
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties prefix="deploy" />
+			<deploy-sshexec command="${distro.name}/${distro.name} server.stop ${remoteprops}" />
+		</sequential>
+	</target>
+
+	<target name="remote.ssh.scp.war.to.farm" description="scp wrapped with ssh tunnel trasfer of ${env.local_file} to ${env.remote_host} ${env.remote_dir}">
+		<deploy-scp file="${env.local_file}" toDir="${ssh.user.name}@localhost:${env.remote_dir}" />
+	</target>
+
+	<target name="remote.scp.modified" description="scp wrapped with ssh tunnel modified ${src.dir} and ${pub.dir} to ${env.remote_host} ${env.remote_dir}">
+		<echo message="Copying modified to ${remote.user}@${remote.host}:${remote.dir}${distro.name}/" />
+		<property name="scp.dir" value="**" />
+		<verifyRemoteProperties />
+		<deploy-scp toDir="${remote.user}@${remote.host}:${remote.dir}${distro.name}">
+			<scpfiles>
+				<fileset dir="${basedir}/../">
+					<modified />
+					<include name="${scp.dir}/**"/>
+					<exclude name="**/cfdistro/artifacts/**"/>
+					<exclude name="**/cache.properties"/>
+					<exclude name="**/temp/**"/>
+					<exclude name="**/.git/**"/>
+					<exclude name="**/dist/**"/>
+				</fileset>
+			</scpfiles>
+		</deploy-scp>
+	</target>
+
+	<target name="remote.scp.build" description="scp wrapped with ssh tunnel modified ${src.dir} and ${pub.dir} to ${env.remote_host} ${env.remote_dir}">
+		<echo message="Copying build dir to ${remote.user}@${remote.host}:${remote.dir}${distro.name}/" />
+		<verifyRemoteProperties />
+		<deploy-scp toDir="${remote.user}@${remote.host}:${remote.dir}${distro.name}">
+			<scpfiles>
+				<fileset dir="${basedir}">
+					<exclude name="**/creds.txt"/>
+					<exclude name="**/cfdistro/ext/**"/>
+					<exclude name="**/cfdistro/artifacts/**"/>
+					<exclude name="**/cache.properties"/>
+					<exclude name="**/temp/**"/>
+					<exclude name="**/.git/**"/>
+					<exclude name="**/dist/**"/>
+				</fileset>
+			</scpfiles>
+		</deploy-scp>
+	</target>
+
+	<target name="remote.scp.dist" description="scp wrapped with ssh tunnel dist ${dist.dir} to ${env.remote_host} ${env.remote_dir}">
+		<echo message="Copying ${dist.dir} dir to ${remote.user}@${remote.host}:${remote.dir}${distro.name}/" />
+		<verifyRemoteProperties />
+		<deploy-scp toDir="${remote.user}@${remote.host}:${remote.dir}${distro.name}" fromdir="${dist.dir}/${distro.name}">
+			<scpfiles>
+				<fileset dir="${dist.dir}/${distro.name}">
+					<exclude name="**/creds.txt"/>
+					<exclude name="**/cfdistro/ext/**"/>
+					<exclude name="**/cfdistro/artifacts/**"/>
+					<exclude name="**/cache.properties"/>
+					<exclude name="**/temp/**"/>
+					<exclude name="**/.git/**"/>
+				</fileset>
+			</scpfiles>
+		</deploy-scp>
+	</target>
+
+	<target name="remote.scp.war" description="scp wrapped with ssh tunnel ${war.target.dir} to ${remote.deploy.dir}">
+		<echo message="Copying ${war.target.dir} to ${remote.user}@${remote.host}:${remote.deploy.dir}/" />
+		<verifyRemoteProperties />
+		<deploy-scp toDir="${remote.user}@${remote.host}:${remote.deploy.dir}"
+			file="${war.target.dir}">
+		</deploy-scp>
+	</target>
+
+	<target name="remote.scp.dist.to.deploy" description="scp wrapped with ssh tunnel ${dist.dir} to ${env.remote_host} ${env.remote_dir}">
+		<verifyRemoteProperties />
+		<deploy-scp toDir="${remote.user}@${remote.host}:${remote.dir}${distro.name}">
+			<scpfiles>
+				<fileset dir="${dist.dir}" />
+			</scpfiles>
+		</deploy-scp>
+	</target>
+
+	<macrodef name="deploy-sshsession">
+		<element name="some-tasks" implicit="true" />
+		<sequential>
+			<antcontrib:if>
+				<or>
+					<equals arg1="${remote.bastion.host}" arg2="" />
+					<equals arg1="${remote.bastion.host}" arg2="$${remote.bastion.host}" />
+				</or>
+				<then>
+					<echo message="sshsession: using direct SSH to server" />
+					<sshsession host="${remote.host}" username="${remote.user}" verbose="${cfdistro.debug}" passphrase="${remote.keyfile.pass}" keyfile="${remote.keyfile}" trust="true" port="${remote.host.port}">
+						<sequential>
+							<some-tasks />
+						</sequential>
+					</sshsession>
+				</then>
+				<else>
+					<echo message="sshsession: using bastion SSH server for port forwarding" />
+					<sshsession host="${remote.bastion.host}" localtunnels="${remote.bastion.localport}:${remote.host}:${remote.host.port}" username="${remote.bastion.user}" verbose="${cfdistro.debug}" passphrase="${remote.bastion.keyfile.pass}" keyfile="${remote.bastion.keyfile}" trust="true" port="${remote.bastion.host.port}">
+						<sequential>
+							<some-tasks />
+						</sequential>
+					</sshsession>
+				</else>
+			</antcontrib:if>
+
+		</sequential>
+	</macrodef>
+
+	<macrodef name="deploy-sshexec">
+		<attribute name="command" />
+		<sequential>
+			<antcontrib:if>
+				<or>
+					<equals arg1="${remote.bastion.host}" arg2="" />
+					<equals arg1="${remote.bastion.host}" arg2="$${remote.bastion.host}" />
+				</or>
+				<then>
+					<echo message="sshexec: using direct SSH to server" />
+					<cfdistro-sshexec command="@{command}" host="${remote.host}" outputproperty="sshres" username="${remote.user}" password="${remote.user.pass}" passphrase="${remote.keyfile.pass}" keyfile="${remote.keyfile}" port="${remote.host.port}" />
+				</then>
+				<else>
+					<echo message="sshexec: using bastion SSH server for port forwarding" />
+					<deploy-sshsession>
+						<cfdistro-sshexec command="@{command}" host="${remote.host}" outputproperty="sshres" username="${remote.user}" password="${remote.user.pass}" passphrase="${remote.keyfile.pass}" keyfile="${remote.keyfile}" port="${remote.bastion.localport}" />
+					</deploy-sshsession>
+				</else>
+			</antcontrib:if>
+			<echo message="${sshres}" />
+		</sequential>
+	</macrodef>
+
+	<target name="wee">
+	    <antcontrib:math result="transfersize" operand1="21324369" operation="/" operand2="1048576" datatype="int"/>
+		<echo message="(${transfersize}M)" />
+		
+	</target>
+	
+	<macrodef name="cfdistro-scp">
+		<attribute name="file" default="" />
+		<attribute name="todir" />
+		<attribute name="fromdir" default="${basedir}/../" />
+		<attribute name="passphrase" default="" />
+		<attribute name="password" default="" />
+		<attribute name="keyfile" default="" />
+		<attribute name="port" />
+		<element name="files" optional="true" />
+		<sequential>
+			<length file="@{file}" property="transfersize" />
+			<formatfilesize kilobytes="${transfersize}"/>
+			<path id="scp.files.ref">
+				<files/>
+			</path>
+			<antcontrib:pathtofileset name="scp.files.fileset"
+			                       pathrefid="scp.files.ref"
+			                       dir="@{fromdir}"/>
+			<pathconvert pathsep="${line.separator}" property="scp.files.list" refid="scp.files.fileset"/>
+			<echo message="Transferring:@{file} ${scp.files.list}"/>
+			<antcontrib:if>
+				<or>
+					<equals arg1="@{keyfile}" arg2="" />
+					<equals arg1="@{keyfile}" arg2="$${remote.keyfile}" />
+				</or>
+				<then>
+					<echo message="scp: Using password" />
+					<echo message="@{password} to: @{port}" />
+					<antcontrib:if>
+						<equals arg1="@{file}" arg2="" />
+						<then>
+							<scp file="@{file}" sftp="true" verbose="false" toDir="@{todir}" password="@{password}" trust="true" port="@{port}">
+								<fileset refid="scp.files.fileset" />
+							</scp>
+						</then>
+						<else>
+							<scp file="@{file}" sftp="true" verbose="false" toDir="@{todir}" password="@{password}" trust="true" port="@{port}"/>
+						</else>
+					</antcontrib:if>
+				</then>
+				<else>
+					<echo message="scp: Using keyfile: @{keyfile}" />
+					<antcontrib:if>
+						<equals arg1="@{file}" arg2="" />
+						<then>
+							<scp file="@{file}" sftp="true" verbose="false" toDir="@{todir}" passphrase="@{passphrase}" keyfile="@{keyfile}" trust="true" port="@{port}">
+								<fileset refid="scp.files.fileset" />
+							</scp>
+						</then>
+						<else>
+							<scp file="@{file}" sftp="true" verbose="false" toDir="@{todir}" passphrase="@{passphrase}" keyfile="@{keyfile}" trust="true" port="@{port}"/>
+						</else>
+					</antcontrib:if>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="cfdistro-sshexec">
+		<attribute name="command" />
+		<attribute name="host" />
+		<attribute name="username" />
+		<attribute name="outputproperty" default="sshexec" />
+		<attribute name="passphrase" default="" />
+		<attribute name="password" default="" />
+		<attribute name="keyfile" default="" />
+		<attribute name="port" />
+		<sequential>
+			<echo message="com: @{command}" />
+			<antcontrib:if>
+				<or>
+					<equals arg1="@{keyfile}" arg2="" />
+					<equals arg1="@{keyfile}" arg2="$${remote.keyfile}" />
+				</or>
+				<then>
+					<echo message="sshexec: using password" />
+					<sshexec verbose="false" command="@{command}" host="@{host}" outputproperty="@{outputproperty}" username="@{username}" password="@{password}" trust="true" port="@{port}" />
+				</then>
+				<else>
+					<echo message="sshexec: using keyfile: @{keyfile}" />
+					<sshexec verbose="false" command="@{command}" host="@{host}" outputproperty="@{outputproperty}" username="@{username}" passphrase="@{passphrase}" keyfile="@{keyfile}" trust="true" port="@{port}" />
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="deploy-scp">
+		<attribute name="file" default="" />
+		<attribute name="todir" />
+		<attribute name="fromdir" default="${basedir}/../" />
+		<element name="scpfiles" optional="true" />
+		<sequential>
+			<antcontrib:if>
+				<or>
+					<equals arg1="${remote.bastion.host}" arg2="" />
+					<equals arg1="${remote.bastion.host}" arg2="$${remote.bastion.host}" />
+				</or>
+				<then>
+					<echo message="scp: using direct SSH to server" />
+					<cfdistro-scp file="@{file}" toDir="@{todir}" password="${remote.user.pass}" keyfile="${remote.keyfile}" 
+						fromdir="@{fromdir}" passphrase="${remote.keyfile.pass}" port="${remote.host.port}">
+						<files><scpfiles/></files>
+					</cfdistro-scp>
+				</then>
+				<else>
+					<echo message="scp: using bastion SSH server for port forwarding" />
+					<deploy-sshsession>
+						<cfdistro-scp file="@{file}" fromdir="@{fromdir}" toDir="@{todir}" password="${remote.user.pass}" keyfile="${remote.keyfile}" passphrase="${remote.keyfile.pass}" port="${remote.bastion.localport}">
+							<files><scpfiles/></files>
+						</cfdistro-scp>
+					</deploy-sshsession>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+
+
+</project>

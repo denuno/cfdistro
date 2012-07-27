@@ -1,0 +1,80 @@
+<project name="mappings-filter" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+	<target name="mappings.filter.install">
+		<echo message="compiling web filter" />
+		<delete dir="${war.target.dir}/WEB-INF/classes"/>
+		<mkdir dir="${war.target.dir}/WEB-INF/classes"/>
+		<javac srcdir="${cfdistro.basedir}/java/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+			<insert path="web-app/servlet[1]" position="before">
+				<![CDATA[
+					<!-- railo file servlet -->
+					<servlet>
+						<servlet-name>FileServlet</servlet-name>
+						<description>File Servlet for simple files</description>
+						<servlet-class>railo.loader.servlet.FileServlet</servlet-class>
+						<load-on-startup>2</load-on-startup>
+					</servlet>	 
+					<servlet-mapping> 
+						<servlet-name>FileServlet</servlet-name> 
+						<url-pattern>/</url-pattern> 
+					</servlet-mapping> 
+
+					<!-- railo filter for mappings -->
+					<filter>
+						<filter-name>CFMappingFilter</filter-name>
+						<filter-class>servlet.filter.CFMappingFilter</filter-class>
+						<init-param>
+							<param-name>cfsrc</param-name>
+							<param-value>${src.dir}</param-value>
+						</init-param>
+						<init-param>
+							<param-name>defaultFileNames</param-name>
+							<param-value>index.cfm default.cfm</param-value>
+						</init-param>
+					</filter>
+	
+					<filter-mapping>
+						<filter-name>CFMappingFilter</filter-name>
+						<url-pattern>/*</url-pattern>
+					</filter-mapping>
+				]]>
+			</insert>
+		</xmltask>
+	</target>
+
+	<macrodef name="mapping-filter">
+		<attribute name="directory" />
+		<attribute name="urlpattern" default="" />
+		<element name="args" optional="true" />
+		<sequential>
+			<echo message="compiling web filter" />
+			<delete dir="${war.target.dir}/WEB-INF/classes"/>
+			<mkdir dir="${war.target.dir}/WEB-INF/classes"/>
+			<javac srcdir="${cfdistro.basedir}/java/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+			<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+				<xmlcatalog refId="commonDTDs"/>
+				<insert path="web-app/servlet[1]" position="before">
+					<![CDATA[
+						<filter>
+							<filter-name>CFMappingFilter</filter-name>
+							<filter-class>servlet.filter.CFMappingFilter</filter-class>
+							<init-param>
+								<param-name>cfsrc</param-name>
+								<param-value>@{directory}</param-value>
+							</init-param>
+							<init-param>
+								<param-name>defaultFileNames</param-name>
+								<param-value>index.cfm default.cfm</param-value>
+							</init-param>
+						</filter>
+		
+						<filter-mapping>
+							<filter-name>CFMappingFilter</filter-name>
+							<url-pattern>@{urlpattern}</url-pattern>
+						</filter-mapping>
+					]]>
+				</insert>
+			</xmltask>
+		</sequential>
+	</macrodef>
+</project>

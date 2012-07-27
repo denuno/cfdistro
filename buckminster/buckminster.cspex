@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cspecExtension xmlns:com="http://www.eclipse.org/buckminster/Common-1.0"
+                    xmlns="http://www.eclipse.org/buckminster/CSpec-1.0">
+	<dependencies>
+		<!-- this stuff will be used for building but NOT included in update site 
+		-->
+		<dependency name="org.eclipse.equinox.executable" componentType="eclipse.feature"/>
+		<dependency name="org.eclipse.platform" componentType="eclipse.feature"/>
+		<dependency name="org.eclipse.debug.ui" componentType="eclipse.feature"/>
+		
+		<!-- need a new cpex for plugin-only updates (vs products, which uses this crap prolly?)
+		<dependency name="org.eclipse.core.filesystem" componentType="eclipse.feature"/>
+		<dependency name="org.eclipse.ui" componentType="eclipse.feature"/>
+		<dependency name="org.eclipse.core.runtime" componentType="eclipse.feature"/>
+		<dependency name="org.eclipse.ui.ide" componentType="eclipse.feature"/>
+		 -->
+	</dependencies>
+
+<!-- 
+	<alterActions>
+		<public name="buckminster.clean">
+			<prerequisites>
+				<attribute name="buckminster.clean" component="org.eclipse.equinox.executable" />
+			</prerequisites>
+		</public>
+	</alterActions>
+	<alterGroups>
+		<public name="bundle.jars">
+			<attribute name="bundle.jars" component="org.eclipse.equinox.executable" />
+		</public>
+		<public name="feature.references">
+			<attribute name="feature.jars" component="org.eclipse.equinox.executable"
+				contributor="false" />
+			<attribute name="feature.jars" component="org.eclipse.platform"
+				contributor="false" />
+			<attribute name="feature.jars" component="org.eclipse.equinox"
+				contributor="false" />
+		</public>
+		<public name="product.configuration.exports">
+			<attribute name="product.configuration.exports" component="org.eclipse.equinox.executable" />
+		</public>
+		<public name="source.bundle.jars">
+			<attribute name="source.bundle.jars" component="org.eclipse.equinox.executable" />
+		</public>
+		<public name="source.feature.references">
+			<attribute name="source.feature.jars" component="org.eclipse.equinox.executable"
+				contributor="false" />
+		</public>
+	</alterGroups>
+ -->
+
+    <actions>
+        <public name="create.product" actor="ant">
+            <actorProperties>
+                <property key="buildFile" value="product.ant" />
+                <property key="targets" value="create.product" />
+            </actorProperties>
+            <properties>
+                <property key="profile" value="Profile" />
+                <property key="iu" value="org.getrailo.eclipse.product" />
+            </properties>
+            <prerequisites alias="repository">
+                <attribute name="site.p2" />
+            </prerequisites>
+            <products alias="destination" base="${buckminster.output}">
+                <path path="railo.${target.os}.${target.ws}.${target.arch}/" />
+            </products>
+        </public>
+        <!-- 
+        <public name="create.product.test" actor="ant">
+            <actorProperties>
+                <property key="buildFile" value="product.ant" />
+                <property key="targets" value="create.product" />
+            </actorProperties>
+            <properties>
+                <property key="profile" value="Profile" />
+                <property key="iu" value="com.asolutions.lightning.test_product" />
+            </properties>
+            <prerequisites alias="repository">
+                <attribute name="site.p2" />
+            </prerequisites>
+            <products alias="destination" base="../../">
+                <path path="test-product/" />
+            </products>
+        </public>
+         -->
+
+	    <public name="create.product.zip" actor="ant">
+	            <actorProperties>
+	                <property key="buildFile" value="product.ant"/>
+	                <property key="targets" value="create.product.zip"/>
+	            </actorProperties>
+	            <prerequisites>
+	                <attribute name="create.product" alias="product.dir"/>
+	                <attribute name="manifest" alias="manifest"/>
+	            </prerequisites>
+	            <products alias="action.output" base="${buckminster.output}" upToDatePolicy="COUNT" fileCount="1">
+                	<path path="railoide.zip/" />
+	            </products>
+	    </public>
+<!-- 
+        <public name="create.product.zip" actor="ant">
+            <actorProperties>
+                <property key="buildFileId" value="buckminster.pdetasks" />
+                <property key="targets" value="create.zip" />
+            </actorProperties>
+            <prerequisites alias="action.requirements">
+                <attribute name="create.product" />
+            </prerequisites>
+            <products alias="action.output" base="${buckminster.output}">
+                <path path="railo.${target.os}.${target.ws}.${target.arch}.zip" />
+            </products>
+        </public>
+ -->
+    </actions>
+</cspecExtension>

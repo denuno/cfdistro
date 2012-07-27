@@ -1,0 +1,206 @@
+<project name="revisions" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="basedir.absolute" location="${basedir}" />
+	<property name="src.xml.file" value="${basedir.absolute}/src.xml" />
+	<import file="scm-git.xml"/>
+	<import file="scm-svn.xml"/>
+	<import file="scm-cvs.xml"/>
+	
+	<antcontrib:if>
+		<equals arg1="${scm.branch}" arg2="$${scm.branch}" />
+		<then/>
+		<else>
+			<antcontrib:trycatch>
+				<try>
+					<property name="scm.dir" value="${src.dir}" />
+					<git-fetch-from-remote />
+					<!-- use the system git as jgit has trouble with conflicts --> 
+					<git command="checkout" dir="${scm.dir}" use-jgit="false">
+						<args>
+							<arg value="-f" />
+							<arg value="origin/${scm.branch}" />
+						</args>
+					</git>
+				</try>
+				<catch>
+					<echo message="could not check out origin/${scm.branch} for ${scm.dir}"/>
+				</catch>
+			</antcontrib:trycatch>
+		</else>
+	</antcontrib:if>
+
+	<macrodef name="apply-patch">
+		<attribute name="patchUrl"/>
+		<attribute name="patchlevel" default="0" />
+		<attribute name="patchdir" default="${src.dir}" />
+		<sequential>
+			<delete file="${temp.dir.absolute}/patch.txt"/>
+			<get src="@{patchUrl}" dest="${temp.dir.absolute}/patch.txt" verbose="true" ignoreerrors="false" />
+			<patch patchfile="${temp.dir.absolute}/patch.txt" strip="@{patchlevel}" dir="@{patchdir}"/>
+			<echo message="Patch results: ${patch.results}"/>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="load-src-xml">
+		<sequential>
+			<antcontrib:runtarget target="check.creds" />
+			<echoproperties destfile="${temp.dir}/all.props" />
+			<loadfile property="src.xml" srcFile="${src.xml.file}">
+				<filterchain>
+					<filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
+						<param type="token" name="src.dir" value="${src.dir}"/>
+						<param type="token" name="pub.dir" value="${pub.dir}"/>
+						<param type="token" name="lib.dir" value="${lib.dir}"/>
+						<param type="token" name="distro.name" value="${distro.name}"/>
+						<param type="token" name="war.name" value="${war.name}"/>
+						<param type="token" name="war.target.dir" value="${war.target.dir}"/>
+						<param type="propertiesfile" value="${creds.token.file}" />
+						<param type="propertiesfile" value="${temp.dir}/all.props" />
+					</filterreader>
+				</filterchain>
+			</loadfile>
+			<delete file="${temp.dir}/all.props"/>
+			<xmltask destbuffer="src.buff" outputter="simple">
+				<insert path="/" xml="${src.xml}" position="under" />
+			</xmltask>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="scm-export">
+		<attribute name="dest" />
+		<attribute name="type" />
+		<attribute name="uri" />
+		<attribute name="path" default="" />
+		<attribute name="tag" default="HEAD" />
+		<sequential>
+			<antcontrib:switch value="@{type}">
+				<case value="git">
+					<git-export repository="@{uri}" dest="@{dest}" path="@{path}" tag="@{tag}"/>
+				</case>
+				<case value="svn">
+					<svn-export uri="@{uri}" dest="@{dest}" />
+				</case>
+			</antcontrib:switch>
+		</sequential>
+	</macrodef>
+
+
+	<target name="exists.src.xml" unless="exists.src.xml">
+		<available file="${src.xml.file}" type="file"
+		           property="exists.src.xml"/>
+		<antcontrib:if>
+			<equals arg1="${exists.src.xml}" arg2="true" />
+			<then>
+				<echo message="src file exists : ${src.xml.file} " />
+				<load-src-xml />
+				<antcontrib:runtarget target="exists.src.dir"/>
+			</then>
+			<else>
+				<echo message="No src file to import : ${src.xml.file} does not exist." />
+			</else>
+		</antcontrib:if>
+		<property name="src.dir.absolute" location="${src.dir}" />
+		<antcontrib:var name="src.dir" unset="true" />
+		<property name="src.dir" location="${src.dir.absolute}" />
+	</target>
+
+	<target name="exists.src.dir">
+		<available file="${src.dir}" type="dir" property="exists.src.dir" />
+		<antcontrib:if>
+			<equals arg1="${exists.src.dir}" arg2="true" />
+			<then>
+				<echo message="Src dir : ${src.dir} " />
+			</then>
+			<else>
+				<echo message="Src dir : ${src.dir} ain't there, downloading" />
+				<mkdir dir="${src.dir}"/>
+				<antcontrib:runtarget target="project.update" />
+				<antcontrib:runtarget target="src.import" />
+				<antcontrib:var name="exists.src.dir" value="true" />
+			</else>
+		</antcontrib:if>
+		<xmltask sourcebuffer="src.buff">
+			<call path="src/sources/*">
+				<param name="dest" path="@dest" default="NONE" />
+				<param name="type" path="@type" default="NONE" />
+				<param name="uri" path="@uri" default="NONE" />
+				<param name="path" path="@path" default="" />
+				<param name="tag" path="@tag" default="HEAD" />
+				<actions>
+					<antcontrib:if>
+						<available file="@{dest}" />
+						<then>
+							<echo message="Src dir : @{dest} exists " />
+						</then>
+						<else>
+							<echo message="Src dir : @{dest} ain't there, downloading" />
+							<scm-export dest="@{dest}" type="@{type}" uri="@{uri}" path="@{path}" tag="@{tag}" />
+						</else>
+					</antcontrib:if>
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+	<target name="src.import" depends="exists.src.xml" if="exists.src.xml">
+		<antcontrib:runtarget target="src.import.svn" />
+		<antcontrib:runtarget target="src.import.git" />
+		<antcontrib:runtarget target="src.import.cvs" />
+	</target>
+
+	<target name="check.project.for.newrevision" depends="get.project.src.type" unless="revisions.are.same" if="exists.src.xml">
+		<antcontrib:if>
+			<available file="${project.src.dest}.${project.src.type}" type="dir"/>
+			<then>
+				<antcontrib:runtarget target="check.project.for.newrevision.${project.src.type}" />
+			</then>
+			<else>
+				<echo message="Not there: ${project.src.dest}/.${project.src.type}" />
+			</else>
+		</antcontrib:if>
+	</target>
+
+	<target name="project.build.ifnew">
+		<mkdir dir="${war.target.dir}" />
+		<property name="testresult.file" value="${war.target.dir}/test.results.html/" />
+		<sequential>
+			<antcontrib:runtarget target="project.update" />
+			<antcontrib:if>
+				<equals arg1="${revisions.are.same}" arg2="true" />
+				<then>
+					<echo message="Revisions are the same, not building" />
+				</then>
+				<else>
+					<echo message="Revisions differ, running build" />
+					<sequential>
+						<antcontrib:runtarget target="build" />
+					</sequential>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</target>
+
+	<target name="project.update" depends="check.project.for.newrevision" unless="revisions.are.same" if="exists.src.xml">
+		<antcontrib:runtarget target="project.update.${project.src.type}" />
+	</target>
+
+	<target name="project.checkout" depends="get.project.src.type" if="exists.src.xml">
+		<antcontrib:runtarget target="project.checkout.${project.src.type}" />
+	</target>
+
+	<target name="get.project.src.type" depends="exists.src.xml" if="exists.src.xml">
+		<xmltask sourcebuffer="src.buff">
+			<call path="src/project/*">
+				<param name="dest" path="@dest" default="NONE"/>
+				<param name="type" path="@type" default="NONE"/>
+				<param name="uri" path="@uri" default="NONE"/>
+				<actions>
+					<property name="project.src.type" value="@{type}" />
+					<property name="project.src.dest" value="@{dest}" />
+					<echo message="Project src type : ${project.src.type} dest: @{dest}"/>
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+</project>

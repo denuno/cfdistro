@@ -1,0 +1,68 @@
+<project name="uploadservlet" default="uploadservlet.servlet.install"
+	basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<target name="uploadservlet.servlet.install">
+		<mkdir dir="${war.target.dir}/WEB-INF/classes"/>
+		<javac-ecj srcdir="${cfdistro.basedir}/java/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" 
+			classpath="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+
+		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+			<insert path="web-app/servlet[1]" position="before">
+				<![CDATA[
+				<servlet>
+					<servlet-name>UploadServlet</servlet-name>
+					<servlet-class>UploadServlet</servlet-class>
+					<init-param>
+						<param-name>tempdir</param-name>
+						<param-value>/tmp</param-value>
+					</init-param>
+					<init-param>
+						<param-name>uploaddir</param-name>
+						<param-value>/uploads</param-value>
+					</init-param>
+				</servlet>
+				<servlet-mapping>
+					<servlet-name>UploadServlet</servlet-name>
+					<url-pattern>/upload</url-pattern>
+				</servlet-mapping>
+				]]>
+			</insert>
+		</xmltask>
+	</target>
+
+	<macrodef name="uploadservlet">
+		<attribute name="servletname" default="UploadServlet" />
+		<attribute name="tempdir" />
+		<attribute name="uploaddir" />
+		<attribute name="urlpattern" default="/upload" />
+		<element name="args" optional="true" />
+		<sequential>
+			<mkdir dir="${war.target.dir}/WEB-INF/classes"/>
+			<javac-ecj srcdir="${cfdistro.basedir}/java/uploadservlet/src/" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.basedir}/lib/${jetty-runner.jar}"/>
+			
+			<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+				<insert path="web-app/servlet[1]" position="before">
+					<![CDATA[
+					<servlet>
+					    <servlet-name>@{servletname}</servlet-name>
+					    <servlet-class>UploadServlet</servlet-class>
+						<init-param>
+							<param-name>tempdir</param-name>
+							<param-value>@{tempdir}</param-value>
+						</init-param>
+						<init-param>
+							<param-name>uploaddir</param-name>
+							<param-value>@{uploaddir}</param-value>
+						</init-param>
+					</servlet>
+					<servlet-mapping>
+					    <servlet-name>@{servletname}</servlet-name>
+					    <url-pattern>@{urlpattern}</url-pattern>
+					</servlet-mapping>
+					]]>
+				</insert>
+			</xmltask>
+		</sequential>
+	</macrodef>
+
+</project>

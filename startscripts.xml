@@ -1,0 +1,276 @@
+<project name="startscripts" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+<property name="startscripts.create" value="true" />
+
+<target name="startscripts.create">
+	<antcontrib:if>
+		<equals arg1="${startscripts.create}" arg2="true" />
+		<then>
+			<antcontrib:runtarget target="cfdistro.executable" />
+			<!-- the sane context path always ends with /, which isn't right but makes links to it standard 
+				 so we correct the correction and then recorrect it -->
+			<sanitizeContextPath />
+			<antcontrib:propertyregex property="war.contextpath" input="${war.contextpath}" regexp="^/?([^/]+)" select="/\1" global="false"  override="yes" />
+			<echo file="${basedir}/start.sh"><![CDATA[#start script
+if test -n "${JAVA_HOME}"; then
+  if test -z "${JAVA_EXE}"; then
+    JAVA_EXE=$JAVA_HOME/bin/java
+  fi
+fi
+ 
+if test -z "${JAVA_EXE}"; then
+  JAVA_EXE=java
+fi
+cd $(dirname $0)
+#exec $JAVA_EXE -jar ./lib/jetty-runner-7.0.0.RC5.jar $* > /dev/null 2>&1 &
+exec $JAVA_EXE -Xmx200m -jar ${cfdistro.basedir}/lib/${jetty-runner.jar} --port ${server.port.http} --path ${war.contextpath} $* ${war.target.dir}]]>
+			</echo>
+			<chmod file="${basedir}/start.sh" perm="ugo+rx"/>
+			<echo file="${basedir}/start.bat"><![CDATA[java -Xmx200m -jar "${cfdistro.basedir}/lib/${jetty-runner.jar}" --port ${server.port.http} --path ${war.contextpath} %1 "${war.target.dir}"]]></echo>
+			<property name="osxappbundle.dir" location="${dist.root.dir}/${distro.name}.app"/>
+
+			<startscript script-path="${dist.dir}/${distro.name}/${distro.name}" />
+
+			<!-- make OS X app bundle -->
+			<copy toDir="${osxappbundle.dir}" overwrite="yes">
+				<filterchain>
+				<expandproperties />
+				</filterchain>
+				<fileset dir="${cfdistro.basedir}/skeleton/osxappbundle" />
+			</copy>
+			<move file="${osxappbundle.dir}/Contents/Resources/icon.icns"
+				toFile="${osxappbundle.dir}/Contents/Resources/${distro.name}.icns" />
+			<move file="${osxappbundle.dir}/Contents/MacOS/start"
+				toFile="${osxappbundle.dir}/Contents/MacOS/${distro.name}" />
+			<chmod file="${osxappbundle.dir}/Contents/MacOS/${distro.name}" perm="ugo+rx"/>
+			<chmod file="${osxappbundle.dir}/Contents/MacOS/run.command" perm="ugo+rx"/>
+		</then>
+	
+	</antcontrib:if>
+
+	<!--	
+	<add-system-path path="${user.home}/cfdistro/bin" keyword="cfdistro" /> 
+	-->
+
+</target>
+
+	<target name="cfdistro.executable">
+		<echo file="${basedir}/bin/cfdistro"><![CDATA[#! /bin/sh
+reldir=`dirname $0`
+export ANT_HOME="$reldir/../ant/"
+props=""
+target=$1
+shift
+for var in "$@"
+do
+    props="$props -D$var"
+done
+#echo $reldir/../ant/bin/ant -nouserlib -f $reldir/build.xml $target $props
+/bin/sh $reldir/../ant/bin/ant -nouserlib -f build/build.xml $target -Dcfdistro.build.file=$reldir/../build.xml $props]]>
+		</echo>
+		<chmod file="${basedir}/bin/cfdistro" perm="ugo+rx"/>
+		<echo file="${basedir}/bin/cfdistro.bat"><![CDATA[@echo off
+if "%1" == "" goto error
+set ANT_HOME=%CD%\build\cfdistro\ant\
+set var1=%1
+SHIFT
+:Loop
+IF "%1"=="" GOTO Continue
+SET var1=%var1% -D%1%
+SHIFT
+SET var1=%var1%=%1%
+SHIFT
+GOTO Loop
+:Continue
+call %CD%\build\cfdistro\ant\bin\ant.bat -nouserlib -f build/build.xml %var1%
+goto end
+:error
+echo usage:
+echo cfdistro.bat start
+echo cfdistro.bat stop
+:end]]>
+		</echo>
+
+	</target>
+
+	<target name="centos.onboot">
+		<echo file="/etc/init.d/${distro.name}"><![CDATA[#!/bin/sh
+# chkconfig: 345 99 01
+# description: ${distro.name} startup script
+# 
+runcommand=${basedir}/../${distro.name}.sh
+runuser=$(/usr/bin/whoami)
+echo Running as $runuser
+if [ $runuser != "cfml" ]; then
+	#su - cfml --session-command="/home/cfml/myapp/myapp.sh $1"
+	runcommand="sudo -u cfml -i -H $runcommand"
+	echo Switching to cfml user
+fi
+case "$1" in
+
+  start)
+	echo "starting ${distro.name}"
+	shift
+	$runcommand server.start @*
+;;
+
+ stop)
+	echo "stopping ${distro.name}"
+	shift
+	$runcommand server.stop @*
+;;
+
+ restart)
+	echo "restarting ${distro.name}"
+	shift
+	$runcommand server.restart @*
+;;
+
+  *)
+echo "*** Usage: ${distro.name} {start | stop | restart}"
+exit 1
+esac]]></echo>
+		<chmod file="/etc/init.d/${distro.name}" perm="ugo+rx"/>
+		<exec executable="/sbin/chkconfig">
+			<arg value="--level"/>
+			<arg value="345"/>
+			<arg value="${distro.name}"/>
+			<arg value="on"/>
+		</exec>
+	</target>
+
+	<macrodef name="startscript">
+		<attribute name="script-path" />
+		<attribute name="cfdistro-path" default="$${user.home}/cfdistro" />
+		<sequential>
+			<property name="dist.script.sh" value="@{script-path}" />
+			<property name="dist.script.bat" value="@{script-path}.bat" />
+			<echo file="${dist.script.sh}"><![CDATA[#! /bin/bash
+reldir=`dirname $0`
+cd $reldir/build
+ANTCMD="/bin/sh $HOME/cfdistro/ant/bin/ant -nouserlib -f build.xml"
+export ANT_HOME=$HOME/cfdistro/ant
+if [ -z "$1" ]; then
+echo "${distro.name} control script"
+OPTIONS="start stop help list-targets update exit"
+select opt in $OPTIONS; do
+if [ "$opt" = "start" ]; then
+	$ANTCMD build.start.launch
+	exit
+elif [ "$opt" = "stop" ]; then
+	$ANTCMD server.stop
+	exit
+elif [ "$opt" = "help" ]; then
+	echo "usage (skips this prompt): ${distro.name}.sh [start|stop|{target}]"
+elif [ "$opt" = "list-targets" ]; then
+	$ANTCMD help
+elif [ "$opt" = "update" ]; then
+	$ANTCMD project.update
+elif [ "$opt" = "exit" ]; then
+	exit
+else
+	#clear
+	echo bad option
+fi
+done
+fi
+target=$1
+parameters=""
+shift
+for var in "$@"
+do
+    parameters="$parameters -D$var"
+done
+$ANTCMD $target -Dbasedir=. $parameters
+	]]>
+			</echo>
+			<echo file="${dist.script.bat}"><![CDATA[@echo off
+set ANT_HOME=%CD%\build\cfdistro\ant\
+if "%1" == "" goto MENU
+set var1=%1
+SHIFT
+:Loop
+IF "%1"=="" GOTO Continue
+SET var1=%var1% -D%1%
+SHIFT
+SET var1=%var1%=%1%
+SHIFT
+GOTO Loop
+:Continue
+call build\cfdistro\ant\bin\ant.bat -nouserlib -f build/build.xml %var1%
+goto end
+:MENU
+cls
+echo.
+echo       ${distro.name} menu
+REM echo       usage: ${distro.name}.bat [start|stop|{target}]
+echo.
+echo       1. Start server and open browser
+echo       2. Stop server
+echo       3. List available targets
+echo       4. Update project
+echo       5. Run Target
+echo       6. Quit
+echo.
+set choice=
+set /p choice=      Enter option 1, 2, 3, 4, 5 or 6 :
+echo.
+if not '%choice%'=='' set choice=%choice:~0,1%
+if '%choice%'=='1' goto startServer
+if '%choice%'=='2' goto stopServer
+if '%choice%'=='3' goto listTargets
+if '%choice%'=='4' goto updateProject
+if '%choice%'=='5' goto runTarget
+if '%choice%'=='6' goto end
+::
+echo.
+echo.
+echo "%choice%" is not a valid option - try again
+echo.
+pause
+goto MENU
+::
+:startServer
+cls
+call build\cfdistro\ant\bin\ant.bat -f build/build.xml build.start.launch
+echo to stop the server, run this again or run: ${distro.name}.bat stop
+goto end
+::
+:stopServer
+call build\cfdistro\ant\bin\ant.bat -f build/build.xml server.stop
+goto end
+::
+:listTargets
+call build\cfdistro\ant\bin\ant.bat -f build/build.xml help
+echo       press any key ...
+pause > nul
+goto MENU
+::
+:updateProject
+call build\cfdistro\ant\bin\ant.bat -f build/build.xml project.update
+echo       press any key ...
+pause > nul
+goto MENU
+::
+:runTarget
+set target=
+set /p target=      Enter target name:
+if not '%target%'=='' call build\cfdistro\ant\bin\ant.bat -f build/build.xml %target%
+echo       press any key ...
+pause > nul
+goto MENU
+::
+:end
+set choice=
+echo       press any key ...
+pause
+REM EXIT
+	]]>
+			</echo>
+			<fixcrlf file="${dist.script.bat}" eol="crlf" />
+			<chmod file="${dist.script.sh}" perm="ugo+rx"/>
+		</sequential>
+	</macrodef>
+
+
+</project>
+

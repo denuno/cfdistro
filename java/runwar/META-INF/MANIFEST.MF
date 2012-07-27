@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: runwar-cfdistro
+Bundle-SymbolicName: runwar-cfdistro
+Bundle-Version: 1.0.0.qualifier
+Bundle-ClassPath: runwar-cfdistro.jar,
+ cfdistro/src/cfdistro/lib/jetty-runner-7.1.0.v20100505.jar
+Export-Package: runwar
+Import-Package: org.eclipse.core.internal.resources,
+ org.eclipse.core.runtime,
+ org.eclipse.jface.resource,
+ org.eclipse.swt.widgets,
+ org.eclipse.ui.plugin

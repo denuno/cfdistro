@@ -1,0 +1,1296 @@
+<project name="build-railo" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<dirname property="build-railo.basedir" file="${ant.file.build-railo}" />
+	<property file="${build-railo.basedir}/build-railo.properties" />
+	
+	<target name="railo.requires">
+		<antcontrib:if>
+			<or>
+				<equals arg1="${railo.patch.version}" arg2="" />
+				<equals arg1="${railo.patch.version}" arg2="$${railo.patch.version}" />
+			</or>
+			<then>
+				<antcontrib:propertyregex override="yes" property="railo.patch.version" input="${railo.version}" 
+					regexp="\d+\.\d+\.\d+\.(\d+)+.*" select="\1" />
+					<antcontrib:if>
+						<not><or>
+							<equals arg1="${railo.patch.version}" arg2="" />
+							<equals arg1="${railo.patch.version}" arg2="000" />
+							<equals arg1="${railo.patch.version}" arg2="$${railo.patch.version}" />
+						</or></not>
+						<then>
+							<antcontrib:var name="railo.patch.version" value="${railo.version}" />
+						</then>
+					</antcontrib:if>
+			</then>
+			<else>
+				<antcontrib:var name="railo.version" value="${railo.patch.version}" />
+			</else>
+		</antcontrib:if>
+		
+		<version-splitter property="railo.version" version="${railo.version}"/>
+
+		<echo message="Railo version: Major ${railo.version.major} Minor ${railo.version.minor} Build ${railo.version.build} Revision ${railo.version.revision}"/>
+
+		<property name="ext.railo.war.version" value="${railo.version.major}.${railo.version.minor}.${railo.version.build}.000" />
+		<property name="ext.railo.dir" value="${ext.dir}/railo/${railo.version.major}" />
+		<property name="ext.railo.war.uri" value="http://www.getrailo.org/railo/remote/download/${ext.railo.war.version}/custom/all/railo-${ext.railo.war.version}.war" />
+		<property name="ext.railo.war" value="${ext.railo.dir}/railo-${ext.railo.war.version}.war" />
+		<antcontrib:var name="cfml.engine.war" value="${ext.railo.war}" />
+		<mkdir dir="${ext.railo.dir}"/>
+		<mkdir dir="${ext.railo.dir}/patches"/>
+
+		<required-resource
+			src="${ext.railo.war.uri}" 
+			dest="${ext.railo.war}" />
+		<!--
+		<requires-ext resource="${ext.railo.dir}/railo-server.xml"/>
+		-->
+		<!-- patches -->
+		<antcontrib:if>
+			<or>
+				<equals arg1="${railo.patch.version}" arg2="" />
+				<equals arg1="${railo.patch.version}" arg2="$${railo.patch.version}" />
+			</or>
+			<then><echo message="Not downloading any railo patches"/></then>
+			<else>
+				<echo message="installing patch: ${railo.patch.version}/${railo.patch.version}.rc" />
+				<required-resource
+					src="http://${railo.patch.buildtype}.getrailo.org/railo/remote/download/${railo.patch.version}/${railo.patch.version}.rc" 
+					dest="${ext.railo.dir}/patches/${railo.patch.version}.rc" />
+				<copy file="${ext.railo.dir}/patches/${railo.patch.version}.rc" todir="${war.target.dir}/WEB-INF/lib/railo-server/patches/" overwrite="true" />
+			</else>
+		</antcontrib:if>
+	</target>
+
+	<target name="railo.war.init" depends="clean,railo.requires">		
+		<unzip src="${ext.railo.war}" dest="${war.target.dir}"/>
+		<property name="extracted" location="${java.io.tmpdir}/extracted"/> 
+		<mkdir dir="${extracted}"/> 
+		<unzip src="${war.target.dir}/WEB-INF/lib/railo.jar" dest="${extracted}">
+	        <patternset> 
+	            <include name="core/core.rc"/> 
+	        </patternset> 
+		</unzip>
+		<unzip src="${extracted}/core/core.rc" dest="${extracted}">
+	        <patternset> 
+	            <include name="resource/config/**"/> 
+	        </patternset> 
+		</unzip>
+		<copy file="${extracted}/resource/config/server.xml" tofile="${railo.server.config.file}" overwrite="true" />
+		<copy file="${extracted}/resource/config/web.xml" tofile="${railo.web.config.dir}/railo-web.xml.cfm" overwrite="true" />
+		<delete dir="${extracted}"/> 
+		<antcontrib:if>
+			<equals arg1="${server.sharedlibs}" arg2="true" />
+			<then>
+				<delete>
+					<fileset dir="${war.target.dir}/WEB-INF">
+						 <include name="lib/**"/>
+						 <exclude name="**/lib/railo-server/**"/>
+						 <exclude name="**/WEB-INF/railo/**"/>
+					</fileset>
+				</delete>
+			</then>
+		</antcontrib:if>
+		<property name="war.keep.welcome" value="false" />
+		<antcontrib:if>
+			<equals arg1="${war.keep.welcome}" arg2="false" />
+			<then>
+				<delete>
+					<fileset dir="${war.target.dir}">
+						 <exclude name="WEB-INF/**"/>
+					</fileset>
+				</delete>
+			</then>
+		</antcontrib:if>
+		<!-- remove railo file servlet as it causes trouble -->
+		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+			<xmlcatalog refId="commonDTDs" />
+			<remove path="web-app/servlet[servlet-class/text()='railo.loader.servlet.FileServlet']" />
+			<remove path="web-app/servlet-mapping[servlet-name/text()='FileServlet']" />
+		</xmltask>
+		<!-- set the WAR relative railo config dirs for server and web -->
+		<relpath from="${war.target.dir}" to="${railo.web.config.dir}" property="railo.initparam.web-config" />
+		<relpath from="${war.target.dir}" to="${railo.server.config.dir}" property="railo.initparam.server-config" />
+		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+			<xmlcatalog refId="commonDTDs" />
+			<replace path="web-app/servlet[servlet-class/text()='railo.loader.servlet.CFMLServlet']/init-param[param-value/text()='/WEB-INF/railo/']/param-value/text()" withText="{web-root-directory}/${railo.initparam.web-config}" />
+			<!-- TODO: railo-server-root must be an absolute path if set at all, basically.
+			<insert path="web-app/servlet[servlet-class/text()='railo.loader.servlet.CFMLServlet']" position="under">
+			<![CDATA[<init-param><param-name>railo-server-root</param-name><param-value>${railo.initparam.server-config}</param-value></init-param>]]></insert>
+			-->
+		</xmltask>
+		<!-- needed if deployed to jboss 6
+		<mkdir dir="${ext.dir}/jboss" />
+		<requires-ext-file file="${ext.dir}/jboss/jboss-classloading.xml"/>
+		<copy file="${ext.dir}/jboss/jboss-classloading.xml" tofile="${war.target.dir}/WEB-INF/jboss-classloading.xml" overwrite="true" />
+		-->
+
+		<cfmlengcrypt engine="railo" plaintext="${cfadmin.password}" property="railo.password.encrypted" />
+		<xmltask source="${railo.server.config.file}" dest="${railo.server.config.file}">
+			<attr path="/railo-configuration" attr="password" value="${railo.password.encrypted}" />
+			<attr path="/railo-configuration" attr="default-password" value="${railo.password.encrypted}" />
+		</xmltask>
+		<xmltask source="${railo.web.config.file}" dest="${railo.web.config.file}">
+			<attr path="/railo-configuration" attr="password" value="${railo.password.encrypted}" />
+		</xmltask>
+		<xmltask source="${railo.web.config.file}" dest="${railo.web.config.file}">
+			<insert path="//railo-configuration" position="under" xml="&lt;charset/&gt;" />
+			<attr path="/railo-configuration/charset" attr="resource-charset" value="${railo.charset.resource}" />
+			<attr path="/railo-configuration/charset" attr="template-charset" value="${railo.charset.template}" />
+			<attr path="/railo-configuration/charset" attr="web-charset" value="${railo.charset.web}" />
+		</xmltask>
+		<antcontrib:runtarget target="railo.ra.install" />
+	</target>
+
+	<target name="railo.build">
+		<antcontrib:runtarget target="war.init" />
+	</target>
+	
+	<target name="railo.build.binary">
+		<antcontrib:runtarget target="railo.build" />
+		<antcontrib:runtarget target="railo.compile-cf" />
+	</target>
+
+	<target name="railo.add.libs" if="add.libs.dir" unless="dont.add.libs">
+		<echo message="Copying libs: ${add.libs.dir} to: ${war.target.dir}/WEB-INF/lib/railo-server/context/lib" />
+		<addlibs from="${add.libs.dir}"/>
+		<!--
+		<copy todir="${war.target.dir}/WEB-INF/lib/railo-server/context/lib" overwrite="true">
+			<fileset dir="${add.libs.dir}"/>
+		</copy>
+-->
+	</target>
+
+	<target name="railo.build.war.ra" depends="exists.archives.xml,railo.archives.build" if="exists.archives.xml">
+		<antcontrib:runtarget target="war.init" />
+		<antcontrib:for param="file">
+			<path>
+				<fileset dir="${railo.archive.dir}">
+					<include name="*.ra" />
+				</fileset>
+			</path>
+			<sequential>
+				<antcontrib:propertyregex override="yes" property="mappingName" input="@{file}" regexp=".*/([^\.]+).ra|.*\\([^\.]+).ra" replace="\1" />
+				<echo message="Adding mapping for archive - /${mappingName} - @{file}" />
+				<copy file="@{file}" todir="${war.target.dir}" overwrite="true" />
+				<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+					<insert path="/railo-configuration/mappings" position="under">
+						<![CDATA[
+					<mapping
+						readonly="yes"
+						toplevel="true" 
+						trusted="false"
+						virtual="/${mappingName}"
+						archive="{web-root-directory}/${mappingName}.ra"
+						primary="archive"
+					/>
+					]]>
+					</insert>
+				</xmltask>
+			</sequential>
+		</antcontrib:for>
+		<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+			<attr path="/railo-configuration/java" attr="inspect-template" value="never" />
+		</xmltask>
+	</target>
+
+	<target name="railo.ra.install">
+		<antcontrib:for param="file">
+			<path>
+				<fileset dir="${basedir}/ra" erroronmissingdir="false">
+					<include name="*.ra" />
+				</fileset>
+			</path>
+			<sequential>
+				<antcontrib:propertyregex override="yes" property="mappingName" input="@{file}" regexp=".*/([^\.]+).ra|.*\\([^\.]+).ra" replace="\1" />
+				<echo message="Adding mapping for archive - /${mappingName} - @{file}" />
+				<copy file="@{file}" todir="${war.target.dir}" overwrite="true" />
+				<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+					<insert path="/railo-configuration/mappings" position="under">
+						<![CDATA[
+					<mapping
+						readonly="yes"
+						toplevel="true" 
+						trusted="false"
+						virtual="/${mappingName}"
+						archive="{web-root-directory}/${mappingName}.ra"
+						primary="archive"
+					/>
+					]]>
+					</insert>
+				</xmltask>
+			</sequential>
+		</antcontrib:for>
+	</target>
+
+	<target name="src.to.railo.archives.xml">
+		<echo file="${basedir}/railo.archives.${build.type}.xml" message="&lt;archives&gt;&lt;/archives&gt;" />
+		<abspath path="${railo.archive.dir}" property="railo.archive.dir" />
+		<antcontrib:for param="file">
+			<path>
+				<dirset dir="${src.dir}">
+					<include name="*" />
+				</dirset>
+			</path>
+			<sequential>
+				<antcontrib:propertyregex override="yes" property="mappingName" input="@{file}" regexp=".*/|.*\\([^\.]*)" replace="\1" />
+				<echo message="archive - ${mappingName} - @{file} ${railo.archive.dir}/${mappingName}.ra" />
+				<xmltask source="${basedir}/railo.archives.${build.type}.xml" dest="${basedir}/railo.archives.${build.type}.xml">
+					<insert path="archives" position="under">
+						<![CDATA[
+					<archive 
+						archive="${railo.archive.dir}/${mappingName}.ra"
+						mapping="/${mappingName}"
+						physical="@{file}"
+					/>
+					]]>
+					</insert>
+				</xmltask>
+			</sequential>
+		</antcontrib:for>
+	</target>
+
+	<target name="exists.archives.xml">
+		<available file="${basedir}/archives.xml" type="file" property="exists.archives.xml" />
+		<antcontrib:if>
+			<equals arg1="${exists.archives.xml}" arg2="true" />
+			<then>
+				<echo message="Archives file exists : ${basedir}/archives.xml " />
+			</then>
+			<else>
+				<echo message="No archives.xml file to import : ${basedir}/archives.xml does not exist.  Run the 'src.to.railo.archives.xml' task to generate one from everything in ${src.dir}" />
+			</else>
+		</antcontrib:if>
+	</target>
+
+	<target name="railo.mappings.xml.build" depends="exists.mappings.xml" if="exists.mappings.xml">
+		<xmltask sourcebuffer="mappings.buff">
+			<call path="mappings/*">
+				<param name="virtual" path="@virtual" default="NONE" />
+				<param name="physical" path="@physical" default="NONE" />
+				<param name="trusted" path="@trusted" default="false" />
+				<param name="readonly" path="@readonly" default="true" />
+				<actions>
+					<railo-mapping physical="@{physical}" virtual="@{virtual}" readonly="@{readonly}" trusted="@{trusted}" />
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+	<target name="railo.customtags.xml.build" depends="exists.customtags.xml" if="exists.customtags.xml">
+		<xmltask sourcebuffer="customtags.buff">
+			<call path="mappings/*">
+				<param name="virtual" path="@virtual" default="NONE" />
+				<param name="physical" path="@physical" default="NONE" />
+				<actions>
+					<railo-customtag physical="@{physical}" virtual="@{virtual}" />
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+
+	<target name="railo.mail.xml.build" depends="exists.mail.xml" if="exists.mail.xml">
+		<xmltask sourcebuffer="mail.buff" outputter="simple">
+			<call path="mail/settings">
+				<param name="log" path="@log" default="./temp/logs/mail.log" />
+				<param name="spool-enable" path="@spool-enable" default="yes" />
+				<param name="spool-interval" path="@spool-interval" default="5" />
+				<param name="timeout" path="@timeout" default="30" />
+				<actions>
+					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+						<attr path="/railo-configuration/mail" attr="log" value="@{log}" />
+						<attr path="/railo-configuration/mail" attr="spool-enable" value="@{spool-enable}" />
+						<attr path="/railo-configuration/mail" attr="spool-interval" value="@{spool-interval}" />
+						<attr path="/railo-configuration/mail" attr="timeout" value="@{timeout}" />
+					</xmltask>
+				</actions>
+			</call>
+		</xmltask>
+
+		<xmltask sourcebuffer="mail.buff">
+			<call path="mail/servers/*">
+				<param name="smtp" path="@smtp" default="smtp.gmail.com" />
+				<param name="port" path="@port" default="587" />
+				<param name="username" path="@username" default="" />
+				<param name="password" path="@password" default="" />
+				<param name="ssl" path="@ssl" default="false" />
+				<param name="tls" path="@tls" default="true" />				
+				<actions>
+					<antcontrib:var name="mailserver.exists" unset="true" />
+					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+						<copy path="/railo-configuration/mail/server[@smtp='@{smtp}']/@smtp" attrValue="true" property="mailserver.exists" />
+						<replace path="/railo-configuration/mail/server[@smtp=@{smtp}]/text()" if="mailserver.exists">
+							<![CDATA[
+							<server 
+								smtp="@{smtp}" 
+								port="@{port}" 
+								username="@{username}"
+								password="@{password}" 
+								ssl="@{ssl}" 
+								tls="@{tls}" 
+							/>
+		  					]]>
+	  					</replace>
+						<insert path="/railo-configuration/mail" position="under" unless="mailserver.exists">
+							<![CDATA[
+							<server 
+								smtp="@{smtp}" 
+								port="@{port}" 
+								username="@{username}"
+								password="@{password}" 
+								ssl="@{ssl}" 
+								tls="@{tls}" 
+							/>
+		  					]]>
+	  					</insert>
+					</xmltask>
+					<antcontrib:switch value="${mailserver.exists}">
+						<case value="@{smtp}">
+							<echo message="Updated mail server - @{smtp}	 @{username}" />
+						</case>
+						<default>
+							<echo message="Added mail server - @{smtp} 	@{username}" />
+						</default>
+					</antcontrib:switch>
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+
+	<target name="railo.datasources.build" depends="exists.datasources.xml" if="exists.datasources.xml">
+
+		<xmltask sourcebuffer="datasources.buff">
+			<call path="datasources/*">
+				<param name="name" path="@name" default="datasource" />
+				<param name="blob" path="@blob" default="false" />
+				<param name="clob" path="@clob" default="false" />
+				<param name="class" path="@class" default="org.gjt.mm.mysql.Driver" />
+				<param name="host" path="@host" default="localhost" />
+				<param name="port" path="@port" default="3306" />
+				<param name="database" path="@database" default="database" />
+				<param name="username" path="@username" default="sa" />
+				<param name="password" path="@password" default="" />
+				<param name="sqlstoredprocedures" path="@sqlstoredprocedures" default="true" />
+				<param name="sqlinsert" path="@sqlinsert" default="true" />
+				<param name="sqlselect" path="@sqlselect" default="true" />
+				<param name="sqlupdate" path="@sqlupdate" default="true" />
+				<param name="sqldelete" path="@sqldelete" default="true" />
+				<param name="maintainconnection" path="@maintainconnection" default="true" />
+				<param name="logintimeout" path="@logintimeout" default="120" />
+				<param name="connectionretries" path="@connectionretries" default="0" />
+				<param name="connectionlimit" path="@connectionlimit" default="-1" />
+				<param name="connectiontimeout" path="@connectiontimeout" default="120" />
+				<param name="custom" path="@custom" default="" />
+				<param name="jdbc" path="@jdbc" default="mysql" />
+				<param name="jdbcstring" path="@jdbcstring" default="jdbc:mysql://{host}:{port}/{database}" />
+				<actions>
+					<antcontrib:var name="datasource.exists" unset="true" />
+					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+						<copy path="/railo-configuration/data-sources/data-source[@name='@{name}']/@name" attrValue="true" property="datasource.exists" />
+						<replace path="/railo-configuration/data-sources/data-source[@name='@{name}']" if="datasource.exists">
+							<![CDATA[
+	  						<data-source allow="415" blob="@{blob}" 
+	  							name="@{name}" 
+	  							class="@{class}" 
+	  							host="@{host}" port="@{port}"
+	  							database="@{database}"
+	  							password="@{password}" 
+	  							username="@{username}"
+	  							clob="@{clob}" connectionLimit="@{connectionlimit}" connectionTimeout="@{connectiontimeout}" 
+	  							custom="@{custom}" 
+	  							dsn="@{jdbcstring}" 
+	  						/>	  					    
+	  					]]>
+	  					</replace>
+						<insert path="/railo-configuration/data-sources" position="under" unless="datasource.exists">
+							<![CDATA[
+	  						<data-source allow="415" blob="@{blob}" 
+	  							name="@{name}" 
+	  							class="@{class}" 
+	  							host="@{host}" port="@{port}"
+	  							database="@{database}"
+	  							password="@{password}" 
+	  							username="@{username}"
+	  							clob="@{clob}" connectionLimit="@{connectionlimit}" connectionTimeout="@{connectiontimeout}" 
+	  							custom="@{custom}" 
+  								dsn="@{jdbcstring}" 
+	  						/>	  					    
+	  					]]>
+	  					</insert>
+					</xmltask>
+					<antcontrib:switch value="${datasource.exists}">
+						<case value="@{name}">
+							<echo message="Updated Datasource - @{name}" />
+						</case>
+						<default>
+							<echo message="Added Datasource - @{name}" />
+						</default>
+					</antcontrib:switch>
+				</actions>
+			</call>
+		</xmltask>
+		<echo message="configured datasources" />
+	</target>
+	
+	<target name="railo.scheduledtasks.build" depends="exists.scheduledtasks.xml" if="exists.scheduledtasks.xml">
+		<mkdir dir="${war.target.dir}/WEB-INF/railo/scheduler"/>
+		<xmltask sourcebuffer="scheduledtasks.buff" dest="${war.target.dir}/WEB-INF/railo/scheduler/scheduler.xml" outputter="simple" />
+	</target>
+	
+	<target name="railo.compile-cf">
+		<antcontrib:runtarget target="railo.mappings.xml.build" />
+		<property name="build.cfc.url" value="http://${server.host}:${server.port.http}${war.contextpath}/_cfd_compile_temp/Build.cfc" />
+		<property name="compile.results.file" location="compile-results.txt" />
+		<mkdir dir="${war.target.dir}/_cfd_compile_temp" />
+		<railo-mapping virtual="/_cfd_compile_temp" physical="${war.target.dir}/_cfd_compile_temp" />
+		<copy file="${cfdistro.basedir}/Build.cfc" todir="${war.target.dir}/_cfd_compile_temp" />
+		<sequential>
+			<antcontrib:runtarget target="runwar.start" />
+			<echo file="${compile.results.file}" message="Compile results (${todays.date}): ${line.separator}${line.separator}"/>
+			<xmltask sourcebuffer="mappings.buff">
+			<call path="mappings/*">
+				<param name="virtual" path="@virtual" default="NONE" />
+				<param name="physical" path="@physical" default="NONE" />
+				<actions>
+					<sequential>
+						<echo message="@{virtual} @{physical}/"/>
+						<copy todir="${war.target.dir}@{virtual}" verbose="${cfdistro.debug}">
+							<fileset dir="@{physical}" />
+						</copy>
+						<echo message="Compiling mapping - @{virtual} - @{physical}" />
+						<get src="${build.cfc.url}?method=compile-mapping&amp;mapping=@{virtual}&amp;cfadminpassword=${cfadmin.password}" 
+							dest="compile.results.temp" retries="1" verbose="true" ignoreerrors="true" />
+						<antcontrib:var name="compile.results" unset="true" />
+						<loadfile srcFile="compile.results.temp" property="compile.results" failonerror="false"/>
+						<property name="compile.results" value="&lt;a href=&quot;${build.cfc.url}?method=compile-mapping&amp;mapping=@{virtual}&amp;cfadminpassword=${cfadmin.password}&quot;&gt;Compile /@{virtual}&lt;/a&gt;" />
+						<echo file="${compile.results.file}" append="true" message="${line.separator}${line.separator}*** mapping @{virtual} compile results: ${compile.results}"/>
+						<delete file="compile.results.temp"/>
+						<antcontrib:propertyregex override="yes" property="mappingName" input="@{virtual}" regexp=".*/|.*\\([^\.]*)" replace="\1" />
+						<copy todir="${war.target.dir}" verbose="${cfdistro.debug}" overwrite="true">
+							<fileset dir="${war.target.dir}/WEB-INF/railo/cfclasses/" />
+							<chainedmapper>
+								<regexpmapper from="^CF_.+_(${mappingName})\d{4}/+(.*)" to="\1/\2" />
+								<regexpmapper from="(.*)_cf(.).+\.class$$" to="\1.cf\2" />
+							</chainedmapper>
+						</copy>
+					</sequential>
+				</actions>
+			</call>
+			</xmltask>
+			<open-url url="${build.cfc.url}?method=show-results&amp;resultsfile=${compile.results.file}" />
+			<sleep seconds="3" />
+			<!-- remove the mappings now that they're compiled -->
+			<xmltask sourcebuffer="mappings.buff">
+				<call path="mappings/*">
+					<param name="virtual" path="@virtual" default="NONE" />
+					<param name="physical" path="@physical" default="NONE" />
+					<actions>
+						<railo-mapping-remove virtual="@{virtual}" />
+					</actions>
+				</call>
+			</xmltask>
+			<antcontrib:runtarget target="runwar.stop" />
+			<delete file="${war.target.dir}/Build.cfc" />
+			<delete dir="${war.target.dir}/_cfd_compile_temp"/>
+			<railo-mapping-remove virtual="/_cfd_compile_temp" />
+		</sequential>
+	</target>
+
+	<target name="railo.archives.build" depends="exists.archives.xml" if="exists.archives.xml">
+		<copy todir="${runwar.war.path}">
+			<fileset dir="${cfdistro.basedir}" includes="Build.cfc"/>
+			<filterchain>
+				<expandproperties />
+			</filterchain>
+		</copy>
+		<copy file="${cfdistro.basedir}/cfadminpassword.txt" todir="${runwar.war.path}" />
+		<delete dir="${railo.archive.dir}" />
+		<antcontrib:var name="runwar.stop.socket" value="10923" />
+		<antcontrib:var name="runwar.port" value="10921" />
+		<sequential>
+			<antcontrib:runtarget target="runwar.start" />
+			<xmltask source="railo.archives.${build.type}.xml">
+				<call path="archives/*">
+					<param name="archive" path="@archive" default="NONE" />
+					<param name="physical" path="@physical" default="NONE" />
+					<param name="mapping" path="@mapping" default="NONE" />
+					<actions>
+						<echo message="Creating Railo Archive - @{archive} - @{physical} @ @{mapping}" />
+						<get src="http://127.0.0.1:${runwar.port}${runwar.war.contextpath}Build.cfc?method=compile-archive&amp;mapping=@{mapping}&amp;toFile=@{archive}" dest="${railo.archive.dir}/@{mapping}.archive.results.properties" verbose="true" ignoreerrors="true" />
+					</actions>
+				</call>
+			</xmltask>
+			<antcontrib:runtarget target="runwar.stop" />
+		</sequential>
+		<echo message="created archives from ${basedir}/railo.archives.${build.type}.xml" />
+		<delete file="${runwar.war.path}/Build.cfc" />
+		<delete file="${runwar.war.path}/cfadminpassword.txt" />
+	</target>
+
+	<target name="copy-to-bin">
+		<delete dir="${temp.dir}/bin" />
+		<mkdir dir="${temp.dir}/bin" />
+		<copy todir="${temp.dir}/bin" verbose="true">
+			<fileset dir="${basedir}/WEB-INF/railo/cfclasses/" />
+			<chainedmapper>
+				<regexpmapper from="^CF_.+_(.+)\d{4}/+(.*)" to="\1/\2" />
+				<regexpmapper from="(.*)_cf(.).+\.class$$" to="\1.cf\2" />
+			</chainedmapper>
+		</copy>
+	</target>
+
+	<target name="railo.set.log.dir">
+		<!-- <mkdir dir="${log.dir}" /> -->
+		<relpath property="log.dir" to="${log.dir}" from="${war.target.dir}/WEB-INF/railo/logs"/>
+		<echo message="setting logging dir to ${log.dir}"/>
+		<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+			<attr path="/railo-configuration/remote-clients" attr="log" value="${log.dir}" />
+			<attr path="/railo-configuration/remote-clients" attr="log-level" value="info" />
+			<attr path="/railo-configuration/scope" attr="requesttimeout-log" value="${log.dir}requesttimeout.log" />
+			<attr path="/railo-configuration/scope" attr="requesttimeout" value="${cfml.request.timeout}" />
+			<attr path="/railo-configuration/scope" attr="applicationtimeout" value="${cfml.application.timeout}" />
+			<attr path="/railo-configuration/mail" attr="log" value="${log.dir}mail.log" />
+			<attr path="/railo-configuration/debugging" attr="memory-log" value="${log.dir}memory.log" />
+			<attr path="/railo-configuration/debugging" attr="debug" value="no" />
+			<attr path="/railo-configuration/application" attr="application-log" value="${log.dir}application.log" />
+			<attr path="/railo-configuration/application" attr="application-log-level" value="${log.level}" />
+			<attr path="/railo-configuration/application" attr="trace-log" value="${log.dir}trace.log" />
+			<attr path="/railo-configuration/application" attr="trace-log-level" value="${log.level}" />
+			<attr path="/railo-configuration/application" attr="exception-log" value="${log.dir}exception.log" />
+		</xmltask>
+	</target>
+
+	<target name="railo.set.debug">
+		<echo message="setting logging dir to ${log.dir}"/>
+		<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+			<attr path="/railo-configuration/debugging" attr="debug" value="${debugging.enabled}" />
+		</xmltask>
+	</target>
+
+	
+	<target name="railo.set.inspect.templates">
+		<echo message="Will inspect each template ${cfmlengine.inspect.templates}"/>
+		<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+			<attr path="/railo-configuration/java" attr="inspect-template" value="${cfmlengine.inspect.templates}" />
+		</xmltask>
+	</target>
+
+	<target name="railo.set.security">
+		<echo message="Setting security options"/>
+		<antcontrib:var name="datasource.exists" unset="true" />
+		<xmltask source="${railo.server.config.file}" dest="${railo.server.config.file}">
+			<copy path="/railo-configuration/security" attrValue="true" property="security.exists" />
+			<replace path="/railo-configuration/security']" if="security.exists">
+				<![CDATA[
+				<security access_read="${railo.security.access_read}" access_write="${railo.security.access_write}" 
+				cache="${railo.security.cache}" cfx_setting="${railo.security.cfx_setting}" cfx_usage="${railo.security.cfx_usage}"
+				custom_tag="${railo.security.custom_tag}" datasource="${railo.security.datasource}" debugging="${railo.security.debugging}"
+				direct_java_access="${railo.security.direct_java_access}" file="yes" gateway="yes" mail="yes" mapping="yes" 
+				remote="yes" scheduled_task="yes" search="yes" setting="yes" 
+				tag_execute="yes" tag_import="yes" tag_object="yes" tag_registry="yes"/>
+				]]>
+				</replace>
+			<insert path="/railo-configuration" position="under" unless="security.exists">
+				<![CDATA[
+				<security access_read="${railo.security.access_read}" access_write="${railo.security.access_write}" 
+				cache="${railo.security.cache}" cfx_setting="${railo.security.cfx_setting}" cfx_usage="${railo.security.cfx_usage}"
+				custom_tag="${railo.security.custom_tag}" datasource="${railo.security.datasource}" debugging="${railo.security.debugging}"
+				direct_java_access="${railo.security.direct_java_access}" file="yes" gateway="yes" mail="yes" mapping="yes" 
+				remote="yes" scheduled_task="yes" search="yes" setting="yes" 
+				tag_execute="yes" tag_import="yes" tag_object="yes" tag_registry="yes"/>
+				]]>
+				</insert>
+		</xmltask>
+	</target>
+
+
+	<target name="railo.add.build.cfc">
+		<mkdir dir="${war.target.dir}/_cfd_compile_temp" />
+		<railo-mapping virtual="/_cfd_compile_temp" physical="${war.target.dir}/_cfd_compile_temp" />
+		<copy file="${cfdistro.basedir}/Build.cfc" todir="${war.target.dir}/_cfd_compile_temp" />
+	</target>
+
+	<macrodef name="railo-mapping">
+		<attribute name="physical" />
+		<attribute name="virtual" />
+		<attribute name="readonly" default="true"/>
+		<attribute name="trusted" default="false"/>
+		<sequential>
+			<antcontrib:var name="___physical" value="@{physical}" />
+			<antcontrib:if>
+				<equals arg1="${copy.mappings.to.war}" arg2="true" />
+				<then>
+					<echo message="copying @{physical} to ${war.target.dir}/@{virtual}" />
+					<copy todir="${war.target.dir}/@{virtual}" verbose="false">
+						<fileset dir="@{physical}"/>
+					</copy>
+				</then>
+				<else>
+					<antcontrib:if>
+						<equals arg1="${mappings.relative}" arg2="true" />
+						<then>
+							<antcontrib:var name="___physical" unset="true" />
+							<relpath from="${war.target.dir}" to="@{physical}" property="___physical"/>
+						</then>
+					</antcontrib:if>
+					<antcontrib:var name="mapping.exists" unset="true" />
+					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+						<copy path="/railo-configuration/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
+						<replace path="/railo-configuration/mappings/mapping[@virtual='@{virtual}']" if="mapping.exists">
+							<![CDATA[
+							<mapping
+								readonly="@{readonly}"
+								trusted="@{trusted}"
+								virtual="@{virtual}"
+								physical="${___physical}"
+								archive=""
+								primary="physical"
+							/>
+							]]>
+							</replace>
+						<insert path="/railo-configuration/mappings" position="under" unless="mapping.exists">
+							<![CDATA[
+							<mapping
+								readonly="@{readonly}"
+								trusted="@{trusted}"
+								virtual="@{virtual}"
+								physical="${___physical}"
+								archive=""
+								primary="physical"
+							/>
+							]]>
+							</insert>
+					</xmltask>
+					<antcontrib:switch value="${mapping.exists}">
+						<case value="@{virtual}">
+							<echo message="Updated Mapping - @{virtual}	 ${___physical}" />
+						</case>
+						<default>
+							<echo message="Added Mapping - @{virtual} 	${___physical}" />
+						</default>
+					</antcontrib:switch>
+					</else>
+				</antcontrib:if>
+			<antcontrib:var name="___physical" unset="true" />
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="railo-customtag">
+		<attribute name="physical" />
+		<attribute name="virtual" />
+		<attribute name="contextType" default="web" />
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="@{contextType}" arg2="web" />
+				<then>
+					<antcontrib:var name="railo.customtags.dir" value="${railo.web.customtags.dir}"/>
+				</then>
+				<else>
+					<antcontrib:var name="railo.customtags.dir" value="${railo.server.customtags.dir}"/>
+				</else>
+			</antcontrib:if>
+			<relpath property="customtag.physical" from="${war.target.dir}" to="@{physical}" />
+			<antcontrib:if>
+				<equals arg1="${copy.mappings.to.war}" arg2="true" />
+				<then>
+					<echo message="Copying Custom Tag @{physical} to ${railo.customtags.dir}@{virtual}" />
+					<copy todir="${railo.customtags.dir}@{virtual}">
+						<fileset dir="@{physical}"/>
+					</copy>
+					<antcontrib:var name="customtag.physical" unset="true"/>
+					<relpath property="customtag.physical" from="${war.target.dir}" to="${railo.customtags.dir}@{virtual}" />
+				</then>
+			</antcontrib:if>
+			<antcontrib:var name="mapping.exists" unset="true" />
+			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+				<copy path="/railo-configuration/custom-tag/mapping[@physical='${customtag.physical}']/@physical" attrValue="true" property="mapping.exists" />
+				<replace path="/railo-configuration/custom-tag/mapping[@physical='${customtag.physical}']/text()" if="mapping.exists">
+					<![CDATA[
+				<mapping
+					trusted="false"
+					physical="${customtag.physical}"
+				/>
+				]]>
+				</replace>
+				<insert path="/railo-configuration/custom-tag" position="under" unless="mapping.exists">
+					<![CDATA[
+				<mapping
+					trusted="false"
+					physical="${customtag.physical}"
+				/>
+				]]>
+				</insert>
+			</xmltask>
+			<antcontrib:switch value="${mapping.exists}">
+				<case value="${customtag.physical}">
+					<echo message="Updated Custom Tag Mapping - ${customtag.physical}" />
+				</case>
+				<default>
+					<echo message="Added Custom Tag Mapping - ${customtag.physical}" />
+				</default>
+			</antcontrib:switch>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="railo-datasource">
+		<attribute name="name"/>
+		<attribute name="blob" default="false" />
+		<attribute name="clob" default="false" />
+		<attribute name="class" default="org.h2.Driver" />
+		<attribute name="host" default="127.0.0.1" />
+		<attribute name="port" default="3306" />
+		<attribute name="database" default="railo-db" />
+		<attribute name="username" default="sa" />
+		<attribute name="password" default="" />
+		<attribute name="sqlstoredprocedures" default="true" />
+		<attribute name="sqlinsert" default="true" />
+		<attribute name="sqlselect" default="true" />
+		<attribute name="sqlupdate" default="true" />
+		<attribute name="sqldelete" default="true" />
+		<attribute name="maintainconnection" default="true" />
+		<attribute name="logintimeout" default="120" />
+		<attribute name="connectionretries" default="0" />
+		<attribute name="connectionlimit" default="-1" />
+		<attribute name="connectiontimeout" default="120" />
+		<attribute name="custom" default="" />
+		<attribute name="jdbc" default="h2" />
+		<attribute name="jdbcstring" default="jdbc:h2:./h2dbs/railo-db/railo-db" />
+		<sequential>
+			<antcontrib:var name="datasource.exists" unset="true" />
+			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+				<copy path="/railo-configuration/data-sources/data-source[@name='@{name}']/@name" attrValue="true" property="datasource.exists" />
+				<replace path="/railo-configuration/data-sources/data-source[@name='@{name}']" if="datasource.exists">
+					<![CDATA[
+ 						<data-source allow="415" blob="@{blob}" 
+ 							name="@{name}" 
+ 							class="@{class}" 
+ 							host="@{host}" port="@{port}"
+ 							database="@{database}"
+ 							password="@{password}" 
+ 							username="@{username}"
+ 							clob="@{clob}" connectionLimit="@{connectionlimit}" connectionTimeout="@{connectiontimeout}" 
+ 							custom="@{custom}" 
+ 							dsn="@{jdbcstring}" 
+ 						/>	  					    
+ 					]]>
+ 					</replace>
+				<insert path="/railo-configuration/data-sources" position="under" unless="datasource.exists">
+					<![CDATA[
+ 						<data-source allow="415" blob="@{blob}" 
+ 							name="@{name}" 
+ 							class="@{class}" 
+ 							host="@{host}" port="@{port}"
+ 							database="@{database}"
+ 							password="@{password}" 
+ 							username="@{username}"
+ 							clob="@{clob}" connectionLimit="@{connectionlimit}" connectionTimeout="@{connectiontimeout}" 
+ 							custom="@{custom}" 
+								dsn="@{jdbcstring}" 
+ 						/>	  					    
+ 					]]>
+ 					</insert>
+			</xmltask>
+			<antcontrib:switch value="${datasource.exists}">
+				<case value="@{name}">
+					<echo message="Updated Datasource - @{name}" />
+				</case>
+				<default>
+					<echo message="Added Datasource - @{name}" />
+				</default>
+			</antcontrib:switch>
+		</sequential>
+	</macrodef>	
+	
+	
+	<macrodef name="railo-cache">
+		<attribute name="name"/>
+		<attribute name="class"/>
+		<attribute name="custom"/>
+		<attribute name="storage"/>
+		<attribute name="default-type" default=""/>
+		<attribute name="read-only" default="false"/>
+		
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="${default.cfengine}" arg2="railo" />
+				<then>
+					<antcontrib:var name="some.cache.exists" unset="true" />
+					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+						<xmlcatalog refId="commonDTDs" />
+						<copy path="//railo-configuration/cache/text()" property="some.cache.exists" />
+						<!-- if no caches at all, just insert -->
+						<insert path="//railo-configuration" position="under" unless="some.cache.exists">
+							<![CDATA[<cache>
+							<connection class="@{class}" custom="@{custom}" name="@{name}" read-only="@{read-only}" storage="@{storage}"/></cache>]]>
+						</insert>
+						<copy path="//railo-configuration/cache/connection[@name='@{name}']/@name" attrValue="true" property="cache.exists" />
+						<replace path="//railo-configuration/cache/connection[@name='@{name}']" if="cache.exists">
+							<![CDATA[
+							<connection class="@{class}" custom="@{custom}" name="@{name}" read-only="@{read-only}" storage="@{storage}"/>
+		  					]]>
+		  					</replace>
+						<insert path="//railo-configuration/cache" position="under" unless="cache.exists">
+							<![CDATA[
+							<connection class="@{class}" custom="@{custom}" name="@{name}" read-only="@{read-only}" storage="@{storage}"/>
+		  					]]>
+	  					</insert>
+					</xmltask>
+					<antcontrib:if>
+						<equals arg1="@{default-type}" arg2="" />
+						<then/>
+						<else>
+							<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+								<attr path="/railo-configuration/cache" attr="@{default-type}" value="@{name}" />
+							</xmltask>
+						</else>
+					</antcontrib:if>
+					<!-- if some caches exist we can update and add -->
+					<antcontrib:switch value="${cache.exists}">
+						<case value="true">
+							<echo message="updated cache provider @{name}" />
+						</case>
+						<default>
+							<echo message="added cache provider @{name}" />
+						</default>
+					</antcontrib:switch>
+					<antcontrib:var name="cache.exists" unset="true" />
+				</then>
+				<else>
+					<echo> *** cache providers are useless for ${default.cfengine} hombre!</echo>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>	
+
+	<target name="extension.build" description="builds the extension">
+		<echo message="Building Extension" />
+		<tstamp/>
+		<!-- these property files will override the defaults  -->
+		<property file="${basedir}/build.properties" />
+		<property file="${basedir}/build.extension.properties" />
+		<filter filtersfile="${basedir}/build.properties" />		
+		<!-- defaults -->
+		<property name="extension.name" value="${distro.name}"/>
+		<property name="extension.basedir" location="${src.dir}/${distro.name}"/>
+		<property name="extension.dist" location="../dist"/>
+		<property name="extension.temp.dir" value="./temp" />
+		<property name="extension.lib" location="../lib"/>
+		<property name="extension.docs.dir" location="../docs"/>
+		<property name="extension.applications.dir" location="${extension.basedir}/applications"/>
+		<property name="extension.plugin.dir" location="${extension.basedir}/plugin"/>
+		<property name="extension.tag.dir" location="${extension.basedir}/tag"/>
+		<property name="extension.function.dir" location="${extension.basedir}/function"/>
+		<property name="extension.cdriver.dir" location="${extension.basedir}/cdriver"/>
+		<property name="extension.gdriver.dir" location="${extension.basedir}/gdriver"/>
+		<property name="extension.java.src.dir" location="${extension.basedir}/java/src"/>
+		<property name="extension.java.bin.dir" value="${extension.temp.dir}/javabin" />
+		<property name="extension.java.lib.dir" value="${extension.basedir}/java/lib" />
+		<property name="extension.src" value="${extension.basedir}/extension" />
+		<delete dir="${extension.temp.dir}" />
+		<mkdir dir="${extension.temp.dir}" />
+		<mkdir dir="${extension.dist}" />
+		<propertyfile file="${basedir}/build.extension.lastbuild" comment="Extension Build Information">
+			<entry key="build.date" type="date" pattern="MM-dd-yyyy HH:mm:ss" value="now" />
+			<entry key="build.time" type="date" pattern="kk:mm:ss" value="now" />
+			<entry key="build.timestamp" type="date" pattern="MM-dd-yyyy' at 'HH:mm:ss" value="now" />
+			<entry key="build.lastcommithash" default="" />
+		</propertyfile>
+		<property file="${basedir}/build.extension.lastbuild" />
+
+		<property name="extension.version" value="0.0.0.1"/>
+		<property name="extension.version.bump" value="" description="one of [major|minor|build|revision] or empty to not bump number." />
+		<version-splitter property="extension.build.version" version="${extension.version}" bump="${extension.version.bump}"/>
+		<antcontrib:var name="extension.version" value="${extension.build.version.long}" />
+		<echoproperties>
+			<propertyset>
+				<propertyref prefix="build." />
+				<propertyref prefix="extension." />
+			</propertyset>
+		</echoproperties>
+
+		<antcontrib:var name="extension.archive" value="${extension.name}-${extension.version}-extension.zip"/>
+		<delete file="${extension.dist}/${extension.archive}" />
+		<antcontrib:if>
+			<available file="${extension.src}/config.xml"/>
+			<then>
+				<copy overwrite="yes" verbose="no" file="${extension.src}/config.xml" tofile="${extension.temp.dir}/config.xml" filtering="true">
+					<filterchain><expandproperties /></filterchain>
+				</copy>
+			</then>
+			<else>
+				<copy overwrite="yes" verbose="no" file="${cfdistro.basedir}/extension/config.xml" tofile="${extension.temp.dir}/config.xml" filtering="true">
+					<filterchain><expandproperties /></filterchain>
+				</copy>
+			</else>
+		</antcontrib:if>
+		
+		<antcontrib:if>
+			<and><available file="${extension.java.src.dir}"/><not><equals arg1="${extension.java.compile}" arg2="false" /></not></and>
+		<then>
+			<property name="extension.java.jar" value="${extension.name}-extension.jar" />
+	  		<echo message="Compiling and jaring Java sources to ${extension.lib}/${extension.java.jar}"/>
+			<path id="extension-java-jar-classpath">
+	            <fileset dir="${extension.lib}" erroronmissingdir="false">
+	                <include name="*.jar"/>
+	             </fileset>
+				<fileset dir="${war.target.dir}/WEB-INF/lib/">
+					<include name="*.jar"/>
+				 </fileset>
+				<fileset dir="${cfdistro.basedir}/lib">
+					<include name="*.jar"/>
+				 </fileset>
+				<fileset dir="${extension.java.lib.dir}" erroronmissingdir="false">
+					<include name="*.jar"/>
+				 </fileset>
+			</path>
+			<mkdir dir="${extension.java.bin.dir}" />
+			<javac-ecj srcdir="${extension.java.src.dir}" destdir="${extension.java.bin.dir}"
+				compliance="1.6" target="1.6" fork="false"
+			    classpath="${toString:extension-java-jar-classpath}"/>
+			<jar basedir="${extension.java.bin.dir}" destfile="${extension.lib}/${extension.java.jar}" />
+			<delete dir="${extension.java.bin.dir}" />
+		</then>
+		</antcontrib:if>
+		<zip destfile="${extension.dist}/${extension.archive}" basedir="${extension.temp.dir}">
+			<fileset file="${extension.temp.dir}/config.xml" />
+			<fileset file="${extension.docs.dir}/license.txt" erroronmissingdir="false" />
+			<zipfileset dir="${extension.src}" excludes="config.xml" erroronmissingdir="false" />
+			<zipfileset dir="${extension.lib}" prefix="jars/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.docs.dir}" prefix="docs/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.plugin.dir}" prefix="plugins/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.tag.dir}" prefix="tags/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.applications.dir}" prefix="applications/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.function.dir}" prefix="functions/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.cdriver.dir}" prefix="cdrivers/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.gdriver.dir}" prefix="gdrivers/" erroronmissingdir="false" />
+		</zip>
+<!--
+		<delete dir="${extension.temp.dir}" />
+-->
+		<delete file="${extension.lib}/${extension.java.jar}"/>
+		<delete>
+			<fileset dir="." includes="content.zip,libs.zip,tag.zip,plugin.zip,function.zip" />
+		</delete>
+		<propertyfile file="${basedir}/build.extension.lastbuild" comment="Extension Build Information">
+			<entry key="extension.version" value="${extension.build.version.long}" />
+		</propertyfile>
+	</target>
+
+	<target name="extension.mvn.release" depends="extension.build">
+		<antcontrib:runtarget target="build.mxunit.tests.run" />
+		<mvn-put artifact="${extension.dist}/${extension.archive}" packaging="zip" repoId="cfdistro.repo.local"
+		 groupId="cfml.extension.${extension.name}" artifactId="${extension.name}" version="${extension.version}"/>
+	</target>
+
+	<target name="extensions.install">
+		<sequential>
+			<antcontrib:for param="extension">
+			  <path>
+			    <fileset dir="${basedir}/extensions" includes="*.zip" erroronmissingdir="false"/>
+			  </path>
+			  <sequential>
+				<antcontrib:propertyregex override="yes" property="__extensionName" input="@{extension}" 
+					regexp=".*/(.*)\.zip" select="\1" />
+				<xmlproperty prefix="${__extensionName}.extension" keeproot='false'>
+				  <zipentry archive="@{extension}" name="config.xml"/>
+				</xmlproperty>
+				<echoproperties prefix="${__extensionName}.extension.info" />
+				<railo-extension-install extension-zip="@{extension}" />
+			  </sequential>
+			</antcontrib:for>		
+		</sequential>
+	</target>
+
+	<macrodef name="railo-extension-install">
+		<attribute name="extension-zip" />
+		<attribute name="builtin" default="false" />
+		<attribute name="contextType" default="web" />
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="@{contextType}" arg2="web" />
+				<then>
+			  		<echo message="Installing extension to web context"/>
+					<antcontrib:var name="railo.customtags.dir" value="${railo.web.customtags.dir}"/>
+					<antcontrib:var name="railo.library.dir" value="${railo.web.library.dir}"/>
+				</then>
+				<else>
+			  		<echo message="Installing extension to server context"/>
+					<antcontrib:var name="railo.customtags.dir" value="${railo.server.customtags.dir}"/>
+					<antcontrib:var name="railo.library.dir" value="${railo.server.library.dir}"/>
+				</else>
+			</antcontrib:if>
+			<property name="extension.temp.dir" value="${temp.dir}/extensions-tmp"/>
+			<mkdir dir="${extension.temp.dir}" />
+			<unzip src="@{extension-zip}" dest="${extension.temp.dir}" />
+			<antcontrib:if><available file="${extension.temp.dir}/jars"/>
+			<then>
+		  		<echo message="Installing extension libs"/>
+				<copy todir="${war.target.dir}/WEB-INF/railo/lib/">
+					<fileset dir="${extension.temp.dir}/jars"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/plugins"/>
+			<then>
+		  		<echo message="Installing extension plugin"/>
+				<copy todir="${war.target.dir}/WEB-INF/railo/context/admin/plugin">
+					<fileset dir="${extension.temp.dir}/plugins"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/applications"/>
+			<then>
+		  		<echo message="Installing extension application"/>
+				<copy todir="${war.target.dir}/">
+					<fileset dir="${extension.temp.dir}/applications"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/tags"/>
+			<then>
+		  		<echo message="Installing extension tag"/>
+				<antcontrib:for param="file">
+					<path>
+						<fileset dir="${extension.temp.dir}/tags" includes="*/*.cfm"/>
+					</path>
+					<sequential>
+						<antcontrib:propertyregex override="yes" property="extension-tag" input="@{file}" 
+							regexp=".*/(.*)\.cfm" select="cf\1" />
+						<antcontrib:if>
+							<equals arg1="@{builtin}" arg2="true" />
+							<then>
+								<echo message="installing as built-in tag to ${railo.library.dir}/tag/${extension-tag}" />
+								<antcontrib:propertyregex override="yes" property="extension.tag.cfc.dir" input="${extension-tag}" 
+									regexp="^cf(.*)" select="\1" />
+								<mkdir dir="${railo.library.dir}/tag/" />
+								<echo file="${railo.library.dir}/tag/${extension.tag.cfc.dir}.cfc"><![CDATA[<cfcomponent extends="${extension-tag}/cfc/${extension.tag.cfc.dir}"></cfcomponent>]]></echo>
+								<copy todir="${railo.library.dir}/library/tag">
+									<fileset dir="${extension.temp.dir}/tags"/>
+								</copy>
+								<railo-customtag physical="${railo.library.dir}/tag/${extension-tag}" virtual="/${extension-tag}" />
+							</then>
+							<else>
+								<echo message="installing as custom tag to ${railo.customtags.dir}/${extension-tag}" />
+								<copy todir="${railo.customtags.dir}">
+									<fileset dir="${extension.temp.dir}/tags"/>
+								</copy>
+								<railo-customtag physical="${railo.customtags.dir}/${extension-tag}" virtual="/${extension-tag}" />
+							</else>
+						</antcontrib:if>
+					</sequential>
+				</antcontrib:for>		
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/cdrivers"/>
+			<then>
+		  		<echo message="Installing extension cache driver"/>
+				<copy todir="${war.target.dir}/WEB-INF/railo/context/admin/cdriver">
+					<fileset dir="${extension.temp.dir}/cdrivers"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/gdrivers"/>
+			<then>
+		  		<echo message="Installing extension gateway driver"/>
+				<copy todir="${war.target.dir}/WEB-INF/railo/context/admin/gdriver">
+					<fileset dir="${extension.temp.dir}/gdrivers"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/plugins"/>
+			<then>
+		  		<echo message="Installing extension plugin"/>
+				<copy todir="${war.target.dir}/WEB-INF/railo/context/admin/plugin">
+					<fileset dir="${extension.temp.dir}/plugins"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/functions"/>
+			<then>
+		  		<echo message="Installing extension function"/>
+				<copy todir="${railo.library.dir}/function">
+					<fileset dir="${extension.temp.dir}/functions"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="railo-mapping-remove">
+		<attribute name="virtual" />
+		<sequential>
+			<antcontrib:var name="mapping.exists" unset="true" />
+			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+				<copy path="/railo-configuration/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
+				<replace path="/railo-configuration/mappings/mapping[@virtual=@{virtual}]/text()" if="mapping.exists">
+					<![CDATA[]]>
+				</replace>
+			</xmltask>
+			<antcontrib:switch value="${mapping.exists}">
+				<case value="@{virtual}">
+					<echo message="Removed Mapping - @{virtual}" />
+				</case>
+				<default>
+					<echo message="Didn't find Mapping to remove - @{virtual} 	@{physical}" />
+				</default>
+			</antcontrib:switch>
+		</sequential>
+	</macrodef>	
+		
+	<macrodef name="railo-error-template">
+		<attribute name="path" default="always" />
+		<attribute name="type" default="500" />
+		<sequential>
+			<echo>setting railo template-@{type} to @{path}</echo>
+			<antcontrib:var name="railo.template.error.exists" unset="true" />
+			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+				<copy path="/railo-configuration/error/@status-code" attrValue="true" property="railo.template.error.exists"/>
+				<insert path="/railo-configuration" position="under" unless="railo.template.error.exists"><![CDATA[<error status-code="true"/>]]></insert>
+				<attr path="/railo-configuration/error" attr="template-@{type}" value="@{path}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+		
+	<macrodef name="railo-inspect-template">
+		<attribute name="when" default="" />
+		<sequential>
+			<antcontrib:runtarget target="railo.set.inspect.templates" />
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="extensionprovider">
+		<attribute name="url" default="" />
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="${default.cfengine}" arg2="railo" />
+				<then>
+					<antcontrib:var name="some.extension.exists" unset="true" />
+					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+						<xmlcatalog refId="commonDTDs" />
+						<copy path="/railo-configuration/extensions/text()" property="some.extension.exists" />
+						<!-- if no extensions at all, just insert -->
+						<insert path="/railo-configuration" position="under" unless="some.extension.exists">
+							<![CDATA[<extensions><provider url="@{url}"/></extensions>]]>
+						</insert>
+						<copy path="/railo-configuration/extensions/provider[@url='@{url}']/@url" attrValue="true" property="extension.exists" />
+						<replace path="/railo-configuration/extensions/provider[@url='@{url}']/text()" if="extension.exists">
+							<![CDATA[
+		  						<provider url="@{url}"/>
+		  					]]>
+		  					</replace>
+						<insert path="/railo-configuration/extensions" position="under" unless="extension.exists">
+							<![CDATA[
+								<provider url="@{url}"/>
+		  					]]>
+		  					</insert>
+					</xmltask>
+					<!-- if some extensions exist we can update and add -->
+					<antcontrib:switch value="${extension.exists}">
+						<case value="true">
+							<echo message="updated extension provider @{url}" />
+						</case>
+						<default>
+							<echo message="added extension provider @{url}" />
+						</default>
+					</antcontrib:switch>
+				</then>
+				<else>
+					<echo> *** Extension providers are useless for ${default.cfengine} hombre!</echo>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>	
+
+	
+	<macrodef name="railo-eventgateway">
+		<attribute name="id" />
+		<attribute name="cfc-path" default="railo.extension.gateway.DirectoryWatcher" />
+		<attribute name="class" default="" />
+		<attribute name="listener-cfc-path" default="srcsync.sync" />
+		<attribute name="read-only" default="false" />
+		<attribute name="startup-mode" default="automatic" />
+		<attribute name="directory" default="" />
+		<attribute name="interval" default="6000" />
+		<attribute name="addFunction" default="onAdd" />
+		<attribute name="deleteFunction" default="onDelete" />
+		<attribute name="changeFunction" default="onChange" />
+		<attribute name="extensions" default="*" />
+		<attribute name="recurse" default="true" />		 
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="${default.cfengine}" arg2="railo" />
+				<then>
+					<antcontrib:var name="some.gateway.exists" unset="true" />
+					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+						<xmlcatalog refId="commonDTDs" />
+						<copy path="/railo-configuration/gateways/text()" property="some.gateway.exists" />
+						<!-- if no gateways at all, just insert -->
+						<insert path="/railo-configuration" position="under" unless="some.gateway.exists">
+							<![CDATA[
+						    <gateways>
+							<gateway cfc-path="@{cfc-path}" class="" custom="directory=@{directory}&amp;interval=@{interval}&amp;changeFunction=@{changeFunction}&amp;extensions=@{extensions}&amp;recurse=@{recurse}&amp;addFunction=@{addFunction}&amp;deleteFunction=@{deleteFunction}" id="@{id}" listener-cfc-path="@{listener-cfc-path}" read-only="@{read-only}" startup-mode="@{startup-mode}"/>
+						    </gateways>
+		  					]]>
+						</insert>
+						<copy path="/railo-configuration/gateways/gateway[@id='@{id}']/@id" attrValue="true" property="gateway.exists" />
+						<replace path="/railo-configuration/gateways/provider[@url='@{url}']/text()" if="gateway.exists">
+							<![CDATA[
+							<gateway cfc-path="@{cfc-path}" class="" custom="directory=@{directory}&amp;interval=@{interval}&amp;changeFunction=@{changeFunction}&amp;extensions=@{extensions}&amp;recurse=@{recurse}&amp;addFunction=@{addFunction}&amp;deleteFunction=@{deleteFunction}" id="@{id}" listener-cfc-path="@{listener-cfc-path}" read-only="@{read-only}" startup-mode="@{startup-mode}"/>
+		  					]]>
+		  					</replace>
+						<insert path="/railo-configuration/gateways" position="under" unless="gateway.exists">
+							<![CDATA[
+							<gateway cfc-path="@{cfc-path}" class="" custom="directory=@{directory}&amp;interval=@{interval}&amp;changeFunction=@{changeFunction}&amp;extensions=@{extensions}&amp;recurse=@{recurse}&amp;addFunction=@{addFunction}&amp;deleteFunction=@{deleteFunction}" id="@{id}" listener-cfc-path="@{listener-cfc-path}" read-only="@{read-only}" startup-mode="@{startup-mode}"/>
+		  					]]>
+		  					</insert>
+					</xmltask>
+					<!-- if some gateways exist we can update and add -->
+					<antcontrib:switch value="${gateway.exists}">
+						<case value="true">
+							<echo message="updated gateway @{url}" />
+						</case>
+						<default>
+							<echo message="added gateway @{url}" />
+						</default>
+					</antcontrib:switch>
+				</then>
+				<else>
+					<echo> *** gateways are useless for ${default.cfengine} hombre!</echo>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>	
+
+	<!-- these are overridden prior -->
+	<target name="clean">
+		<antcontrib:runtarget target="cfdistro.clean" />
+	</target>
+
+	<target name="copySources">
+		<antcontrib:runtarget target="cfdistro.copySources" />
+	</target>
+
+	<target name="exists.mappings.xml">
+		<antcall target="cfdistro.exists.mappings.xml" />
+	</target>
+
+	<target name="exists.datasources.xml">
+		<antcall target="cfdistro.exists.datasources.xml" />
+	</target>
+
+	<target name="exists.customtags.xml">
+		<antcall target="cfdistro.exists.customtags.xml" />
+	</target>
+
+	<target name="exists.mail.xml">
+		<antcall target="cfdistro.exists.mail.xml" />
+	</target>
+
+	<target name="exists.scheduledtasks.xml">
+		<antcall target="cfdistro.exists.scheduledtasks.xml" />
+	</target>
+
+</project>

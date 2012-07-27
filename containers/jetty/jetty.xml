@@ -1,0 +1,349 @@
+<project name="jetty" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="server.deploy.dir" location="${jetty.dir}/webapps"/>
+	<property name="server.log.dir" value="${jetty.dir}/logs/"/>
+	<property name="server.host" value="localhost"/>
+	<property name="server.port" value="8080"/>
+	<property name="server.port.http" value="8080"/>
+	<property name="server.port.ajp" value="8009"/>
+	<property name="server.maxmemory" value="256M"/>
+	<property name="server.sharedlibs" value="false"/>
+
+	<property name="jetty.version" value="7" />
+	<property name="jetty.version.minor" value="5.4.v20111024" />
+	<property name="jetty.host" value="${server.host}"/>
+	<property name="jetty.host.aliases" value=""/>
+	<property name="ext.jetty.dir" location="${ext.dir}/jetty/${jetty.version}" />
+	<property name="jetty.version.long" value="${jetty.version}.${jetty.version.minor}" />
+	<property name="ext.jetty.zip.uri" value="http://download.eclipse.org/jetty/${jetty.version.long}/dist/jetty-distribution-${jetty.version.long}.zip" />
+	<property name="ext.jetty.zip" location="${ext.jetty.dir}/jetty-distribution-${jetty.version.long}.zip" />
+	<property name="jetty.dir" location="../jetty${jetty.version}" />
+	<property name="jetty.port.http" value="${server.port.http}"/>
+	<property name="jetty.port.ajp" value="${server.port.ajp}"/>
+	<property name="jetty.deploy.dir" value="${server.deploy.dir}"/>
+	<property name="jetty.server.log.dir" value="${server.log.dir}"/>
+	<property name="jetty.maxmemory" value="${server.maxmemory}"/>	
+	<property name="jetty.jvm.args" value="${server.jvm.args}"/>	
+
+    <property name="jetty.manager.username" value="admin"/>
+    <property name="jetty.manager.password" value="${cfadmin.password}"/>
+
+	<antcontrib:if>
+		<equals arg1="1" arg2="1" />
+		<then>
+			<path id="jetty.ant.lib.path">
+				<fileset dir="${cfdistro.basedir}/ext/containers/jetty/lib">
+					<include name="*.jar" />
+				</fileset>
+			</path>
+			<path id="jetty.lib.path">
+				<fileset dir="${jetty.dir}/lib">
+					<include name="*.jar" />
+				</fileset>
+				<fileset dir="${jetty.dir}/bin">
+					<include name="*.jar" />
+				</fileset>
+			</path>
+		</then>
+	</antcontrib:if>
+	
+	<target name="jetty.uninstall" depends="jetty.stop">
+		<delete dir="${jetty.dir}" />
+	</target>
+
+	<target name="jetty.server.log.dir">
+		<property name="server.log.dir" value="${jetty.server.log.dir}"/>
+	</target>
+
+	<target name="jetty.install">
+		<mkdir dir="${ext.jetty.dir}"/>
+		<sequential>
+		<antcontrib:if>
+			<available file="${jetty.dir}" />
+			<then>
+			<echo message="server dir ${jetty.dir} already exists, not installing!  Remove with: ant server.uninstall"/> 
+			</then>
+			<else>
+				<required-resource
+					src="${ext.jetty.zip.uri}" 
+					dest="${ext.jetty.zip}" />
+				<unzip src="${ext.jetty.zip}"						
+				       dest="${jetty.dir}">
+					<regexpmapper from="jetty-distribution-${jetty.version.long}/(.*)$" to="\1"/>
+				</unzip>
+				<delete file="${jetty.dir}/webapps/test.war" />
+				<delete dir="${jetty.dir}/contexts/test.d" />
+				<delete file="${jetty.dir}/contexts/test.xml" />
+				<delete file="${jetty.dir}/contexts/javadoc.xml" />
+			</else>
+		</antcontrib:if>
+		<antcontrib:if>
+			<equals arg1="${server.sharedlibs}" arg2="true" />
+			<then>
+				<antcontrib:runtarget target="railo.requires" />
+				<mkdir dir="${jetty.dir}/lib/railo" />
+				<unzip src="${cfml.engine.war}" dest="${jetty.dir}/lib/ext">
+			        <patternset>
+						<include name="WEB-INF/lib/**" />
+			        </patternset>
+					<regexpmapper from="WEB-INF/lib/(.*)$" to="\1"/>
+				</unzip>
+				<copy todir="${jetty.dir}/lib/ext" overwrite="true">
+					<fileset dir="${add.libs.dir}" />
+				</copy>
+				<!-- current railo ships incompatible logger 
+				-->
+				<delete file="${jetty.dir}/lib/ext/railo-sl4j.jar"/>
+			</then>
+		</antcontrib:if>
+		<antcontrib:runtarget target="jetty.configure" />
+		</sequential>
+	</target>
+
+	<target name="jetty.configure">
+		<chmod dir="${jetty.dir}/bin" perm="ugo+rx" 
+		       includes="**/*.sh"/>
+		<echo file="${jetty.dir}/contexts/${server.host}.xml"><![CDATA[<Configure class="org.eclipse.jetty.webapp.WebAppContext">
+<Set name="war">${war.target.dir}</Set>
+<Set name="contextPath">/</Set>
+<Set name="virtualHosts">
+	<Array type="java.lang.String">
+		<Item>${server.host}</Item>
+	</Array>
+</Set>
+<Set name="welcomeFiles">
+    <Array type="String">
+      <Item>index.cfm</Item>
+      <Item>index.cfml</Item>
+      <Item>index.htm</Item>
+      <Item>index.html</Item>
+    </Array>
+</Set>
+</Configure>]]>
+		</echo>
+		<!--
+		<xmltask source="${jetty.dir}/conf/server.xml" dest="${jetty.dir}/conf/server.xml">
+			<replace path="Server/Service/Connector[@protocol='HTTP/1.1']/@port" withText="${jetty.port.http}"/>
+			<replace path="Server/Service/Connector[@protocol='AJP/1.3']/@port" withText="${jetty.port.ajp}"/>
+		</xmltask>
+		<antcontrib:runtarget target="jetty.host.add" />
+		<fixcrlf srcdir="${jetty.dir}/conf" includes="**/*.xml" eol="crlf" />
+		-->
+	</target>
+
+	<target name="jetty.start" depends="jetty.install">
+		<echoproperties prefix="jetty"/>
+		<echo message="starting jetty"/>
+		<property name="background" value="true"/>
+	    <sequential>
+	        <antcall target="jetty.stop"/>
+	        <java jar="${jetty.dir}/start.jar" fork="true" dir="${jetty.dir}">
+	            <jvmarg value="-Dfile.encoding=UTF-8"/>
+	            <jvmarg value="-DSTOP.PORT=8079"/>
+	            <jvmarg value="-DSTOP.KEY=secret"/>
+	            <arg value="jetty.port=${jetty.port.http}"/>
+	        </java>
+	    </sequential>
+		<sequential>
+			<!-- 
+		    <java  classname="org.apache.catalina.startup.Bootstrap" classpathref="jetty.lib.path" fork="true" spawn="${background}" maxmemory="${jetty.maxmemory}">
+		        <jvmarg value="-Dcatalina.base=${jetty.dir}"/>
+		        <jvmarg value="-Dcatalina.home=${jetty.dir}"/>
+		        <jvmarg value="-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager"/>
+		    	<jvmarg value="-Djava.util.logging.config.file=${jetty.dir}/conf/logging.properties"/>
+		    	<jvmarg line="${jetty.jvm.args}"/>
+		    </java>
+			<echo message="waiting for jetty"/>
+			<sleep seconds="3" />
+			<waitfor maxwait="21" maxwaitunit="second" checkevery="7" checkeveryunit="second" timeoutproperty="toolong">
+				<and>
+					<socket server="${jetty.host}" port="${jetty.port.http}" />
+				</and>
+			</waitfor>
+			<sleep seconds="5" />
+			<antcontrib:runtarget target="if.toolong.echo" />
+			-->
+			<echo message="stop jetty by typing: ant jetty.stop"/>
+		</sequential>
+	</target>	
+
+	<target name="jetty.stop">
+		<antcontrib:trycatch>
+		<try>
+		    <java jar="${jetty.dir}/start.jar" dir="${jetty.dir}">
+		        <jvmarg value="-DSTOP.PORT=8079"/>
+		        <jvmarg value="-DSTOP.KEY=secret"/>
+		        <arg value="--stop"/>
+		    </java>
+		    <sleep seconds="2"/>
+		</try>
+		<catch>
+			<echo message="jetty does not appear to be running"/>
+		</catch>
+		</antcontrib:trycatch>
+		<!--
+	    <kill-java name="bootstrap.jar" jps="${jps.executable}"/>
+	    <kill-java name="Bootstrap" jps="${jps.executable}"/>
+		-->
+	</target>	
+
+	<target name="deploy.jetty" depends="jetty.install">
+		<copy todir="${jetty.deploy.dir}/${war.name}" overwrite="true">
+			<fileset dir="${war.target.dir}"/>
+		</copy>
+	</target>	
+
+    <!-- uses settings from deploy.xml stuff -->
+    <target name="jetty.war.deploy" description="Install application to servlet container">
+		<requires-ext resource="/ext/containers/jetty/" />
+	    <taskdef name="deploy" classname="org.apache.catalina.ant.DeployTask" classpathref="jetty.ant.lib.path"/>
+
+    </target>
+	
+	<target name="probe-manager">
+		<echo>Checking ${jetty.manager.url} availablity...</echo>
+		<condition property="jetty.manager.running">
+		  <and>
+		    <http url="${jetty.manager.url}" errorsbeginat="404"/>
+		  </and>
+		</condition>
+		<echo>Checking ${jetty.host-manager.url} availablity...</echo>
+		<condition property="jetty.host-manager.running">
+		  <and>
+		    <http url="${jetty.host-manager.url}/html" errorsbeginat="404"/>
+		  </and>
+		</condition>
+		<echo>${jetty.host-manager.running} and ${jetty.manager.running}</echo>
+	</target>
+
+	
+	<!-- uses settings from deploy.xml stuff -->
+    <target name="jetty.war.list" description="list wars">
+		<jetty-ant action="list"/>
+    </target>
+
+    <target name="jetty.host.list" description="list hosts">
+		<jetty-ant action="listhosts"/>
+    </target>
+
+    <target name="jetty.host.add" description="add the host" depends="probe-manager">
+		<property name="jetty.deploy.dir.absolute" location="${jetty.deploy.dir}" />
+		<property name="war.target.dir.abs" location="${war.target.dir}" />
+		<property name="src.dir.abs" location="${src.dir}" />
+    	<property name="jetty.dir.rel" value="${jetty.dir.abs}" relative="yes"  basedir="${jetty.dir.abs}" />
+    	
+    	<echo message="RRRRRR: ${jetty.dir.rel}"/>
+    	<mkdir dir="${jetty.dir}/conf/Catalina/${jetty.host}" />
+		<echo file="${jetty.dir}/conf/Catalina/${jetty.host}/ROOT.xml"><![CDATA[<Context path="${war.contextpath}" override="true" docBase="${war.target.dir.abs}" />]]></echo>
+		<antcontrib:var name="jetty.host.exists" unset="true"/>
+		<xmltask source="${jetty.dir}/conf/server.xml" dest="${jetty.dir}/conf/server.xml">
+			<replace path="Server/Service/Connector[@protocol='HTTP/1.1']/@port" withText="${jetty.port.http}"/>
+			<replace path="Server/Service/Connector[@protocol='AJP/1.3']/@port" withText="${jetty.port.ajp}"/>
+			<copy path="Server/Service/Engine/Host[@name='${jetty.host}']/@name" attrValue="true" property="jetty.host.exists"/>
+			<replace path="Server/Service/Engine/Host[@name='${jetty.host}']" if="jetty.host.exists">
+			<![CDATA[
+	<Host appBase="${jetty.dir.rel}/conf/Catalina/${jetty.host}" autoDeploy="true" name="${jetty.host}" unpackWARs="true" xmlNamespaceAware="false" xmlValidation="false">
+	</Host>
+			]]>
+			</replace>
+			<insert path="Server/Service/Engine" position="under" unless="jetty.host.exists">
+			<![CDATA[
+	<Host appBase="${jetty.dir.rel}/conf/Catalina/${jetty.host}" autoDeploy="true" name="${jetty.host}" unpackWARs="true" xmlNamespaceAware="false" xmlValidation="false">
+	</Host>
+			]]>
+			</insert>
+		</xmltask>
+		<antcontrib:if>
+			<isset property="jetty.host-manager.running" />
+			<then>
+				<jetty-ant action="addhost"/>
+			</then>
+		</antcontrib:if>
+    </target>
+
+    <!-- uses settings from deploy.xml stuff -->
+    <target name="war.deploy" description="Install application to servlet container">
+		<requires-ext resource="/ext/containers/jetty/" />
+		<antcontrib:runtarget target="check.creds" />
+    	<deploy-sshsession>
+    	    <sequential>
+    			<jetty-ant action="deploy"/>
+    	    </sequential>
+    	</deploy-sshsession>
+    </target>
+
+	<target name="war.list" description="List installed applications on servlet container">
+		<requires-ext resource="/ext/containers/jetty/" />
+		<antcontrib:runtarget target="check.creds" />
+    	<deploy-sshsession>
+    	    <sequential>
+    			<jetty-ant action="list"/>
+    	    </sequential>
+    	</deploy-sshsession>
+    </target>
+
+	<target name="war.reload" description="Reload application on servlet container">
+		<requires-ext resource="/ext/containers/jetty/" />
+    	<reload url="${jetty.manager.url}"
+			username="${jetty.manager.username}"
+			password="${jetty.manager.password}"
+			path="${app.path}"/>
+    </target>
+    <target name="war.remove" description="Remove application on servlet container">
+		<requires-ext resource="/ext/containers/jetty/" />
+    	<undeploy url="${jetty.manager.url}"
+			username="${jetty.manager.username}"
+			password="${jetty.manager.password}"
+			path="${app.path}"/>
+    </target>
+
+	<macrodef name="jetty-ant"
+	          description="runs jetty ant tasks">
+	 	<attribute name="action"/>
+		 <sequential>
+			<requires-ext resource="/ext/containers/jetty/lib/" />
+		    <taskdef name="deploy" classname="org.apache.catalina.ant.DeployTask" classpathref="jetty.ant.lib.path"/>
+	        <taskdef name="undeploy" classname="org.apache.catalina.ant.UndeployTask" classpathref="jetty.ant.lib.path"/>
+	        <taskdef name="reload"   classname="org.apache.catalina.ant.ReloadTask" classpathref="jetty.ant.lib.path"/>
+	        <taskdef name="list" classname="org.apache.catalina.ant.ListTask" classpathref="jetty.ant.lib.path"/>
+	    	<echoproperties prefix="manager"/>
+			<antcontrib:switch value="@{action}">
+			  <case value="list">
+			  	<echo message="Calling: ${jetty.host-manager.url}/list"/>
+			    <list url="${jetty.manager.url}"
+					username="${jetty.manager.username}"
+					password="${jetty.manager.password}"/>
+			  </case>
+			  <case value="deploy">
+			  	<echo message="Deploying to: ${jetty.host-manager.url}"/>
+		    	<deploy url="${jetty.manager.url}"
+		    			username="${jetty.manager.username}"
+		    			password="${jetty.manager.password}"
+		    			path="${war.contextpath}"
+		    			update="true"
+		    			war="file://${dist.dir}/${war.name}.war"/>
+			  </case>
+			  <case value="addhost">
+				<property name="jetty.deploy.dir.absolute" location="${jetty.deploy.dir}" />
+			  	<!--java.lang.String name, java.lang.String aliases, java.lang.String appBase, boolean manager, boolean autoDeploy, boolean deployOnStartup, boolean deployXML, boolean unpackWARs, boolean xmlNamespaceAware, boolean xmlValidation-->
+				<get src="${jetty.host-manager.url}/add?name=${jetty.host}&amp;aliases=${jetty.host.aliases}&amp;appBase=/conf/Catalina/${jetty.host}&amp;autoDeploy=on&amp;deployOnStartup=on&amp;deployXML=on&amp;unpackWARs=on" verbose="true" ignoreerrors="false" dest="host-results.txt" username="${jetty.manager.username}" password="${jetty.manager.password}"/>
+			  	<loadfile property="host-results" srcFile="host-results.txt"/>
+			  	<echo>${host-results}</echo>
+			  </case>
+			  <case value="listhosts">
+			  	<echo message="Calling: ${jetty.host-manager.url}/list"/>
+				<get src="${jetty.host-manager.url}/list" dest="host-results.txt" verbose="false" ignoreerrors="false" username="${jetty.manager.username}" password="${jetty.manager.password}" />
+			  	<loadfile property="host-results" srcFile="host-results.txt"/>
+			  	<echo>${host-results}</echo>
+			  </case>				
+			  <case value="prod">
+			  	<property name="copy.mappings.to.war" value="true" />
+			  </case>
+			  <default>
+			  	<fail message="Um, the build type '${build.type}' is unknown to me, esse!" />
+			  </default>
+			</antcontrib:switch>
+		 </sequential>
+	</macrodef>
+	
+</project>

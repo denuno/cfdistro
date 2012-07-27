@@ -1,0 +1,67 @@
+<project name="rpm" default="build.rpm" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:redline="antlib:org.redline_rpm"  basedir=".">
+	
+
+    <property name="redline.ant.tasks.jar" value="${cfdistro.basedir}/lib/redline-1.1.9.jar" />
+    <property name="redline.ant.tasks.bootstrap.location" value="http://cloud.github.com/downloads/craigwblake/redline/redline-1.1.9.jar" />
+    <available property="redline.ant.tasks.jar.exists" file="${redline.ant.tasks.jar}" />
+
+    <!-- This will download the "latest version" of the maven-ant-tasks if needed -->
+    <target name="bootstrap_redline" unless="redline.ant.tasks.jar.exists">
+        <get src="${redline.ant.tasks.bootstrap.location}" dest="${redline.ant.tasks.jar}" />
+    </target>
+    
+	<target name="rpm" depends="bootstrap_redline">
+		<mkdir dir="rpms" />
+		<!--  make RC rpm -->
+		<property name="rpm.user" value="railo" />
+		<echo file="${temp.dir}/preinstall.sh">
+		<![CDATA[if [ -e /home/${rpm.user} ]; then
+  echo "${rpm.user} user exists, thus not trying to add again" >&2
+else
+	mkdir -p /home/${rpm.user}
+	useradd -d /home/${rpm.user} ${rpm.user}
+fi
+]]>
+		</echo>
+		<property name="rpm.railo.dir" value="/opt/railo/${railo.build.version.major}" />
+		<property name="rpm.packager" value="Railo" />
+		<!--  make libs rpm -->
+		<redline:rpm destination="rpms" release="1"
+			group="org.getrailo" name="railo-libs" version="${railo.build.version.major}"
+			preinstallscript="${temp.dir}/preinstall.sh" packager="${rpm.packager}"
+			url="http://getrailo.org">
+			<tarfileset dir="${railo.lib.dir}" prefix="${rpm.railo.dir}/libs"
+				 filemode="644" username="railo" group="railo" excludes=".classpath, .project" />
+			<link path="/opt/railo/libs" target="${rpm.railo.dir}/libs" />
+		</redline:rpm>
+		<!--  make core rpm -->
+		<redline:rpm destination="rpms"  
+			provides="railo" release="1"
+			group="org.getrailo" name="railo-core" version="${railo.build.version.long}"
+			preinstallscript="${temp.dir}/preinstall.sh" packager="${rpm.packager}"
+			url="http://getrailo.org">
+			<tarfileset prefix="${rpm.railo.dir}/railo-server/patches" 
+					file="${railobuild.dist.dir}/rc/${railo.build.version.long}.rc"
+					filemode="644" username="${rpm.user}" group="${rpm.user}" />
+			<depends name="railo-libs" version="${railo.build.version.major}"/>
+			<link path="/opt/railo/railo-server" target="${rpm.railo.dir}/railo-server"/>
+		</redline:rpm>
+		<!--  make runner rpm -->
+		<echo file="${temp.dir}/postinstall.sh">
+		<![CDATA[echo "java -jar runwar.jar" > ${rpm.railo.dir}/railo.sh]]>
+		</echo>
+		<antcontrib:var name="runwar.jar.location" value="${temp.dir}/runwar.jar" />
+		<antcontrib:runtarget target="runwar.jetty.jar" />
+		<redline:rpm destination="rpms" release="1"
+			group="org.getrailo" name="railo-runner" version="${railo.build.version.long}"
+			postinstallscript="${temp.dir}/postinstall.sh" packager="${rpm.packager}"
+			url="http://getrailo.org">
+			<tarfileset file="${temp.dir}/runwar.jar" prefix="${rpm.railo.dir}/runner"
+				 filemode="644" username="railo" group="railo" excludes=".classpath, .project" />
+			<tarfileset dir="${basedir}/resource/railo-war-template" prefix="${rpm.railo.dir}/webroot"
+				 filemode="644" username="railo" group="railo"/>
+			<depends name="railo" version=""/>
+		</redline:rpm>
+	</target>
+		
+</project>

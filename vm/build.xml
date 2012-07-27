@@ -1,0 +1,133 @@
+<project name="vm" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="basedir.absolute" location="${basedir}" />
+
+	<property name="vmprops" value="" />
+	<property name="vm.name" value="${vm}" />
+	<property name="vm.basedir" value="${basedir}/vm/${vm}" />
+	<property name="vm.dir" location="${user.home}/.cfdistro/vm/${vm.name}/" />
+	<antcontrib:runtarget target="check.creds" />
+
+	<propertyset id="vm-properties">
+	  <propertyref prefix="vm.${vm}."/>
+	</propertyset>
+
+	<antcontrib:for list="${toString:vm-properties}" param="prop">
+		<sequential>
+			<antcontrib:propertyregex property="vmprop"
+			              input="@{prop}"
+			              regexp="vm\..+?\.(.*)="
+			              select="vm.\1"
+			              casesensitive="false" override="true" />
+			<antcontrib:propertyregex property="vmpropval"
+			              input="@{prop}"
+			              regexp=".+?=(.*)"
+			              select="\1"
+			              casesensitive="false" override="true" />
+			<echo message="${vmprop} is ${vmpropval} "/>
+			<antcontrib:var name="${vmprop}" value="${vmpropval}"/>
+		</sequential>
+	</antcontrib:for>
+
+	<macrodef name="load-vm-config">
+		<sequential>
+			<loadfile property="vm.config.xml" srcFile="${basedir}/vm/${vm.name}/${vm.name}.cfg.xml">
+				<filterchain>
+					<filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
+						<param type="token" name="src.dir" value="${src.dir}"/>
+						<param type="token" name="pub.dir" value="${pub.dir}"/>
+						<param type="token" name="lib.dir" value="${lib.dir}"/>
+						<param type="token" name="distro.name" value="${distro.name}"/>
+						<param type="token" name="vm.name" value="${vm.name}"/>
+						<param type="token" name="war.name" value="${war.name}"/>
+						<param type="token" name="war.target.dir" value="${war.target.dir}"/>
+						<param type="propertiesfile" value="${creds.token.file}" />
+					</filterreader>
+				</filterchain>
+			</loadfile>
+			<xmltask destbuffer="vm.config.buff" outputter="simple">
+				<insert path="/" xml="${vm.config.xml}" position="under" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
+	<target name="vm.configure">
+		<load-vm-config />
+		<xmltask sourcebuffer="vm.config.buff">
+			<call path="vmconfig/network/nic">
+		        <param name="device" path="@device" default="eth0"/>
+		        <param name="bootproto" path="@bootproto" default="none"/>
+		        <param name="onboot" path="@onboot" default="yes"/>
+		        <param name="network" path="@network" default="" />
+		        <param name="netmask" path="@netmask" default="" />
+		        <param name="ipaddr" path="@ipaddr" default="" />
+				<actions>
+					<echo file="/etc/sysconfig/network-scripts/ifcfg-@{device}">DEVICE=@{device}
+BOOTPROTO=@{bootproto}
+ONBOOT=@{onboot}
+NETWORK=@{network}
+NETMASK=@{netmask}
+IPADDR=@{ipaddr}
+USERCTL=no</echo>
+				</actions>
+			</call>  
+		</xmltask>
+		<exec executable="/etc/init.d/network">
+			<arg value="restart"/>
+		</exec>
+		<xmltask sourcebuffer="vm.config.buff">
+			<call path="vmconfig/copyresources/resource">
+		        <param name="file" path="@file" />
+		        <param name="to" path="@to" />
+		        <param name="parse" path="@parse" default="true" />
+		        <param name="chmod" path="@chmod" default="" />
+		        <param name="owner" path="@owner" default="" />
+				<actions>
+					<copy file="${vm.basedir}/@{file}" tofile="@{to}" overwrite="true" />
+					<antcontrib:if>
+						<equals arg1="@{chmod}" arg2="" />
+						<then />
+						<else>
+							<chmod file="@{to}" perm="@{chmod}"/>
+						</else>
+					</antcontrib:if>
+					<antcontrib:if>
+						<equals arg1="@{owner}" arg2="" />
+						<then />
+						<else>
+							<chown file="@{to}" owner="@{owner}"/>
+						</else>
+					</antcontrib:if>
+				</actions>
+			</call>  
+		</xmltask>
+		<xmltask sourcebuffer="vm.config.buff">
+			<call path="vmconfig/actions/run">
+		        <param name="executable" path="@executable" />
+		        <param name="args" path="@args" />
+				<actions>
+					<echo message="executing @{executable} @{args}"/>
+					<exec executable="@{executable}">
+						<arg line="@{args}" />
+					</exec>
+				</actions>
+			</call>  
+		</xmltask>
+		<xmltask sourcebuffer="vm.config.buff">
+			<call path="vmconfig/actions/writefile">
+		        <param name="file" path="@file" />
+		        <param name="content" path="@content" />
+		        <param name="append" path="@append" default="false" />
+				<actions>
+					<echo message="writing (appending? @{append}) @{content} to @{file}"/>
+					<echo file="@{file}" message="@{content}" append="@{append}" />
+				</actions>
+			</call>  
+		</xmltask>
+	</target>
+		
+	<import file="vbox.xml" />
+	<import file="xen.xml" />
+	<import file="boxgrinder.xml" />
+
+</project>

@@ -1,0 +1,28 @@
+<datasources>
+
+	<datasource 
+		name="@distro.name@" 
+		class="org.h2.Driver" 
+		host="localhost" 
+		port="3306" 
+		database="@distro.name@"
+		username="@dsn.username@" 
+		password="@dsn.password@" 
+		blob="false"
+		clob="false" 
+		sqlstoredprocedures="true"
+		sqlinsert="true"
+		sqlselect="true"
+		sqlupdate="true"
+		sqldelete="true"
+		maintainconnection="true"
+		logintimeout="120"
+		connectionretries="0"
+		connectionlimit="-1"
+		connectiontimeout="1"
+		custom="path=.%2FWEB-INF%2Frailo%2F@distro.name@%2F&amp;amp;mode=MySQL"
+		jdbc="mysql"
+		jdbcstring="jdbc:h2:{path}{database};MODE={mode}"
+		 />
+
+</datasources>

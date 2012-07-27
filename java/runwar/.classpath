@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="PasswordEncrypt.jar"/>
+	<classpathentry kind="lib" path="/workspace/cfdistro/src/cfdistro/lib/jetty-runner-8.1.3.v20120416.jar"/>
+	<classpathentry kind="lib" path="/workspace/cfdistro/src/cfdistro/lib/jetty-ajp-8.1.3.v20120416.jar"/>
+	<classpathentry kind="lib" path="/workspace/cfdistro/src/cfdistro/lib/commons-cli-1.2.jar"/>
+	<classpathentry kind="lib" path="/workspace/railo-build/dist/railo-build/dist/jar/railo-4.0.0.012.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

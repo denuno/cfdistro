@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<src>
+	<sources>
+		<src dest="@src.dir@" type="svn" 
+		uri="https://svn.blueriver.com/mura/trunk/www"
+		user="" password="" />
+	</sources>
+</src>

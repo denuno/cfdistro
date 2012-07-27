@@ -1,0 +1,20 @@
+<project name="heroku" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+	<dirname property="pkg.heroku.basedir" file="${ant.file.default}" />
+
+	<property name="cfdistro.build.file" value="../../build.xml"/>
+	<import file="${cfdistro.build.file}"/>
+
+	<target name="install" description="installs package ${pkg}">
+		<copy todir="${basedir}" verbose="false" overwrite="true" file="${cfdistro.basedir}/buildtypes/build.heroku.properties" />
+		<copy todir="${basedir}/../" verbose="false" overwrite="true">
+			<fileset dir="${pkg.heroku.basedir}" excludes="build.xml, build.heroku.properties" />
+		</copy>
+	</target>
+
+	<target name="configure" description="installs package ${pkg}">
+	</target>
+
+	<target name="uninstall" description="installs package ${pkg}">
+	</target>
+
+</project>

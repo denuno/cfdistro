@@ -1,0 +1,63 @@
+<project name="pkg" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="pkg.dir" value="${cfdistro.basedir}/pkg" />
+	<property name="pkg.props.temp" value="${temp.dir}/currentprops.properties" />
+
+	<target name="pkg.install" description="installs package ${pkg}">
+		<input
+		    message="Please enter pkg name (ex: mxunit):"
+		    addproperty="pkg"
+		  />
+		<echo message="installing: ${pkg}" />
+		<mkdir dir="${temp.dir}" />
+		<echoproperties destfile="${pkg.props.temp}"/>
+		<java
+		        classname="org.apache.tools.ant.launch.Launcher"
+		        fork="true"
+		        failonerror="true"
+		        dir="${basedir}"
+		        timeout="4000000"
+		        taskname="startAnt"
+		>
+		    <classpath>
+		        <pathelement location="${ant.home}/lib/ant-launcher.jar"/>
+		    </classpath>
+		    <arg value="-Dbasedir=${basedir}"/>
+		    <arg value="-f"/>
+		    <arg value="${pkg.dir}/${pkg}/build.xml"/>
+		    <arg value="-propertyfile"/>
+		    <arg value="${basedir}/build.properties"/>
+		    <arg value="install"/>
+		</java>
+		<delete file="${pkg.props.temp}"/>
+	</target>
+
+	<target name="pkg.configure" description="installs package ${pkg}">
+		<input
+		    message="Please enter pkg name (ex: mxunit):"
+		    addproperty="pkg"
+		  />
+		<echo message="updating: ${pkg}" />
+		<echoproperties destfile="${pkg.props.temp}"/>
+		<java
+		        classname="org.apache.tools.ant.launch.Launcher"
+		        fork="true"
+		        failonerror="true"
+		        dir="${basedir}"
+		        timeout="4000000"
+		        taskname="startAnt"
+		>
+		    <classpath>
+		        <pathelement location="${ant.home}/lib/ant-launcher.jar"/>
+		    </classpath>
+		    <arg value="-Dbasedir=${basedir}"/>
+		    <arg value="-f"/>
+		    <arg value="${pkg.dir}/${pkg}/build.xml"/>
+		    <arg value="-propertyfile"/>
+		    <arg value="${basedir}/build.properties"/>
+		    <arg value="configure"/>
+		</java>
+		<delete file="${pkg.props.temp}"/>
+	</target>
+
+</project>

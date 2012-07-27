@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="build-dmg" default="dmg.test.layout" basedir=".">
+	<dirname property="build-dmg.basedir" file="${ant.file.build-dmg}" />
+
+	<property name="dmg.name" value="${distro.name}" />
+	<property name="dmg.content.name" value="${dmg.name}.app" />
+	<property name="dmg.temp.dir" value="${temp.dir}/dmg" />
+
+	<property name="version" value="4.3.1" />
+	<property name="buildnumber" value="213" />
+	<property name="copyright" value="Woohoo" />
+
+	<!-- Set this property value to a directory where you can 
+         mount temporarily your images, for example /tmp -->
+	<property name="mountdir" value="/tmp" />
+
+
+	<target name="dmgLayout" description="Clean up anything we can't rebuild">
+		<mkdir dir="${dmg.temp.dir}"/>
+		<property name="newline" value="${line.separator}" />
+		<property name="window.properties" value='
+			set volumeName to "${dmg.name}"  ${newline}
+    	set WINX to 50  ${newline}
+    	set WINY to 50  ${newline}
+    	set WINW to 600  ${newline}
+    	set WINH to 400  ${newline}
+    	set ICON_SIZE to 125  ${newline}
+			' />
+		<property name="icon.positions" value='
+			set position of item "${dmg.content.name}" to {100, 180} ${newline}
+			set position of item "Applications" to {516, 180} ${newline}
+			set position of item ".fseventsd" to {300, 0} ${newline}
+			set position of item ".Trashes" to {300, 0} ${newline}
+			set position of item ".DS_Store" to {300, 0} ${newline}
+			set position of item ".background" to {300, 0} ${newline}
+			set position of item ".VolumeIcon.icns" to {300, 0} ${newline}
+			my copyIconOfTo("${ext.dir}/izpack/dmg/icons/folderIcon.icns", "/Volumes/${dmg.name}/${dmg.content.name}")
+			' />
+		<!-- run the positioning script, create the .DS_Store properties file -->
+		<copy file="${ext.dir}/izpack/dmg/scripts/position.applescript" toFile="${dmg.temp.dir}/generated.position.applescript" overwrite="true">
+			<filterchain>
+				<replacetokens>
+					<token key="icon.positions" value="${icon.positions}" />
+					<token key="window.properties" value="${window.properties}" />
+				</replacetokens>
+			</filterchain>
+		</copy>
+	</target>
+
+	<macrodef name="app2dmg">
+		<attribute name="app" />
+		<attribute name="appname"/>
+		<attribute name="dmg" />
+		<attribute name="icon" />
+		<sequential>
+			<mkdir dir="${dmg.temp.dir}"/>
+			<property name="dmg.name" value="${distro.name}" />
+			<property name="dmg.content.name" value="@{appname}" />
+			<property name="dmg.content.dir" value="@{app}" />
+
+			<property name="background.png" value="${ext.dir}/izpack/dmg/background.png" />
+
+			<!-- Set this property value to a directory where you can 
+		         mount temporarily your images, for example /tmp -->
+			<property name="mountdir" value="/tmp" />
+
+			<antcall target="dmgLayout"/>
+			<!-- Delete previously created DMG 
+			<exec output="symlinklist.txt" executable="/usr/bin/find">
+			    <arg value="${mountdir}/${dmg.name}"/>
+			    <arg value="-type"/>
+			    <arg value="l"/>
+			</exec>
+			 <symlink action="delete" linkfilename="dir.links">
+					<fileset id="victims" dir="${mountdir}/${dmg.name}">
+					    <includesfile name="symlinklist.txt" />
+					</fileset> 
+			  </symlink>
+		    -->
+
+			<symlink action="delete" link="${mountdir}/${dmg.name}/Applications" resource="/Applications" failonerror="false" />
+			<delete dir="${mountdir}/${dmg.name}" failonerror="false" />
+			<delete file="@{dmg}" quiet="yes" failonerror="false" />
+
+			<!-- Create a temporary Disk Image -->
+			<exec executable="/usr/bin/hdiutil" os="Mac OS X" failonerror="true">
+				<arg value="create" />
+				<arg value="-srcfolder" />
+				<arg value="${dmg.content.dir}/" />
+				<arg value="-volname" />
+				<arg value="${dmg.name}" />
+				<arg value="-ov" />
+				<arg value="${dmg.temp.dir}/${dmg.name}-tmp.dmg" />
+				<arg value="-format" />
+				<arg value="UDRW" />
+			</exec>
+
+			<!-- Attach the temporary image -->
+			<exec executable="/usr/bin/hdiutil" os="Mac OS X" failonerror="true">
+				<arg value="attach" />
+				<arg value="${dmg.temp.dir}/${dmg.name}-tmp.dmg" />
+				<arg value="-mountroot" />
+				<arg value="${mountdir}/" />
+			</exec>
+
+			<!-- Copy the background, the volume icon and DS_Store files -->
+			<mkdir dir="${mountdir}/${dmg.name}/.background" />
+			<copy file="${background.png}" tofile="${mountdir}/${dmg.name}/.background/background.png" overwrite="true" />
+			<copy file="${ext.dir}/izpack/dmg/icons/VolumeIcon.icns" tofile="${mountdir}/${dmg.name}/.VolumeIcon.icns" overwrite="true" />
+
+			<!-- Add a symbolic link to the Applications directory -->
+			<symlink link="${mountdir}/${dmg.name}" resource="/Applications" />
+
+			<!-- Detach the temporary image -->
+			<exec executable="/usr/bin/hdiutil" os="Mac OS X" failonerror="true">
+				<arg value="detach" />
+				<arg value="${mountdir}/${dmg.name}" />
+			</exec>
+
+			<!-- reatach the temporary image at /Volumes for position script -->
+			<exec executable="/usr/bin/hdiutil" os="Mac OS X" failonerror="true">
+				<arg value="attach" />
+				<arg value="${dmg.temp.dir}/${dmg.name}-tmp.dmg" />
+			</exec>
+
+			<exec executable="/Developer/Tools/SetFile" os="Mac OS X" failonerror="true">
+				<arg value="-a" />
+				<arg value="C" />
+				<arg value="/Volumes/${dmg.name}" />
+			</exec>
+
+			<!-- run dmg layout applescript -->
+			<requires-ext resource="${cfdistro.basedir}/ext/izpack/dmg/lib" />
+			<property name="antfarm.jar" location="${cfdistro.basedir}/ext/izpack/dmg/lib/antfarm.jar" />
+			<taskdef name="osascript" classname="com.fivevoltlogic.antfarm.OSAScript" classpath="${antfarm.jar}" />
+			<osascript srcfile="${dmg.temp.dir}/generated.position.applescript" />
+			<delete file="${dmg.temp.dir}/generated.position.applescript" />
+
+			<delete file="/Volumes/${dmg.name}/${dmg.content.name}/Icon" />
+			<exec executable="/usr/bin/hdiutil" os="Mac OS X" failonerror="true">
+				<arg value="detach" />
+				<arg value="/Volumes/${dmg.name}" />
+			</exec>
+
+			<!-- Compress it to a new image -->
+			<exec executable="/usr/bin/hdiutil" os="Mac OS X" failonerror="true">
+				<arg value="convert" />
+				<arg value="${dmg.temp.dir}/${dmg.name}-tmp.dmg" />
+				<arg value="-format" />
+				<arg value="UDZO" />
+				<arg value="-o" />
+				<arg value="@{dmg}" />
+			</exec>
+
+			<!-- Delete the temporary image 
+		    <delete file="${dmg.name}-tmp.dmg"
+		            quiet="yes" failonerror="false"/>
+			-->			
+		</sequential>
+	</macrodef>	
+
+
+	<target name="dmg.test.layout" depends="dmgLayout" description="Create a DMG package for MacOSX (only works on MacOSX)">
+		<!-- run dmg layout applescript -->
+		<osascript srcfile="${dmg.temp.dir}/generated.position.applescript" />
+	</target>
+	
+	
+</project>
+
+<!--
+cc -c -I/System/Library/Frameworks/JavaVM.framework/Headers src/obj-c/HelpBookJNI.m
+cc -dynamiclib -o libHelpBookJNI.jnilib HelpBookJNI.o -framework JavaVM -framework Cocoa
+-->
+
+

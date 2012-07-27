@@ -1,0 +1,45 @@
+<project name="scm-cvs" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<target name="src.import.cvs">
+		<xmltask sourcebuffer="src.buff">
+			<print comment="importing cvs" path="src/sources/src[@type='cvs']/@uri/text()"/>
+			<call path="src/sources/src[@type='cvs']">
+		        <param name="dest" path="@dest" default="NONE"/>
+		        <param name="type" path="@type" default="NONE"/>
+		        <param name="uri" path="@uri" default="NONE"/>
+		        <param name="module" path="@module" default="NONE"/>
+		        <param name="user" path="@user" default=""/>
+		        <param name="password" path="@password" default=""/>
+		        <param name="dirname" path="@dirname" default=""/>
+				
+		        <actions>
+		    		<echo message="importing module: @{module} repo: @{uri} dest: ${src.dir}/../@{dirname}" />
+		        	<echo message="-d ${src.dir}/@{dirname}/"/>
+		        	<mkdir dir="${src.dir}/@{dirname}"/>
+		            <java jar="${cfdistro.basedir}/lib/org-netbeans-lib-cvsclient.jar" fork="true" dir="${src.dir}">
+		            	<sysproperty key="cvs.root" value="@{uri}"/>
+			            <arg value="export" />
+			            <arg value="-D NOW" />
+			            <arg value="-n" />
+			            <arg value="-N" />
+			            <arg value="-P" />
+			            <!-- borked: <arg value="-d${src.dir}/@{dirname}" /> -->
+			            <arg value="@{module}" />
+		            </java>
+		        	<!--
+		        	<cvspass cvsroot="@{uri}"
+		        	password="@{password}"
+		        	/>
+		        	<cvs
+		        	command="export -d ${dirname} -N -DNOW @{module}"
+		        	cvsRoot="@{uri}"
+		        	package="@{module}"
+		        	dest="${src.dir}"
+		        	/>		
+		        	-->
+	       	 	</actions>
+			</call>  
+		</xmltask>  	
+	</target>
+	
+</project>

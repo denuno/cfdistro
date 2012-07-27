@@ -1,0 +1,205 @@
+<project name="vbox" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<!--
+	http://nfolamp.wordpress.com/2010/06/10/running-virtualbox-guest-vms-in-headless-mode/
+	-->
+	
+	<property name="vbox.cmd" value="/usr/bin/VBoxManage" />
+
+	<macrodef name="vbox">
+		<attribute name="command" description="command to run" />
+		<element name="args" optional="true" />
+		<sequential>
+			<antcontrib:var name="vbox.result" unset="true"/>
+			<echo message="vbox command: @{command}" />
+			<exec executable="${vbox.cmd}" dir="${basedir}" outputproperty="vbox.result" failifexecutionfails="true">
+				<arg value="@{command}" />
+				<args />
+			</exec>
+			<echo message="${vbox.result}" />
+		</sequential>
+	</macrodef>
+
+	<target name="vbox.vm.delete">
+		<input addproperty="vm.name"
+			message="VM name"/>
+		<vbox command="storageattach">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="--storagectl" />
+				<arg value="SATA Controller" />
+				<arg value="--port" />
+				<arg value="0" />
+				<arg value="--device" />
+				<arg value="0" />
+				<arg value="--type" />
+				<arg value="hdd" />
+				<arg value="--medium" />
+				<arg value="none" />
+			</args>
+		</vbox>		
+		<vbox command="closemedium">
+			<args>
+				<arg value="disk" />
+				<arg value="${vm.disk}" />
+			</args>
+		</vbox>
+		<vbox command="unregistervm">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="--delete" />
+			</args>
+		</vbox>
+	</target>
+
+	<target name="vbox.vm.snapshot">
+		<input addproperty="vm.name"
+			message="VM name"/>
+		<property name="vm.snapshot.name" value="snapshot" />
+		<echo message="creating snapshot ${vm.snapshot.name} under ${vm.dir}"/>
+		<vbox command="snapshot">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="take" />
+				<arg value="${vm.snapshot.name}" />
+				<arg value="--description" />
+				<arg value="${vm.snapshot.name}" />
+			</args>
+		</vbox>		
+	</target>
+
+	<target name="vbox.vm.clone">
+		<input addproperty="vm.name"
+			message="VM name"/>
+		<input addproperty="vm.snapshot.name"
+			message="VM snapshot name"/>
+		<input addproperty="vm.clone.name"
+			message="VM clone name"/>
+		<property name="vm.clone.dir" location="${vm.dir}/../${vm.clone.name}" />
+		<vbox command="clonevm">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="--snapshot" />
+				<arg value="${vm.snapshot.name}" />
+				<arg value="--options" />
+				<arg value="link" />
+				<arg value="--name" />
+				<arg value="${vm.clone.name}" />
+				<arg value="--basefolder" />
+				<arg value="${vm.clone.dir}" />
+				<arg value="--register" />
+			</args>
+		</vbox>
+	</target>
+
+	<target name="vbox.vm.create">
+		<input addproperty="vm.name"
+			message="VM name"/>
+		<fail unless="vm.name" message="vm.name is required" />
+		<input addproperty="vm.ram" defaultvalue="512"
+			message="RAM"/>
+		<input addproperty="vm.cpu.count" defaultvalue="1"
+			message="CPUs"/>
+		<input addproperty="vm.disk"
+			message="VM disk"/>
+		<fail unless="vm.disk" message="vm.disk is required" />
+		<property name="vbox.vm.bioslogoimagepath" location="${basedir}/vm/railomuraha.bmp"/>
+		<mkdir dir="${vm.dir}"/>
+		<vbox command="createvm">
+			<args>
+				<arg value="--name" />
+				<arg value="${vm.name}" />
+				<arg value="--basefolder" />
+				<arg value="${vm.dir}" />
+				<arg value="--register" />
+			</args>
+		</vbox>
+		<vbox command="storagectl">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="--name" />
+				<arg value="SATA Controller" />
+				<arg value="--add" />
+				<arg value="sata" />
+			</args>
+		</vbox>
+		
+		<vbox command="storageattach">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="--storagectl" />
+				<arg value="SATA Controller" />
+				<arg value="--port" />
+				<arg value="0" />
+				<arg value="--device" />
+				<arg value="0" />
+				<arg value="--type" />
+				<arg value="hdd" />
+				<arg value="--medium" />
+				<arg value="${vm.disk}" />
+			</args>
+		</vbox>		
+		
+		<vbox command="modifyvm">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="--memory" />
+				<arg value="${vm.ram}" />
+				<arg value="--ostype" />
+				<arg value="Fedora_64" />
+				<arg value="--acpi" />
+				<arg value="on" />
+				<arg value="--ioapic" />
+				<arg value="on" />
+				<arg value="--vram" />
+				<arg value="12" />
+				<arg value="--pae" />
+				<arg value="off" />
+				<arg value="--hwvirtex" />
+				<arg value="on" />
+				<arg value="--rtcuseutc" />
+				<arg value="on" />
+				<arg value="--cpus" />
+				<arg value="${vm.cpu.count}" />
+				<arg value="--nic1" />
+				<arg value="hostonly" />
+				<arg value="--nictype1" />
+				<arg value="82540EM" />
+				<arg value="--hostonlyadapter1" />
+				<arg value="vboxnet0" />
+				<arg value="--cableconnected1" />
+				<arg value="on" />
+				<arg value="--usb" />
+				<arg value="on" />
+				<arg value="--usbehci" />
+				<arg value="on" />
+				<arg value="--bioslogoimagepath" />
+				<arg value="${vbox.vm.bioslogoimagepath}" />
+			</args>
+		</vbox>
+	</target>
+
+	<target name="vbox.vm.hd.create">
+		<input addproperty="vm.name"
+			message="VM name"/>
+		<fail unless="vm.name" message="vm.name is required" />
+		<input addproperty="vm.disk.size" defaultvalue="2048"
+			message="Disk size"/>
+		<input addproperty="vm.disk"
+			message="VM disk"/>
+		<input addproperty="vm.disk.format"  defaultvalue="vdmk"
+			message="VM disk format"/>
+		<fail unless="vm.disk" message="vm.disk is required" />
+		<vbox command="createhd">
+			<args>
+				<arg value="--filename" />
+				<arg value="${vm.disk}" />
+				<arg value="--size" />
+				<arg value="${vm.disk.size}" />
+				<arg value="--format" />
+				<arg value="${vm.disk.format}" />
+			</args>
+		</vbox>
+	</target>
+	
+</project>	

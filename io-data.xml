@@ -1,0 +1,222 @@
+<project name="io-data" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<antcontrib:if>
+		<equals arg1="${default.cfengine}" arg2="acf" />
+		<then>
+			<path id="data.lib.path">
+				<fileset dir="${cfdistro.basedir}/ext/ddlutils/lib">
+					<include name="*.jar" />
+				</fileset>
+				<fileset dir="${war.target.dir}/WEB-INF/cfusion/lib">
+					<include name="*.jar" />
+				</fileset>
+				<fileset dir="${basedir}/../lib">
+					<include name="*.jar" />
+				</fileset>
+			</path>
+		</then>
+		<else>
+			<path id="data.lib.path">
+				<fileset dir="${cfdistro.basedir}/ext/ddlutils/lib">
+					<include name="*.jar" />
+				</fileset>
+				<fileset dir="${war.target.dir}/WEB-INF/lib">
+					<include name="*.jar" />
+				</fileset>
+				<fileset dir="${basedir}/../lib">
+					<include name="*.jar" />
+				</fileset>
+			</path>
+		</else>
+	</antcontrib:if>
+
+	<macrodef name="dsn-import">
+		<attribute name="dsn" />
+		<attribute name="schemafile" />
+		<attribute name="datafile" default=""/>
+		<attribute name="dropdatabase" default="false"/>
+		<sequential>
+			<requires-ext resource="/ext/ddlutils/" />
+			<antcontrib:runtarget target="exists.datasources.xml" />
+			<echo message="importing data (@{schemafile}) for dsn: @{dsn}" />
+			<taskdef name="ddlToDatabase" classname="org.apache.ddlutils.task.DdlToDatabaseTask" classpathref="data.lib.path" />
+			<xmltask sourcebuffer="datasources.buff">
+				<call path="datasources/datasource[@name='@{dsn}']">
+					<param name="name" path="@name" default="datasource" />
+					<param name="blob" path="@blob" default="false" />
+					<param name="clob" path="@clob" default="false" />
+					<param name="class" path="@class" default="org.gjt.mm.mysql.Driver" />
+					<param name="host" path="@host" default="localhost" />
+					<param name="port" path="@port" default="3306" />
+					<param name="database" path="@database" default="database" />
+					<param name="username" path="@username" default="sa" />
+					<param name="password" path="@password" default="" />
+					<param name="sqlstoredprocedures" path="@sqlstoredprocedures" default="true" />
+					<param name="sqlinsert" path="@sqlinsert" default="true" />
+					<param name="sqlselect" path="@sqlselect" default="true" />
+					<param name="sqlupdate" path="@sqlupdate" default="true" />
+					<param name="sqldelete" path="@sqldelete" default="true" />
+					<param name="sqlalter" path="@sqlalter" default="true" />
+					<param name="sqlgrant" path="@sqlgrant" default="true" />
+					<param name="maintainconnection" path="@maintainconnection" default="true" />
+					<param name="logintimeout" path="@logintimeout" default="120" />
+					<param name="connectionretries" path="@connectionretries" default="0" />
+					<param name="connectionlimit" path="@connectionlimit" default="-1" />
+					<param name="connectiontimeout" path="@connectiontimeout" default="120" />
+					<param name="custom" path="@custom" default="autoReconnect=false&amp;zeroDateTimeBehavior=convertToNull&amp;useOldAliasMetadataBehavior=true&amp;CharacterEncoding=UTF-8&amp;allowMultiQueries=false" />
+					<param name="jdbc" path="@jdbc" default="mysql" />
+					<param name="jdbcstring" path="@jdbcstring" default="jdbc:mysql://{host}:{port}/{database}" />
+					<actions>
+						<echo message="connecting: @{username} @{password} @ @{jdbcstring}" />
+						<antcontrib:if>
+							<equals arg1="@{dropdatabase}" arg2="true" />
+							<then>
+								<ddlToDatabase schemaFile="@{schemafile}" verbosity="DEBUG" validatexml="true"
+				                   	catalogpattern="ormshen"
+				                   	schemapattern="PUBLIC">
+									<database url="@{jdbcstring}" driverClassName="@{class}" username="@{username}" password="@{password}" />
+									<dropDatabase failonerror="false"/>
+								</ddlToDatabase>
+							</then>
+						</antcontrib:if>
+						<antcontrib:if>
+							<equals arg1="@{datafile}" arg2="" />
+							<then>
+								<ddlToDatabase schemaFile="@{schemafile}" verbosity="DEBUG" validatexml="false"
+				                   	catalogpattern="ormshen"
+				                   	schemapattern="PUBLIC">
+		
+									<database url="@{jdbcstring}" driverClassName="@{class}" username="@{username}" password="@{password}" />
+									<!--
+									<fileset dir="${basedir}">
+										<include name="@{schemafile}" />
+									</fileset>
+									-->
+		
+									<createDatabase failonerror="false"/>
+									<!--
+									<dropDatabase failonerror="false"/>
+									-->
+									<writeschematodatabase alterdatabase="true"
+										dodrops="true"
+										failonerror="false"/>
+								</ddlToDatabase>
+							</then>
+							<else>
+								<ddlToDatabase schemaFile="@{schemafile}" verbosity="DEBUG">
+									<database url="@{jdbcstring}" driverClassName="@{class}" username="@{username}" password="@{password}" />
+									<createDatabase failonerror="false"/>
+									<writeSchemaToDatabase />
+									<writeDataToDatabase datafile="@{datafile}" />
+								</ddlToDatabase>
+							</else>
+						</antcontrib:if>
+
+					</actions>
+				</call>
+			</xmltask>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="dsn-export">
+		<attribute name="dsn" />
+		<attribute name="schemafile" default="dsn-schema.xml" />
+		<attribute name="datafile" default="" />
+		<sequential>
+			<requires-ext resource="/ext/ddlutils/" />
+			<antcontrib:runtarget target="exists.datasources.xml" />
+			<echo message="exporting schema (@{schemafile}) for dsn: @{dsn}" />
+			<taskdef name="databaseToDdl" classname="org.apache.ddlutils.task.DatabaseToDdlTask" classpathref="data.lib.path" />
+			<xmltask sourcebuffer="datasources.buff">
+				<call path="datasources/datasource[@name='@{dsn}']">
+					<param name="name" path="@name" default="datasource" />
+					<param name="blob" path="@blob" default="false" />
+					<param name="clob" path="@clob" default="false" />
+					<param name="class" path="@class" default="org.mysql.jdbc.Driver" />
+					<param name="host" path="@host" default="localhost" />
+					<param name="port" path="@port" default="3306" />
+					<param name="database" path="@database" default="database" />
+					<param name="username" path="@username" default="sa" />
+					<param name="password" path="@password" default="" />
+					<param name="sqlstoredprocedures" path="@sqlstoredprocedures" default="true" />
+					<param name="sqlinsert" path="@sqlinsert" default="true" />
+					<param name="sqlselect" path="@sqlselect" default="true" />
+					<param name="sqlupdate" path="@sqlupdate" default="true" />
+					<param name="sqldelete" path="@sqldelete" default="true" />
+					<param name="sqlalter" path="@sqlalter" default="true" />
+					<param name="sqlgrant" path="@sqlgrant" default="true" />
+					<param name="maintainconnection" path="@maintainconnection" default="true" />
+					<param name="logintimeout" path="@logintimeout" default="120" />
+					<param name="connectionretries" path="@connectionretries" default="0" />
+					<param name="connectionlimit" path="@connectionlimit" default="-1" />
+					<param name="connectiontimeout" path="@connectiontimeout" default="120" />
+					<param name="custom" path="@custom" default="autoReconnect=false&amp;zeroDateTimeBehavior=convertToNull&amp;useOldAliasMetadataBehavior=true&amp;CharacterEncoding=UTF-8&amp;allowMultiQueries=false" />
+					<param name="jdbc" path="@jdbc" default="mysql" />
+					<param name="jdbcstring" path="@jdbcstring" default="jdbc:mysql://{host}:{port}/{database}" />
+					<param name="charset" path="@charset" default="UTF-8" />
+					<actions>
+						<echo message="connecting: @{class} @{jdbcstring}" />
+						<antcontrib:if>
+							<equals arg1="@{datafile}" arg2="" />
+							<then>
+								<databaseToDdl usedelimitedsqlidentifiers="true" modelname="@{database}">
+									<database url="@{jdbcstring}" driverclassname="@{class}" username="@{username}" password="@{password}" />
+									<writeschematofile outputfile="@{schemafile}" />
+								</databaseToDdl>
+							</then>
+							<else>
+								<databaseToDdl usedelimitedsqlidentifiers="true" modelname="@{database}">
+									<database url="@{jdbcstring}" driverclassname="@{class}" username="@{username}" password="@{password}" />
+									<writeschematofile outputfile="@{schemafile}" />
+									<writedatatofile outputfile="@{datafile}" encoding="@{charset}" />
+								</databaseToDdl>
+							</else>
+						</antcontrib:if>
+						
+					</actions>
+				</call>
+			</xmltask>
+		</sequential>
+	</macrodef>
+
+	<target name="dsn.export">
+		<property name="dsn" value="${distro.name}"/>
+		<dsn-export dsn="${dsn}" schemafile="${distro.name}.schema.xml" datafile="${distro.name}.data.xml" />
+	</target>
+	
+	<target name="dsn.import">
+		<property name="dsn" value="${distro.name}"/>
+		<dsn-import dsn="${dsn}" schemafile="${distro.name}.schema.xml" datafile="${distro.name}.data.xml" />
+	</target>
+	
+	<target name="h2.console" description="launches the h2 web console">
+		<echo message="starting h2 console, peace out!"/>
+		<requires-ext resource="/ext/ddlutils/" />
+		<antcontrib:runtarget target="exists.datasources.xml" />
+		<java classname="org.h2.tools.Server" classpathref="data.lib.path" fork="true" spawn="true">
+		</java>
+		<!--
+		<xmltask sourcebuffer="datasources.buff">
+		<call path="datasources/*">
+			<param name="jdbcstring" path="@jdbcstring" default="jdbc:mysql://{host}:{port}/{database}" />
+			<actions>
+				<echo message="connecting:@{jdbcstring}" />
+				<open-url url="http://127.0.0.1:8082/test.do?url=@{jdbcstring}&amp;driver=org.h2.Driver&amp;user=sa&amp;password=" />					
+			</actions>
+		</call>
+		</xmltask>
+		-->
+	</target>
+	
+	<target name="h2.console.stop" description="stops the h2 web console">
+		<echo message="stopping h2 console, peace out! (MAY need to run as ROOT/ADMIN!)"/>
+		<java classname="org.h2.tools.Server" classpathref="data.lib.path">
+			<arg value="-tcpShutdown" />
+			<arg value="tcp://127.0.0.1:9092" />
+		</java>
+		<kill-java name="Server" />
+	</target>
+	
+
+
+</project>

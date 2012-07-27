@@ -1,0 +1,28 @@
+<project name="extension" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+	<dirname property="pkg.extension.basedir" file="${ant.file.extension}" />
+
+	<property name="cfdistro.build.file" value="../../build.xml"/>
+	<import file="${cfdistro.build.file}"/>
+
+	<target name="install" description="installs package ${pkg}">
+		<property name="extension.name" value="${distro.name}"/>
+		<copy todir="${basedir}" verbose="false" overwrite="true" file="${cfdistro.basedir}/buildtypes/build.extension.properties" />
+		<echo message="copying from ${pkg.extension.basedir}" />
+		<copy todir="${src.dir}/${distro.name}" verbose="false" overwrite="true">
+			<filterchain><expandproperties /></filterchain>
+			<fileset dir="${pkg.extension.basedir}" excludes="build.xml, build.extension.properties, tests/**" />
+		</copy>
+
+		<copy todir="${src.dir}/../tests/${distro.name}/extension/" verbose="false" overwrite="true">
+			<filterchain><expandproperties /></filterchain>
+			<fileset dir="${pkg.extension.basedir}/tests/extension/" />
+		</copy>
+	</target>
+
+	<target name="configure" description="configures package ${pkg}">
+	</target>
+
+	<target name="uninstall" description="installs package ${pkg}">
+	</target>
+
+</project>

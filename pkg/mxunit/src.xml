@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<src>
+	<sources>
+		<src dest="@src.dir@/mxunit" type="svn" 
+		uri="http://mxunit.googlecode.com/svn/mxunit/trunk"
+		user="" password="" />
+	</sources>
+</src>

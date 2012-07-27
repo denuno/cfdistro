@@ -1,0 +1,39 @@
+<project name="boxgrinder" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<!--
+	http://nfolamp.wordpress.com/2010/06/10/running-virtualbox-guest-vms-in-headless-mode/
+	-->
+	
+	<property name="boxgrinder.cmd" value="boxgrinder-build" />
+
+	<macrodef name="boxgrinder">
+		<attribute name="config" description="command to run" />
+		<element name="args" optional="true" />
+		<sequential>
+			<antcontrib:var name="boxgrinder.result" unset="true"/>
+			<echo message="boxgrinder command: @{config}" />
+			<exec executable="${boxgrinder.cmd}" dir="${user.home}/appliances" outputproperty="boxgrinder.result" failifexecutionfails="true" vmlauncher="true">
+				<arg value="@{config}" />
+				<args />
+			</exec>
+			<echo message="${boxgrinder.result}" />
+		</sequential>
+	</macrodef>
+	
+	<target name="boxgrinder.build">
+		<input addproperty="vm.name" defaultvalue="${vm}"
+			message="VM name"/>
+		<fail unless="vm.name" message="vm.name is required" />
+		<copy file="${basedir}/vm/${vm.name}/${vm.name}.appl" todir="${user.home}/appliances" />
+		<boxgrinder config="${vm.name}.appl">
+			<args>
+				<arg value="-d" />
+				<arg value="local" />
+				<arg value="-p" />
+				<arg value="virtualbox" />
+				<arg value="-f" />
+			</args>
+		</boxgrinder>
+	</target>
+
+</project>	

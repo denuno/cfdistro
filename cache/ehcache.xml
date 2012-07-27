@@ -1,0 +1,108 @@
+<project name="ehcache" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<target name="ehcache.init">
+		<property name="ehcache.version" value="ehcache-server-1.0.0" />
+		<property name="ehcache.war.version" value="ehcache-server-1.0.0" />
+		<property name="ehcache.standalone.version" value="ehcache-server-1.0.0" />
+		<property name="ext.ehcache.dir" location="${ext.dir}/ehcache/${ehcache.version}" />
+		<property name="ehcache.dir" location="../${ehcache.version}" />
+		<property name="ext.ehcache.zip.uri" value="http://d2zwv9pap9ylyd.cloudfront.net/${ehcache.version}-distribution.tar.gz" />
+		<property name="ext.ehcache.zip" location="${ext.ehcache.dir}/${ehcache.version}-distribution.tar" />
+	</target>
+
+	<target name="ehcache.install" depends="ehcache.init">
+		<mkdir dir="${ext.ehcache.dir}"/>
+		<property name="ehcache.config" value="${basedir}/ehcache.xml"/>
+		<sequential>
+			<required-resource
+			src="${ext.ehcache.zip.uri}"
+			dest="${ext.ehcache.zip}.gz"
+			/>
+			<gunzip src="${ext.ehcache.zip}.gz" dest="${ext.ehcache.dir}">
+			</gunzip>
+			<untar src="${ext.ehcache.zip}"						
+		       dest="${ehcache.dir}">
+				<mapper type="regexp" from="${ehcache.version}/(.*)$" to="\1"/>
+			</untar>
+		</sequential>
+	</target>
+
+	<target name="ehcache.webcache.install">
+		<property name="ehcache.version" value="ehcache-web-2.0.3" />
+		<property name="ehcache.webcache.cachename" value="SimplePageCache" />
+		<property name="ehcache.webcache.urlpattern" value="/*" />
+		<antcontrib:runtarget target="ehcache.install" />
+		<web-inf-filter filter-name="CachePageCachingFilter" filter-class="net.sf.ehcache.constructs.web.filter.SimplePageCachingFilter">
+			<init-params>
+				<init-param>
+					<param-name>suppressStackTrace</param-name>
+					<param-value>false</param-value>
+				</init-param>
+				<init-param>
+					<param-name>cacheName</param-name>
+					<param-value>${ehcache.webcache.cachename}</param-value>
+				</init-param>
+			</init-params>
+			<filter-mappings>
+				<filter-mapping>
+					<filter-name>SimplePageCachingFilter</filter-name>
+					<url-pattern>${ehcache.webcache.urlpattern}</url-pattern>
+					<dispatcher>REQUEST</dispatcher>
+					<dispatcher>INCLUDE</dispatcher>
+					<dispatcher>FORWARD</dispatcher>
+				</filter-mapping>
+			</filter-mappings>
+		</web-inf-filter>
+		<copy todir="${war.target.dir}/WEB-INF/lib/" overwrite="true">
+			<fileset dir="${ehcache.dir}" includes="${ehcache.version}.jar" />
+			<fileset dir="${ehcache.dir}/lib" excludes="slf4j*"/>
+		</copy>
+		<echo file="${war.target.dir}/WEB-INF/lib/ehcache.xml">
+			<![CDATA[<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:noNamespaceSchemaLocation="../../main/config/ehcache.xsd">
+	<defaultCache
+		maxElementsInMemory="0"
+		eternal="false"
+		timeToIdleSeconds="0"
+		timeToLiveSeconds="0"
+		overflowToDisk="false" />
+			
+	<cache name="${ehcache.webcache.cachename}"
+       maxElementsInMemory="10000"
+       maxElementsOnDisk="1000"
+       eternal="false"
+       overflowToDisk="true"
+       timeToIdleSeconds="300"
+       timeToLiveSeconds="600"
+       memoryStoreEvictionPolicy="LFU"
+        />
+		</ehcache>]]></echo>
+	</target>
+	
+	<target name="ehcache.server.install">
+		<property name="ehcache.version" value="ehcache-standalone-server-1.0.0" />
+		<antcontrib:runtarget target="ehcache.install" />
+		<chmod dir="${ehcache.dir}/bin" perm="ugo+rx" 
+	       includes="**/*.sh"/>
+		<echo message="Creating ehcache.sh script.  To run it type: ./ehcache.sh" />
+		<relpath from="${basedir}" to="${ehcache.dir}" property="ehcache.dir"/>
+		<echo file="${basedir}/../ehcache.sh">
+			<![CDATA[#! /bin/sh
+${ehcache.dir}/bin/startup.sh]]>
+		</echo>
+		<chmod file="${basedir}/../ehcache.sh" perm="ugo+rx"/>
+	</target>
+
+	<target name="ehcache.war.install">
+		<property name="ehcache.version" value="ehcache-server-1.0.0" />
+		<property name="ehcache.war" value="${server.deploy.dir}/ehcache.war" />
+		<antcontrib:runtarget target="ehcache.install" />
+		<mkdir dir="${ehcache.war}" />
+		<unzip src="../${ehcache.version}/${ehcache.version}.war" dest="${ehcache.war}"/>
+		<delete file="${ehcache.war}/WEB-INF/jetty-web.xml"/>
+		<mkdir dir="${ext.dir}/slf4j"/>
+		<requires-ext-file file="${ext.dir}/slf4j/slf4j-nop-1.5.8.jar"/>
+		<copy file="${ext.dir}/slf4j/slf4j-nop-1.5.8.jar" todir="${ehcache.war}/WEB-INF/lib"/> 
+	</target>
+
+</project>

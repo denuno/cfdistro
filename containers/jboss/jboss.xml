@@ -1,0 +1,353 @@
+<project name="jboss" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="server.deploy.dir" location="${jboss.dir}/webapps"/>
+	<property name="server.log.dir" value="${jboss.dir}/logs/"/>
+	<property name="server.host" value="localhost"/>
+	<property name="server.port" value="8080"/>
+	<property name="server.port.http" value="8080"/>
+	<property name="server.port.ajp" value="8009"/>
+	<property name="server.maxmemory" value="256M"/>
+
+	<property name="jboss.version" value="5.1.0.GA" />
+	<property name="jboss.server" value="default" />
+	
+	<property name="jboss.dir" location="${basedir}/jboss${jboss.version}" />
+	<property name="jboss.dir.absolute" location="${jboss.dir}" />
+	<property name="jboss.dir" location="${jboss.dir.absolute}" />
+	<property name="jboss.server.dir" value="${jboss.dir}/server/${jboss.server}"/>
+	<property name="jboss.host" value="${server.host}"/>
+	<property name="ext.jboss.dir" location="${ext.dir}/jboss/${jboss.version}" />
+	<!--
+	ver 7
+	<property name="ext.jboss.zip.uri" value="http://download.jboss.org/jbossas/7.0/jboss-${jboss.version}/jboss-${jboss.version}.zip" />
+	-->
+	<property name="ext.jboss.zip.uri" value="http://sourceforge.net/projects/jboss/files/JBoss/JBoss-${jboss.version}/jboss-${jboss.version}.zip/download" />
+	
+	<property name="ext.jboss.zip" location="${ext.jboss.dir}/jboss-${jboss.version}.zip" />
+	<property name="jboss.port.http" value="${server.port.http}"/>
+	<property name="jboss.port.ajp" value="${server.port.ajp}"/>
+	<property name="jboss.deploy.dir" value="${server.deploy.dir}"/>
+	<property name="jboss.server.log.dir" value="${server.log.dir}"/>
+	 
+	<property name="jboss.jdk.home" value="${java.home}"/>
+	<property name="jboss.heap.size" value="${server.maxmemory}"/>
+	<property name="jboss.perm.size" value="128M"/>
+	<property name="jboss.jnp.port" value="1099"/>
+
+	<property name="jboss.manager.url"   value="http://${jboss.host}:${server.port.http}/manager"/>
+    <property name="jboss.manager.username" value="admin"/>
+    <property name="jboss.manager.password" value="${cfadmin.password}"/>
+    <property name="cfdistro.basedir" value="${basedir}"/>
+
+	<antcontrib:if>
+		<equals arg1="1" arg2="1" />
+		<then>
+			<path id="jboss.ant.lib.path">
+				<fileset dir="${cfdistro.basedir}/ext/containers/jboss/lib">
+					<include name="*.jar" />
+				</fileset>
+			</path>
+		</then>
+	</antcontrib:if>
+	
+	<target name="jboss.uninstall" depends="jboss.stop">
+		<delete dir="${jboss.dir}" />
+	</target>
+
+	<target name="jboss.server.log.dir">
+		<property name="server.log.dir" value="${jboss.server.log.dir}"/>
+	</target>
+
+	<target name="jboss.install">
+		<mkdir dir="${ext.jboss.dir}"/>
+		<sequential>
+		<antcontrib:if>
+			<available file="${jboss.dir}" />
+			<then>
+			<echo message="server dir ${jboss.dir} already exists, not installing!  Remove with: ant server.uninstall"/> 
+			</then>
+			<else>
+				<required-resource
+					src="${ext.jboss.zip.uri}" 
+					dest="${ext.jboss.zip}" />
+				<unzip src="${ext.jboss.zip}"						
+				       dest="${jboss.dir}">
+					<regexpmapper from="jboss-${jboss.version}/(.*)$" to="\1"/>
+				</unzip>
+			</else>
+		</antcontrib:if>
+		<antcontrib:runtarget target="jboss.configure" />
+		</sequential>
+	</target>
+	
+	<target name="jboss.configure">
+		<!-- 
+		<echo message="export JAVA_OPTS=-Xms256m -Xmx${server.maxmemory} -XX:MaxPermSize=128m -XX:+UseParallelGC"
+			file="${jboss.dir}/bin/setenv.sh"/>
+		<chmod dir="${jboss.dir}/bin" perm="ugo+rx" 
+		       includes="**/*.sh"/>
+		/jboss5.1.0.GA/server/default/conf/props/jmx-console-users.properties
+		-->
+		<echo file="${war.target.dir.absolute}/WEB-INF/jboss-web.xml"><![CDATA[<jboss-web>
+	<context-root>${war.contextpath}</context-root>
+	<virtual-host>${jboss.host}</virtual-host>
+</jboss-web>
+			]]>
+		</echo>
+		<property name="war.target.dir.absolute" location="${war.target.dir}" />
+		<antcontrib:var name="jboss.host.exists" unset="true"/>
+		<echo message="adding the host to server.xml if not there already" />
+		<xmltask source="${jboss.server.dir}/deploy/jbossweb.sar/server.xml" dest="${jboss.server.dir}/deploy/jbossweb.sar/server.xml">
+			<replace path="Server/Service/Connector[@protocol='HTTP/1.1']/@port" withText="${jboss.port.http}"/>
+			<replace path="Server/Service/Connector[@protocol='AJP/1.3']/@port" withText="${jboss.port.ajp}"/>
+			<!-- <replace path="Server/Service/Engine/Host[@name='${jboss.host}']/@appBase" withText="${jboss.deploy.dir}"/> -->
+			<copy path="Server/Service/Engine/Host[@name='${jboss.host}']/@name" attrValue="true" property="jboss.host.exists"/>
+			<replace path="Server/Service/Engine/Host[@name='${jboss.host}']" if="jboss.host.exists">
+			<![CDATA[
+	<Host autoDeploy="true" name="${jboss.host}" unpackWARs="true" xmlNamespaceAware="false" xmlValidation="false">
+	</Host>
+			]]>
+			</replace>
+			<insert path="Server/Service/Engine" position="under" unless="jboss.host.exists">
+			<![CDATA[
+	<Host autoDeploy="true" name="${jboss.host}" unpackWARs="true" xmlNamespaceAware="false" xmlValidation="false">
+	</Host>
+			]]>
+			</insert>
+		</xmltask>
+		<echo message="adding the deploy dir if not there already" />
+		<xmltask source="${jboss.server.dir}/conf/bootstrap/profile.xml" dest="${jboss.server.dir}/conf/bootstrap/profile.xml">
+			<copy path="//:property[@name='applicationURIs']/:list/:value[text()='file://${jboss.deploy.dir}']/text()" attrValue="true" property="jboss.deployuri.exists"/>
+			<insert path="//:property[@name='applicationURIs']/:list" position="under" unless="jboss.deployuri.exists">
+	<![CDATA[<value xmlns="urn:jboss:bean-deployer:2.0">file://${jboss.deploy.dir}</value>]]>
+			</insert>
+		</xmltask>
+		<echo message="add the deploy dir to VFS (bad zip deal) if not there already" />
+		<xmltask source="${jboss.server.dir}/conf/bootstrap/vfs.xml" dest="${jboss.server.dir}/conf/bootstrap/vfs.xml">
+			<copy path="//:property[@name='permanentRoots']/:map/:entry/:key[text()='file://${jboss.deploy.dir}']/text()" attrValue="true" property="jboss.vfsuri.exists"/>
+			<insert path="//:property[@name='permanentRoots']/:map" position="under" unless="jboss.vfsuri.exists">
+			<![CDATA[
+		        <entry xmlns="urn:jboss:bean-deployer:2.0">
+		          <key>file://${jboss.deploy.dir}</key>
+		          <value><inject bean="VfsNamesExceptionHandler"/></value>
+		        </entry>
+			]]>
+			</insert>
+		</xmltask>
+		<echo message="${jboss.deploy.dir}"/>
+		<echo message="${server.deploy.dir}"/>
+		<antcontrib:if>
+			<equals arg1="${war.contextpath}" arg2="/" />
+			<then>
+				<delete dir="${jboss.server.dir}/deploy/ROOT.war"/>
+			</then>
+		</antcontrib:if>
+	</target>
+
+	<target name="jboss.start" depends="jboss.install">
+		<echoproperties prefix="jboss"/>
+		<echo message="starting jboss"/>
+		<property name="background" value="true"/>
+		
+		<sequential>
+			<jboss-start background="${background}" bindaddr="${server.host}" configname="${jboss.server}" jbossinstalldir="${jboss.dir}" jbossserverdir="${jboss.server.dir}" jdkhome="${jboss.jdk.home}" />
+			<!-- <echoproperties prefix="runwar"/> -->
+			<echo message="stop jboss by typing: ant jboss.stop"/>
+		</sequential>
+	</target>	
+
+	<target name="jboss.stop">
+		<jboss-stop bindaddr="${server.host}" jbossinstalldir="${jboss.dir}" jdkhome="${jboss.jdk.home}" jnpport="${jboss.jnp.port}" />
+		<waitfor maxwait="21" maxwaitunit="second" checkevery="7" checkeveryunit="second" timeoutproperty="toolong">
+			<not>
+				<socket server="${server.host}" port="${jboss.port.http}" />
+			</not>
+		</waitfor>
+	    <kill-java name="Main" jps="${jps.executable}"/>
+	</target>	
+
+	<target name="deploy.jboss" depends="jboss.install">
+		<copy todir="${jboss.deploy.dir}/${war.name}" overwrite="true">
+			<fileset dir="${war.target.dir}"/>
+		</copy>
+	</target>	
+
+    <!-- uses settings from deploy.xml stuff -->
+    <target name="jboss.war.deploy" description="Install application to servlet container">
+		<requires-ext resource="/ext/containers/jboss/" />
+
+    </target>
+	
+    <!-- uses settings from deploy.xml stuff -->
+    <target name="jboss.war.list" description="Install application to servlet container">
+		<jboss-ant action="list"/>
+    </target>
+
+	<!-- uses settings from deploy.xml stuff -->
+    <target name="war.deploy" description="Install application to servlet container">
+		<requires-ext resource="/ext/containers/jboss/" />
+		<antcontrib:runtarget target="check.creds" />
+    	<sshsession host="${deploy.remote.host}"
+    	    localtunnels="8080:localhost:8080"
+			username="${deploy.remote.user}"
+			passphrase="${deploy.remote.keyfile.pass}"
+    		keyfile="${deploy.remote.keyfile}" trust="true" port="${deploy.remote.host.port}">
+    	    <sequential>
+    			<jboss-ant action="deploy"/>
+    	    </sequential>
+    	</sshsession>
+    </target>
+
+	<target name="war.list" description="List installed applications on servlet container">
+		<requires-ext resource="/ext/containers/jboss/" />
+		<antcontrib:runtarget target="check.creds" />
+    	<sshsession host="${deploy.remote.host}"
+    	    localtunnels="8080:localhost:8080"
+			username="${deploy.remote.user}"
+			passphrase="${deploy.remote.keyfile.pass}"
+			keyfile="${deploy.remote.keyfile}" trust="true" port="${deploy.remote.host.port}">
+    	    <sequential>
+    			<jboss-ant action="list"/>
+    	    </sequential>
+    	</sshsession>
+    </target>
+
+	<target name="war.reload" description="Reload application on servlet container">
+		<requires-ext resource="/ext/containers/jboss/" />
+    	<reload url="${jboss.manager.url}"
+			username="${jboss.manager.username}"
+			password="${jboss.manager.password}"
+			path="${app.path}"/>
+    </target>
+    <target name="war.remove" description="Remove application on servlet container">
+		<requires-ext resource="/ext/containers/jboss/" />
+    	<undeploy url="${jboss.manager.url}"
+			username="${jboss.manager.username}"
+			password="${jboss.manager.password}"
+			path="${app.path}"/>
+    </target>
+
+	<macrodef name="jboss-ant"
+	          description="runs jboss ant tasks">
+	 	<attribute name="action"/>
+		 <sequential>
+		    <taskdef name="deploy" classname="org.apache.catalina.ant.DeployTask" classpathref="jboss.ant.lib.path"/>
+	        <taskdef name="undeploy" classname="org.apache.catalina.ant.UndeployTask" classpathref="jboss.ant.lib.path"/>
+	        <taskdef name="reload"   classname="org.apache.catalina.ant.ReloadTask" classpathref="jboss.ant.lib.path"/>
+	        <taskdef name="list" classname="org.apache.catalina.ant.ListTask" classpathref="jboss.ant.lib.path"/>
+	    	<echoproperties prefix="manager"/>
+			<antcontrib:switch value="@{action}">
+			  <case value="list">
+			    <list url="${jboss.manager.url}"
+					username="${jboss.manager.username}"
+					password="${jboss.manager.password}"/>
+			  </case>
+			  <case value="deploy">
+		    	<deploy url="${jboss.manager.url}"
+		    			username="${jboss.manager.username}"
+		    			password="${jboss.manager.password}"
+		    			path="${war.contextpath}"
+		    			update="true"
+		    			war="file://${dist.dir}/${war.name}.war"/>
+			  </case>
+			  <case value="qa">
+			  	<property name="copy.mappings.to.war" value="true" />
+			  </case>
+			  <case value="prod">
+			  	<property name="copy.mappings.to.war" value="true" />
+			  </case>
+			  <default>
+			  	<fail message="Um, the build type '${build.type}' is unknown to me, esse!" />
+			  </default>
+			</antcontrib:switch>
+		 </sequential>
+	</macrodef>
+	
+	<macrodef name="jboss-start">
+	    <attribute name="jdkHome"/>
+	    <attribute name="jbossInstallDir"/>
+	    <attribute name="jbossServerDir"/>
+	    <attribute name="configName" default="default"/>
+	    <attribute name="background" default="false"/>
+	    <attribute name="bindAddr"/>
+	    <sequential>
+	        <!--
+	        <available file="@{jdkHome}/lib/tools.jar" property="java.tools.jar.exists"/>
+	        <fail unless="java.tools.jar.exists" message="Unable to find @{jdkHome}/lib/tools.jar"/>
+	        -->
+	        <available file="@{jbossInstallDir}/bin/run.jar" property="jboss.run.jar.exists"/>
+	        <fail unless="jboss.run.jar.exists" message="Unable to find @{jbossInstallDir}/bin/run.jar"/>
+	        <echo>Starting JBoss config @{configName} in @{jbossServerDir}...</echo>
+	    	<echo>-Xms${jboss.heap.size} -Xmx${jboss.heap.size} 
+	    		-XX:MaxPermSize=${jboss.perm.size} -Dbind.address=@{bindAddr} 
+	    		-Djnp.port=${jboss.jnp.port} -Djboss.server.log.dir=${jboss.server.log.dir}
+	    	</echo>
+	        <java jvm="@{jdkHome}/bin/java"
+	              dir="@{jbossServerDir}"
+	              classname="org.jboss.Main" fork="true" spawn="@{background}">
+	            <arg line="-c @{configName} --host @{bindAddr}"/>
+	            <jvmarg value="-Xms${jboss.heap.size}"/>
+	            <jvmarg value="-Xmx${jboss.heap.size}"/>
+	            <jvmarg value="-XX:MaxPermSize=${jboss.perm.size}"/>
+	            <jvmarg value="-Dbind.address=@{bindAddr}"/>
+	            <jvmarg value="-Djnp.port=${jboss.jnp.port}"/>
+	            <jvmarg value="-Djboss.server.log.dir=${jboss.server.log.dir}"/>
+	        	
+	            <sysproperty key="jboss.server.home.dir" value="@{jbossServerDir}"/>
+	            <sysproperty key="jboss.server.home.url" value="file://@{jbossServerDir}"/>
+	            <classpath>
+	                <pathelement path="@{jbossInstallDir}/bin/run.jar"/>
+	                <pathelement path="@{jdkHome}/lib/tools.jar"/>
+	            </classpath>
+	        </java>
+	    </sequential>
+	</macrodef>
+	
+	<macrodef name="jboss-stop">
+	    <attribute name="jdkHome"/>
+	    <attribute name="jbossInstallDir"/>
+	    <attribute name="bindAddr"/>
+	    <attribute name="jnpPort"/>
+	    <sequential>
+	        <available file="@{jbossInstallDir}/bin/shutdown.jar" property="jboss.shutdown.jar.exists"/>
+	        <fail unless="jboss.shutdown.jar.exists" message="Unable to find @{jbossInstallDir}/bin/sutdown.jar"/>
+	        <available file="@{jbossInstallDir}/client/jbossall-client.jar" property="jboss.client.jar.exists"/>
+	        <fail unless="jboss.client.jar.exists"
+	              message="Unable to find @{jbossInstallDir}/client/jbossall-client.jar"/>
+	        <java jvm="@{jdkHome}/bin/java"
+	              classname="org.jboss.Shutdown" fork="true" failonerror="false" resultproperty="shutdown.rc">
+	            <arg line="-s jnp://@{bindAddr}:@{jnpPort}"/>
+	            <classpath>
+	                <pathelement path="@{jbossInstallDir}/bin/shutdown.jar"/>
+	                <pathelement path="@{jbossInstallDir}/client/jbossall-client.jar"/>
+	            </classpath>
+	        </java>
+	        <echo>Shutdown rc = ${shutdown.rc}</echo>
+	        <condition property="shutdown.okay">
+	            <equals arg1="${shutdown.rc}" arg2="0"/>
+	        </condition>
+	    	<!--
+	        <fail unless="shutdown.okay" message="Unable to shut down JBoss (maybe it hasn't fully started yet?)."/>
+	        -->
+	        <echo>Waiting for @{bindAddr}:@{jnpPort} to stop listening...</echo>
+	        <waitfor maxwait="2" maxwaitunit="minute">
+	            <not>
+	                <socket server="@{bindAddr}" port="@{jnpPort}"/>
+	            </not>
+	        </waitfor>
+	    </sequential>
+	</macrodef>
+	
+	<macrodef name="waitForJBoss">
+	    <attribute name="jbossServerDir"/>
+	    <attribute name="bindAddr"/>
+	    <attribute name="jnpPort"/>
+	    <sequential>
+	        <echo>Waiting for @{bindAddr}:@{jnpPort} ...</echo>
+	        <waitfor maxwait="2" maxwaitunit="minute">
+	            <socket server="@{bindAddr}" port="@{jnpPort}"/>
+	        </waitfor>
+	    </sequential>
+	</macrodef>
+	
+</project>

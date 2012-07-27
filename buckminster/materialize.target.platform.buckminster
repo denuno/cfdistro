@@ -1,0 +1,3 @@
+importtargetdefinition -A "${buckminster.cfd.basedir}/materialize.target.platform.target"
+import '-D' 'feature.name=${build.feature.name}' "${buckminster.cfd.basedir}/materialize.target.platform.cquery"
+

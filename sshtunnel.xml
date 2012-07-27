@@ -1,0 +1,102 @@
+<project name="sshtunnel" default="sshtunnel.compile" basedir="./"
+	xmlns:antcontrib="antlib:net.sf.antcontrib">
+	<dirname property="sshtunnel.dir" file="${ant.file.sshtunnel}" />
+	<property file="${basedir}/sshtunnel.properties" />
+<!--
+#local
+env.lport=4444
+env.local_dir=.
+env.local_file=dist/${war.name}.war	
+env.remote_dir=/jboss/server/all/farm/
+#env.remote_dir=/jboss/server/default/deploy/${war.name}.war
+
+#middleman
+env.bastion_host=some.external.addr
+env.port=22
+ssh.user.name=someuser
+#ssh.keyfile=${user.home}/.ssh/id_dsa
+ssh.keyfile=./secret.key
+ssh.passphrase=yopass
+
+#target
+env.remote_host=192.168.124.88
+env.rport=22
+
+-->
+
+	<target name="deploy.ssh.scp.war.to.farm" depends="sshtunnel.jar" description="scp wrapped with ssh tunnel trasfer of ${env.local_file} to ${env.remote_host} ${env.remote_dir}">
+		<taskdef name="sshtunnel" classname="org.mike.Ant.SSHTunnel"
+			classpath="${sshtunnel.dir}/lib/ant-sshtunnel.jar" />
+
+		<sshtunnel host="${env.bastion_host}" username="${ssh.user.name}"
+			keyfile="${ssh.keyfile}" passphrase="${ssh.passphrase}" trust="true"
+			port="${env.port}" lport="${env.lport}" rport="${env.rport}" rhost="${env.remote_host}">
+			<scp file="${env.local_file}" sftp="true" verbose="true"
+				toDir="${ssh.user.name}@localhost:${env.remote_dir}" passphrase="${ssh.passphrase}"
+				keyfile="${ssh.keyfile}" trust="true" port="${env.lport}" />
+		</sshtunnel>
+	</target>
+
+	<target name="deploy.ssh.scp.modified.to.server" depends="sshtunnel.jar" description="scp wrapped with ssh tunnel modified ${src.dir} and ${pub.dir} to ${env.remote_host} ${env.remote_dir}">
+		<taskdef name="sshtunnel" classname="org.mike.Ant.SSHTunnel"
+			classpath="${sshtunnel.dir}/lib/ant-sshtunnel.jar" />
+
+		<sshtunnel host="${env.bastion_host}" username="${ssh.user.name}"
+			keyfile="${ssh.keyfile}" passphrase="${ssh.passphrase}" trust="true"
+			port="${env.port}" lport="${env.lport}" rport="${env.rport}" rhost="${env.remote_host}">
+			<scp sftp="true" verbose="true"
+				toDir="${ssh.user.name}@localhost:${env.remote_dir}/${war.name}.war" passphrase="${ssh.passphrase}"
+				keyfile="${ssh.keyfile}" trust="true" port="${env.lport}">
+				<fileset dir="${src.dir}">
+					<modified />
+				</fileset>
+				<fileset dir="${pub.dir}">
+					<modified />
+				</fileset>
+			</scp>
+		</sshtunnel>
+	</target>
+
+	<target name="deploy.ssh.scp.dist.to.deploy"  description="scp wrapped with ssh tunnel ${dist.dir} to ${env.remote_host} ${env.remote_dir}">
+	    <path id="libpath">
+	      <pathelement path="${classpath}"/>
+	    	<pathelement path="${sshtunnel.dir}/java/sshtunnel/lib/jsch-0.1.41.jar"/>
+	        <fileset dir="${sshtunnel.dir}/lib">
+	          <include name="**/*.jar"/>
+	        </fileset>
+	    </path>
+
+		<taskdef name="sshtunnel" classname="org.mike.Ant.SSHTunnel"
+			classpathref ="libpath" />
+
+		<property file="${basedir}/sshtunnel.properties" />
+		<echo message="using keyfile: ${ssh.keyfile}" />
+		<sshtunnel host="${env.bastion_host}" username="${ssh.user.name}"
+			keyfile="${ssh.keyfile}" passphrase="${ssh.passphrase}" trust="true"
+			port="${env.port}" lport="${env.lport}" rport="${env.rport}" rhost="${env.remote_host}">
+			<scp sftp="true" verbose="true" failonerror="true"
+				toDir="${ssh.user.name}@localhost:${env.remote_dir}" passphrase="${ssh.passphrase}"
+				keyfile="${ssh.keyfile}" trust="true" port="${env.lport}">
+				<fileset dir="${dist.dir}">
+					<!-- <modified /> -->
+				</fileset>
+			</scp>
+		</sshtunnel>
+	</target>
+
+
+	<target name="sshtunnel.compile">
+		<mkdir dir="${sshtunnel.dir}/java/sshtunnel/bin/sshtunnel" />
+		<javac srcdir="${sshtunnel.dir}/java/sshtunnel/src" destdir="${sshtunnel.dir}/java/sshtunnel/bin/sshtunnel"
+			deprecation="on" source="1.4" />
+	</target>
+
+	<target name="sshtunnel.jar" depends="sshtunnel.compile">
+		<echo message="${sshtunnel.dir}"/>
+		<echoproperties prefix="ant"/>
+		<jar destfile="${sshtunnel.dir}/lib/ant-sshtunnel.jar" filesetmanifest="mergewithoutmain">
+			<fileset dir="${sshtunnel.dir}/java/sshtunnel/bin/sshtunnel" />
+		</jar>
+	</target>
+
+</project>

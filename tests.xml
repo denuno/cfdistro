@@ -1,0 +1,106 @@
+<project name="tests" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="tests.run.url" value="http://localhost:${server.port.http}/${war.name}/tests/run.cfm" />
+	<target name="tests.call">
+		<mkdir dir="${war.target.dir}" />
+		<property name="testresult.file" value="${war.target.dir}/test.results.html/" />
+		<sequential>
+			<echo message="running tests: ${tests.run.url}" />
+			<antcontrib:trycatch property="foo" reference="bar">
+				<try>
+					<antcontrib:var name="tests.results" unset="true" />
+					<antcontrib:if>
+						<equals arg1="${default.cfengine}" arg2="acf" />
+						<then>
+							<echo message="Running ACF, sleeping for 11 secs" />
+							<sleep seconds="11" />
+						</then>
+					</antcontrib:if>
+					<get src="${tests.run.url}" dest="${testresult.file}" verbose="true" ignoreerrors="true" />
+					<property name="tests.results" value="pass" />
+					<loadfile property="tesresults" srcFile="${testresult.file}" />
+					<echo message="${tesresults}" />
+					<sleep seconds="10" />
+					<echo>TEST RUN</echo>
+				</try>
+
+				<catch>
+					<antcontrib:var name="tests.results" unset="true" />
+					<property name="tests.results" value="fail" />
+					<echo>TEST RUN FAIL!!!</echo>
+				</catch>
+
+				<finally>
+					<!--
+			  	<cfmail to="valliantster@gmail.com" from="valliantster@gmail.com" subject="fart" message="it is good for the heart"/>
+			  	-->
+				</finally>
+			</antcontrib:trycatch>
+		</sequential>
+	</target>
+
+	<target name="cfmail.test">
+		<property name="build.type" value="localdev" />
+		<cfmail to="valliantster@gmail.com" from="valliantster@gmail.com" subject="fart" message="it is good for the heart" />
+	</target> 
+
+	<target name="tests.run">
+		<mkdir dir="${war.target.dir}" />
+		<property name="testresult.file" value="${war.target.dir}/test.results.html" />
+		<sequential>
+			<server-run>
+				<antcontrib:runtarget target="tests.call" />
+			</server-run>
+		</sequential>
+	</target>
+
+	<target name="tests.build.run">
+		<mkdir dir="${war.target.dir}" />
+		<property name="testresult.file" value="${war.target.dir}/test.results.html" />
+		<sequential>
+			<antcontrib:runtarget target="project.update" />
+			<antcontrib:runtarget target="build" />
+			<antcontrib:runtarget target="tests.run" />
+		</sequential>
+	</target>
+
+	<target name="tests.build.run.both">
+		<sequential>
+			<antcontrib:var name="default.cfengine" value="railo" />
+			<antcall target="tests.build.run" />
+			<antcontrib:var name="default.cfengine" value="acf" />
+			<antcall target="tests.build.run" />
+		</sequential>
+	</target>
+
+	<target name="tests.build.run.all">
+		<sequential>
+			<antcontrib:var name="default.cfengine" value="railo" />
+			<antcall target="tests.build.run" />
+			<antcontrib:var name="default.cfengine" value="acf" />
+			<antcall target="tests.build.run" />
+			<antcontrib:var name="default.cfengine" value="obd" />
+			<antcall target="tests.build.run" />
+		</sequential>
+	</target>
+
+	<target name="tests.ifnew.build.run">
+		<mkdir dir="${war.target.dir}" />
+		<property name="testresult.file" value="${war.target.dir}/test.results.html/" />
+		<sequential>
+			<antcontrib:runtarget target="project.update" />
+			<antcontrib:if>
+				<equals arg1="${revisions.are.same}" arg2="true" />
+				<then>
+					<echo message="Revisions are the same, not running tests" />
+				</then>
+				<else>
+					<echo message="Revisions differ, running tests" />
+					<sequential>
+						<antcontrib:runtarget target="tests.build.run" />
+					</sequential>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</target>
+</project>

@@ -1,0 +1,167 @@
+<project name="xen" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<!--
+	http://nfolamp.wordpress.com/2010/06/10/running-virtualbox-guest-vms-in-headless-mode/
+	-->
+	
+	<property name="xen.cmd" value="/usr/bin/VBoxManage" />
+
+	<macrodef name="xe">
+		<attribute name="command" description="command to run" />
+		<element name="args" optional="true" />
+		<sequential>
+			<antcontrib:var name="xen.result" unset="true"/>
+			<echo message="vbox command: @{command}" />
+			<exec executable="${xen.cmd}" dir="${basedir}" outputproperty="xen.result" failifexecutionfails="true">
+				<arg value="@{command}" />
+				<args />
+			</exec>
+			<echo message="${xen.result}" />
+		</sequential>
+	</macrodef>
+	
+	<target name="xen.vm.delete">
+		<input addproperty="vm.name"
+			message="VM name"/>
+		<vbox command="storageattach">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="--storagectl" />
+				<arg value="SATA Controller" />
+				<arg value="--port" />
+				<arg value="0" />
+				<arg value="--device" />
+				<arg value="0" />
+				<arg value="--type" />
+				<arg value="hdd" />
+				<arg value="--medium" />
+				<arg value="none" />
+			</args>
+		</vbox>		
+		<vbox command="closemedium">
+			<args>
+				<arg value="${vm.disk}" />
+			</args>
+		</vbox>
+		<vbox command="unregistervm">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="--delete" />
+			</args>
+		</vbox>
+	</target>
+
+	<target name="xen.vm.create">
+		<input addproperty="vm.name"
+			message="VM name"/>
+		<fail unless="vm.name" message="vm.name is required" />
+		<input addproperty="vm.ram" defaultvalue="512"
+			message="RAM"/>
+		<input addproperty="vm.cpu.count" defaultvalue="1"
+			message="CPUs"/>
+		<input addproperty="vm.disk"
+			message="VM disk"/>
+		<fail unless="vm.disk" message="vm.disk is required" />
+		<property name="vm.dir" location="${basedir}/vm/" />
+		<mkdir dir="${vm.dir}"/>
+		<xe command="createvm">
+			<args>
+				<arg value="--name" />
+				<arg value="${vm.name}" />
+				<arg value="--basefolder" />
+				<arg value="${vm.dir}" />
+				<arg value="--register" />
+			</args>
+		</xe>
+		
+		<xe command="vdi-create">
+			<args>
+				<arg value="sr-uuid=UUID OF STORAGE REPO" />
+				<arg value="name-label=vmimage" />
+				<arg value="type=user" />
+				<arg value="virtual-size=${vm.disk.size}" />
+			</args>
+		</xe>
+
+		<xe command="vdi-import">
+			<args>
+				<arg value="uuid=${xen.result}" />
+				<arg value="filename=${vm.disk}" />
+			</args>
+		</xe>
+		
+		<vbox command="storageattach">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="--storagectl" />
+				<arg value="SATA Controller" />
+				<arg value="--port" />
+				<arg value="0" />
+				<arg value="--device" />
+				<arg value="0" />
+				<arg value="--type" />
+				<arg value="hdd" />
+				<arg value="--medium" />
+				<arg value="${vm.disk}" />
+			</args>
+		</vbox>		
+		
+		<vbox command="modifyvm">
+			<args>
+				<arg value="${vm.name}" />
+				<arg value="--memory" />
+				<arg value="${vm.ram}" />
+				<arg value="--ostype" />
+				<arg value="Fedora_64" />
+				<arg value="--acpi" />
+				<arg value="on" />
+				<arg value="--vram" />
+				<arg value="12" />
+				<arg value="--pae" />
+				<arg value="off" />
+				<arg value="--hwvirtex" />
+				<arg value="on" />
+				<arg value="--rtcuseutc" />
+				<arg value="on" />
+				<arg value="--cpus" />
+				<arg value="${vm.cpu.count}" />
+				<arg value="--nic1" />
+				<arg value="hostonly" />
+				<arg value="--nictype1" />
+				<arg value="82540EM" />
+				<arg value="--hostonlyadapter1" />
+				<arg value="vboxnet0" />
+				<arg value="--cableconnected1" />
+				<arg value="on" />
+				<arg value="--usb" />
+				<arg value="on" />
+				<arg value="--usbehci" />
+				<arg value="on" />
+			</args>
+		</vbox>
+	</target>
+
+	<target name="xen.vm.hd.create">
+		<input addproperty="vm.name"
+			message="VM name"/>
+		<fail unless="vm.name" message="vm.name is required" />
+		<input addproperty="vm.disk.size" defaultvalue="2048"
+			message="Disk size"/>
+		<input addproperty="vm.disk"
+			message="VM disk"/>
+		<input addproperty="vm.disk.format"  defaultvalue="vdmk"
+			message="VM disk format"/>
+		<fail unless="vm.disk" message="vm.disk is required" />
+		<vbox command="createhd">
+			<args>
+				<arg value="--filename" />
+				<arg value="${vm.disk}" />
+				<arg value="--size" />
+				<arg value="${vm.disk.size}" />
+				<arg value="--format" />
+				<arg value="${vm.disk.format}" />
+			</args>
+		</vbox>
+	</target>
+	
+</project>	

@@ -1,0 +1,44 @@
+<project name="hibernate" default="hbm.xml.generate" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+	
+	<property name="temp.dir" location="." />
+	<dirname property="hibernate.basedir" file="${ant.file.hibernate}" />
+
+	<antcontrib:if>
+		<equals arg1="${default.cfengine}" arg2="acf" />
+		<then>
+			<path id="hibernate.lib.path">
+				<fileset dir="${hibernate.basedir}/lib">
+					<include name="*.jar" />
+				</fileset>
+				<fileset dir="${war.target.dir}/WEB-INF/cfusion/lib">
+					<include name="*.jar" />
+				</fileset>
+			</path>
+		</then>
+		<else>
+			<path id="hibernate.lib.path">
+				<fileset dir="${hibernate.basedir}/lib">
+					<include name="*.jar" />
+				</fileset>
+				<fileset dir="${war.target.dir}/WEB-INF/lib">
+					<include name="mysql*.jar" />
+				</fileset>
+			</path>
+		</else>
+	</antcontrib:if>
+
+	<taskdef name="hibernatetool" 
+	         classname="org.hibernate.tool.ant.HibernateToolTask" 
+	         classpathref="hibernate.lib.path" />
+	
+	<target name="hbm.xml.generate">
+		<hibernatetool>
+	        <jdbcconfiguration 
+	            configurationfile="hibernate.cfg.xml"
+	            detectmanytomany="true">
+	        </jdbcconfiguration>
+			<hbm2hbmxml destdir="${temp.dir.dir}"/>
+		</hibernatetool>
+</target>
+
+</project>

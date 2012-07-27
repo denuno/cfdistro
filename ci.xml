@@ -1,0 +1,273 @@
+<project name="ci" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="ci.context" value="/ci" />
+	<property name="ci.port.http" value="8080" />
+	<property name="ci.host" value="127.0.0.1" />
+	<property name="ci.admin.user" value="ci" />
+	<property name="ci.admin.password" value="vorto" />
+	<property name="ci.git.path" location="${basedir}/../.git" />
+	<property name="ci.git.url" value="file://${ci.git.path}" />
+	<property name="ci.build.command" value="$WORKSPACE/${distro.name} build.mxunit.tests.run" />
+	<property name="ci.job.workspace" location="${dist.root.dir}" />
+
+	<property name="jenkins.prefix" value="${ci.context}" />
+	<property name="jenkins.version" value="latest" />
+	<property name="jenkins.version" value="1.474" />
+	<property name="jenkins.url" value="http://${ci.host}:${ci.port.http}${jenkins.prefix}" />
+	<property name="ext.jenkins.dir" location="${ext.dir}/jenkins/${jenkins.version}" />
+	<property name="jenkins.dir" location="${user.home}/cfjenkins" />
+	<property name="ci.jobs.dir" location="${basedir}/ci/jobs" />
+	<property name="ci.job.workspace" location="${dist.root.dir}" />
+	<property name="jenkins.job.name" value="${distro.name}" />
+	<property name="jenkins.background" value="true" />
+	<property name="ext.jenkins.war.uri" value="http://mirrors.jenkins-ci.org/war/${jenkins.version}/jenkins.war" />
+	<property name="ext.jenkins.war" location="${ext.jenkins.dir}/jenkins-${jenkins.version}.war" />
+	<available file="${jenkins.dir}" property="jenkins.isconfigured" />
+	<available file="${ci.jobs.dir}" property="ci.hasjobs" />
+
+	<target name="jenkins.install">
+		<mkdir dir="${ext.jenkins.dir}"/>
+		<sequential>
+		<required-resource
+			src="${ext.jenkins.war.uri}"
+			dest="${ext.jenkins.war}"
+		/>
+		<mvn-get groupId="org.jenkins-ci.plugins" artifactId="git" version="1.1.20" 
+			toFile="${jenkins.dir}/plugins/git.hpi" type="hpi" />
+			
+ 		<get src="http://updates.jenkins-ci.org/download/plugins/view-job-filters/1.22/view-job-filters.hpi" 
+		    dest="${jenkins.dir}/plugins/view-job-filters.hpi" 
+		    usetimestamp="true"/>
+<!--
+ 		<get src="http://updates.jenkins-ci.org/latest/git.hpi" 
+		    dest="${jenkins.dir}/plugins/git.hpi" 
+		    usetimestamp="true"/>
+ 		<get src="http://mirrors.jenkins-ci.org/plugins/git/1.1.20/git.hpi" 
+		    dest="${jenkins.dir}/plugins/git.hpi" 
+		    usetimestamp="true"/>
+ -->
+ 
+		</sequential>
+		<jenkins-config />
+	</target>
+
+	<target name="jenkins.configure" unless="jenkins.isconfigured">
+		<mkdir dir="${jenkins.dir}"/>
+		<sequential>
+			<!-- <cfdistro target="cfdistro.dist" properties="dist.dir=${jenkins.dir}/workspace/cfdistrojob/" /> -->
+			<required-resource
+				src="${ext.jenkins.war.uri}"
+				dest="${ext.jenkins.war}"
+			/>
+			<antcontrib:runtarget target="jenkins.install" />
+		</sequential>
+	</target>
+
+	<target name="jenkins.start" depends="jenkins.configure">
+ 		<!-- <cfdistro target="job.config" properties="dist.dir=${jenkins.dir}/jobs/cfdistrojob/config.xml" /> -->
+		<!-- figure out how to extract config first
+		<xmltask source="${jenkins.dir}/config.xml" dest="${jenkins.dir}/config.xml">
+			<attr path="hudson/authorizationStrategy" attr="class" value="hudson.security.LegacyAuthorizationStrategy" />
+			<attr path="hudson/securityRealm" attr="class" value="hudson.security.LegacySecurityRealm" />
+		</xmltask>
+		-->
+		<java jar="${ext.jenkins.war}" fork="true" spawn="${jenkins.background}" maxmemory="${runwar.maxmemory}">
+			<env key="JENKINS_HOME" value="${jenkins.dir}"/>
+			<arg line="--prefix=${jenkins.prefix} --httpPort=${ci.port.http} --httpListenAddress=${ci.host} --argumentsRealm.passwd.${ci.admin.user}=${ci.admin.password} --argumentsRealm.roles.${ci.admin.user}=admin"/>
+		</java>
+	</target>
+	
+	<target name="ci.jobs.install" if="ci.hasjobs">
+		<copy todir="${jenkins.dir}/jobs">
+			<fileset dir="${ci.jobs.dir}/" />
+			<filterchain>
+				<expandproperties />
+			</filterchain>
+		</copy>
+		<jenkins-reload />
+	</target>
+
+	<target name="remote.jenkins.job.add" description="add remote job.">
+		<sequential>
+			<antcontrib:runtarget target="jenkins.job.add"/>
+			<verifyRemoteProperties />
+			<deploy-scp toDir="${remote.user}@${remote.host}:cfjenkins/jobs/">
+				<scpfiles>
+					<fileset dir="${jenkins.dir}/jobs">
+						<include name="${jenkins.job.name}/config.xml"/>
+					</fileset>
+				</scpfiles>
+			</deploy-scp>
+		</sequential>
+	</target>
+	
+	<target name="jenkins.job.add" depends="jenkins.configure,ci.jobs.install" unless="ci.hasjobs">
+		<jenkins-job name="${jenkins.job.name}" description="default build" 
+			giturl="${ci.git.url}" command="${ci.build.command}" />
+	</target>
+	
+	<target name="jenkins.job.remove" depends="jenkins.configure,ci.jobs.install" unless="ci.hasjobs">
+		<property name="ci.git.url" location="${basedir}/../.git" />
+		<delete dir="${jenkins.dir}/jobs/${jenkins.job.name}/"/>
+		<jenkins-reload />
+	</target>
+
+	<macrodef name="jenkins-job">
+		<attribute name="name" />
+		<attribute name="description" default=""/>
+		<attribute name="giturl"/>
+		<attribute name="workspace" default="${ci.job.workspace}"/>
+		<attribute name="command" default="$WORKSPACE/${distro.name} build.mxunit.tests.run"/>
+		<element name="builders" optional="true" />
+		<sequential>
+		<echo message="Adding ci job: @{name}" />
+		<echo file="${jenkins.dir}/jobs/@{name}/config.xml">
+<![CDATA[<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>@{description}</description>
+  <logRotator>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>3</numToKeep>
+    <artifactDaysToKeep>-1</artifactDaysToKeep>
+    <artifactNumToKeep>-1</artifactNumToKeep>
+  </logRotator>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <scm class="hudson.plugins.git.GitSCM">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <name></name>
+        <refspec></refspec>
+        <url>@{giturl}</url>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>**</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <disableSubmodules>false</disableSubmodules>
+    <recursiveSubmodules>false</recursiveSubmodules>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <authorOrCommitter>false</authorOrCommitter>
+    <clean>false</clean>
+    <wipeOutWorkspace>false</wipeOutWorkspace>
+    <pruneBranches>false</pruneBranches>
+    <remotePoll>false</remotePoll>
+    <ignoreNotifyCommit>false</ignoreNotifyCommit>
+    <buildChooser class="hudson.plugins.git.util.DefaultBuildChooser"/>
+    <gitTool>Default</gitTool>
+    <submoduleCfg class="list"/>
+    <relativeTargetDir></relativeTargetDir>
+    <reference></reference>
+    <excludedRegions></excludedRegions>
+    <excludedUsers></excludedUsers>
+    <gitConfigName></gitConfigName>
+    <gitConfigEmail></gitConfigEmail>
+    <skipTag>false</skipTag>
+    <includedRegions></includedRegions>
+    <scmName></scmName>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <authToken>build</authToken>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>H * * * *</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <customWorkspace>@{workspace}</customWorkspace>
+  <concurrentBuild>false</concurrentBuild>
+	<builders>
+	  <hudson.tasks.Shell>
+	    <command>@{command}</command>
+	  </hudson.tasks.Shell>
+	</builders>
+  <publishers>
+    <hudson.tasks.junit.JUnitResultArchiver>
+      <testResults>dist/localdev/testresults/*.xml</testResults>
+      <keepLongStdio>false</keepLongStdio>
+      <testDataPublishers/>
+    </hudson.tasks.junit.JUnitResultArchiver>
+  </publishers>
+  <buildWrappers/>
+</project>
+]]>
+		</echo>
+		<jenkins-reload />
+	</sequential>
+	</macrodef>
+
+	<macrodef name="jenkins-reload">
+		<attribute name="jenkinsurl" default="${jenkins.url}"/>
+		<sequential>
+			<antcontrib:trycatch>
+				<try>
+					<antcontrib:post to="@{jenkinsurl}/j_security_check"
+					        verbose="false">
+					        <prop name="j_username" value="${ci.admin.user}"/>
+					        <prop name="j_password" value="${ci.admin.password}"/>
+					        <prop name="from" value="/ci/reload"/>
+				    </antcontrib:post>
+					<antcontrib:post to="@{jenkinsurl}/reload"
+					        verbose="false" wantresponse="true">
+				    </antcontrib:post>
+					<!--
+					<get src="http://${ci.host}:${ci.port.http}${jenkins.prefix}/reload" dest="${temp.dir}/temp.txt" retries="1" ignoreerrors="true"
+						username="${ci.admin.user}" password="7c0485ed60ef86e5c8fae5d3e460803a"/>
+					-->
+				</try><catch></catch>
+			</antcontrib:trycatch>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="jenkins-config">
+		<sequential>
+		<echo message="Configurig jenkins in: ${jenkins.dir}" />
+		<echo file="${jenkins.dir}/config.xml"><![CDATA[<?xml version='1.0' encoding='UTF-8'?>
+			<hudson>
+			  <disabledAdministrativeMonitors/>
+			  <version>${jenkins.version}</version>
+			  <numExecutors>2</numExecutors>
+			  <mode>NORMAL</mode>
+			  <useSecurity>true</useSecurity>
+			  <authorizationStrategy class="hudson.security.LegacyAuthorizationStrategy"/>
+			  <securityRealm class="hudson.security.LegacySecurityRealm"/>
+			  <projectNamingStrategy class="jenkins.model.ProjectNamingStrategy$DefaultProjectNamingStrategy"/>
+			  <workspaceDir>${ITEM_ROOTDIR}/workspace</workspaceDir>
+			  <buildsDir>${ITEM_ROOTDIR}/builds</buildsDir>
+			  <markupFormatter class="hudson.markup.RawHtmlMarkupFormatter">
+			    <disableSyntaxHighlighting>false</disableSyntaxHighlighting>
+			  </markupFormatter>
+			  <jdks/>
+			  <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
+			  <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>
+			  <clouds/>
+			  <slaves/>
+			  <quietPeriod>5</quietPeriod>
+			  <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
+			  <views>
+			    <hudson.model.AllView>
+			      <owner class="hudson" reference="../../.."/>
+			      <name>All</name>
+			      <filterExecutors>false</filterExecutors>
+			      <filterQueue>false</filterQueue>
+			      <properties class="hudson.model.View$PropertyList"/>
+			    </hudson.model.AllView>
+			  </views>
+			  <primaryView>All</primaryView>
+			  <slaveAgentPort>0</slaveAgentPort>
+			  <label></label>
+			  <nodeProperties/>
+			  <globalNodeProperties/>
+			</hudson>]]>
+		</echo>
+		<jenkins-reload />
+		</sequential>
+	</macrodef>
+
+</project>

@@ -1,0 +1,110 @@
+<project name="mxunit" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<property name="mxunit.tests.dir" location="${tests.dir}" />
+	<property name="mxunit.runner" value="/mxunit/runner/HttpAntRunner.cfc" />
+	<property name="mxunit.componentpath" value="tests" />
+	<property name="mxunit.tests.results.dir" location="${dist.dir}/testresults" />
+	<property name="mxunit.recurse" value="true" />
+	<property name="mxunit.packageName" value="${mxunit.componentpath}" />
+	<dirname property="mxunit.basedir" file="${ant.file.mxunit}" />
+	<property name="mxunit.version" value="2.1.1" />
+	<property name="ext.mxunit.dir" location="${ext.dir}/mxunit/${mxunit.version}" />
+	<property name="mxunit.dir" location="${war.target.dir}/mxunit" />
+	<property name="ext.mxunit.zip.uri"
+		value="http://cloud.github.com/downloads/mxunit/mxunit/mxunit-${mxunit.version}.zip" />
+	<property name="ext.mxunit.zip"
+		location="${ext.mxunit.dir}/mxunit-${mxunit.version}.zip" />
+
+	<target name="mxunit.install">
+		<mkdir dir="${ext.mxunit.dir}" />
+		<sequential>
+			<antcontrib:if>
+				<available file="${ext.mxunit.zip}" />
+				<then />
+				<else>
+					<get src="${ext.mxunit.zip.uri}" dest="${ext.mxunit.zip}"
+						verbose="true" ignoreerrors="false" />
+				</else>
+			</antcontrib:if>
+			<unzip src="${ext.mxunit.zip}" dest="${mxunit.dir}">
+				<regexpmapper from="mxunit/(.*)$" to="\1" />
+			</unzip>
+		</sequential>
+	</target>
+
+	<target name="mxunit.uninstall">
+		<delete dir="${ext.mxunit.dir}" />
+		<delete dir="${mxunit.dir}" />
+	</target>
+
+	<target name="mxunit.tests">
+     	<taskdef name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" classpathref="build.lib.path"  />
+		<mkdir dir="${mxunit.tests.results.dir}" />
+		<property name="mxunit.failonerror" value="true" />
+		<abspath property="mxunit.tests.dir.abs" path="${mxunit.tests.dir}" />
+		<mxunittask server="${server.host}" port="${server.port.http}"
+			defaultrunner="${mxunit.runner}" outputdir="${mxunit.tests.results.dir}"
+			failureproperty="tests.fail" haltonerror="false" 
+			testResultsSummary="testresults.properties" verbose="true">
+			<!-- <testcase name="mxunit.tests.framework.AssertTest" packageName="mxunit.asserttests" /> -->
+			<directory runner="${mxunit.runner}"
+				remoteMethod="run" path="${mxunit.tests.dir.abs}" componentPath="${mxunit.componentpath}"
+				packageName="${mxunit.packageName}" recurse="${mxunit.recurse}" />
+		</mxunittask>
+
+		<mkdir dir="${mxunit.tests.results.dir}/html" />
+		<junitreport todir="${mxunit.tests.results.dir}/html">
+			<fileset dir="${mxunit.tests.results.dir}">
+				<include name="*.xml" />
+			</fileset>
+			<report format="frames" todir="${mxunit.tests.results.dir}/html" styledir="${mxunit.basedir}" />
+		</junitreport>
+		<delete dir="${output.dir}" />
+		<antcontrib:if>
+			<equals arg1="${mxunit.failonerror}" arg2="true" />
+			<then>
+				<fail if="tests.fail" message="mxunit.failonerror is true and mxunit tests failed!"/>
+			</then>
+		</antcontrib:if>
+
+	</target>
+
+	<target name="mxunit.tests.run">
+		<server-run>
+			<antcontrib:runtarget target="mxunit.tests" />
+		</server-run>
+	</target>
+
+	<target name="build.mxunit.tests.run">
+		<antcontrib:runtarget target="build" />
+		<antcontrib:runtarget target="mxunit.tests.run" />
+	</target>
+
+	<target name="update.mxunit.tests.run">
+		<antcontrib:runtarget target="project.update" />
+		<antcontrib:runtarget target="build" />
+		<antcontrib:runtarget target="mxunit.tests.run" />
+	</target>
+
+	<target name="ifnew.build.mxunit.tests.run">
+		<mkdir dir="${war.target.dir}" />
+		<property name="testresult.file" value="${war.target.dir}/test.results.html/" />
+		<sequential>
+			<antcontrib:runtarget target="project.update" />
+			<antcontrib:if>
+				<equals arg1="${revisions.are.same}" arg2="true" />
+				<then>
+					<echo message="Revisions are the same, not running tests" />
+				</then>
+				<else>
+					<echo message="Revisions differ, running tests" />
+					<sequential>
+						<antcontrib:runtarget target="build.mxunit.tests.run" />
+					</sequential>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</target>
+
+
+</project>

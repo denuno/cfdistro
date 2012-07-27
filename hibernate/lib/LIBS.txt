@@ -1,0 +1,9 @@
+Something like this:
+
+commons-collections-2.1.1.jar
+commons-logging-1.0.4.jar
+dom4j-1.6.1.jar
+freemarker.jar
+hibernate-tools.jar
+hibernate3.jar
+jtidy-r8-20060801.jar

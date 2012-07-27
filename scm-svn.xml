@@ -1,0 +1,240 @@
+<project name="scm-svn" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<path id="svn.lib.path">
+		<fileset dir="${cfdistro.basedir}/lib">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+	<macrodef name="svn-command">
+		<attribute name="command" />
+		<attribute name="dir" default="" />
+		<attribute name="user" default="" />
+		<attribute name="password" default="" />
+		<element name="args" optional="true" />
+		<sequential> 
+			<echo message="SVN @{command}" />
+			<java classname="org.tmatesoft.svn.cli.SVN" fork="true" dir="@{dir}" classpathref="svn.lib.path" outputproperty="svn.results">
+				<jvmarg line="${proxy.jvmarg.line}"/>
+				<arg value="@{command}" />
+				<arg value="--non-interactive" />
+				<arg value="--force" />
+				<arg value="--username" />
+				<arg value="@{user}" />
+				<arg value="--password" />
+				<arg value="@{password}" />
+				<args />
+			</java>
+			<echo message="${svn.results}" />
+		</sequential>
+	</macrodef>
+
+
+	<macrodef name="svn-export">
+		<attribute name="dest" />
+		<attribute name="uri" />
+		<attribute name="user" default="" />
+		<attribute name="password" default="" />
+		<attribute name="dirname" default="" />
+		<sequential>
+			<echo message="importing src: @{dest} from @{uri}" />
+			<java classname="org.tmatesoft.svn.cli.SVN" fork="true" classpathref="svn.lib.path">
+				<jvmarg line="${proxy.jvmarg.line}"/>
+				<arg value="export" />
+				<arg value="--non-interactive" />
+				<arg value="--force" />
+				<arg value="--username" />
+				<arg value="@{user}" />
+				<arg value="--password" />
+				<arg value="@{password}" />
+				<arg value="@{uri}" />
+				<arg value="@{dest}" />
+			</java>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="svn-checkout">
+		<attribute name="dest" />
+		<attribute name="uri" />
+		<attribute name="user" default="" />
+		<attribute name="password" default="" />
+		<sequential>
+			<echo message="checkout to: @{dest}" />
+			<java classname="org.tmatesoft.svn.cli.SVN" fork="true" classpathref="svn.lib.path">
+				<jvmarg line="${proxy.jvmarg.line}"/>
+				<arg value="co" />
+				<arg value="--non-interactive" />
+				<arg value="--username" />
+				<arg value="@{user}" />
+				<arg value="--password" />
+				<arg value="@{password}" />
+				<arg value="@{uri}" />
+				<arg value="@{dest}" />
+			</java>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="diff-with-svn">
+		<attribute name="source" />
+		<attribute name="temp-dir" default="${temp.dir}/svn-diff-temp" />
+		<attribute name="uri" />
+		<attribute name="user" default="" />
+		<attribute name="password" default="" />
+		<attribute name="patchfile" default="${basedir}/patch-for-svn.txt" />
+		<sequential>
+			<delete dir="@{temp-dir}" />
+			<mkdir dir="@{temp-dir}" />
+			<svn-checkout dest="@{temp-dir}" uri="@{uri}" user="@{user}" password="@{password}" />
+			<copy todir="@{temp-dir}" verbose="false" overwrite="true">
+				<fileset dir="@{source}" />
+			</copy>
+			<svn-command command="diff" dir="@{temp-dir}/" user="@{user}" password="@{password}" />
+			<echo file="@{patchfile}" message="${svn.results}" />
+		</sequential>
+	</macrodef>
+
+
+	<target name="project.update.svn">
+		<xmltask sourcebuffer="src.buff">
+			<call path="src/project/src[@type='svn']">
+				<param name="dest" path="@dest" default="NONE" />
+				<param name="type" path="@type" default="NONE" />
+				<param name="uri" path="@uri" default="NONE" />
+				<param name="user" path="@user" default="" />
+				<param name="password" path="@password" default="" />
+				<param name="dirname" path="@dirname" default="" />
+				<actions>
+					<antcontrib:var name="exists.dest.dir" unset="true" />
+					<available file="@{dest}" type="dir" property="exists.dest.dir" />
+					<antcontrib:if>
+						<equals arg1="${exists.dest.dir}" arg2="true" />
+						<then>
+							<echo message="updating distro: @{dest}" />
+							<java classname="org.tmatesoft.svn.cli.SVN" fork="true" classpathref="svn.lib.path">
+								<jvmarg line="${proxy.jvmarg.line}"/>
+								<arg value="update" />
+								<arg value="--non-interactive" />
+								<arg value="--username" />
+								<arg value="@{user}" />
+								<arg value="--password" />
+								<arg value="@{password}" />
+								<arg value="@{dest}" />
+							</java>
+						</then>
+						<else>
+							<echo message="source destination : @{dest} ain't there, downloading from @{uri}" />
+							<svn-checkout dest="@{dest}" uri="@{uri}" user="@{user}" password="@{password}" />
+						</else>
+					</antcontrib:if>
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+	<target name="project.checkout.svn">
+		<xmltask sourcebuffer="src.buff">
+			<call path="src/project/src[@type='svn']">
+				<param name="dest" path="@dest" default="NONE" />
+				<param name="type" path="@type" default="NONE" />
+				<param name="uri" path="@uri" default="NONE" />
+				<param name="user" path="@user" default="" />
+				<param name="password" path="@password" default="" />
+				<param name="dirname" path="@dirname" default="" />
+				<actions>
+					<echo message="checkout to: @{dest}" />
+					<svn-checkout dest="@{dest}" uri="@{uri}" user="@{user}" password="@{password}" />
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+	<target name="src.import.svn">
+		<xmltask sourcebuffer="src.buff">
+			<call path="src/sources/src[@type='svn']">
+				<param name="dest" path="@dest" default="NONE" />
+				<param name="type" path="@type" default="NONE" />
+				<param name="uri" path="@uri" default="NONE" />
+				<param name="user" path="@user" default="" />
+				<param name="password" path="@password" default="" />
+				<param name="dirname" path="@dirname" default="" />
+				<actions>
+					<echo message="importing src: @{dest}" />
+					<java classname="org.tmatesoft.svn.cli.SVN" fork="true" classpathref="svn.lib.path">
+						<jvmarg line="${proxy.jvmarg.line}"/>
+						<arg value="export" />
+						<arg value="--non-interactive" />
+						<arg value="--force" />
+						<arg value="--username" />
+						<arg value="@{user}" />
+						<arg value="--password" />
+						<arg value="@{password}" />
+						<arg value="@{uri}" />
+						<arg value="@{dest}" />
+					</java>
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+	<target name="check.project.for.newrevision.svn">
+		<xmltask sourcebuffer="src.buff">
+			<call path="src/project/src[@type='svn']">
+				<param name="dest" path="@dest" default="NONE" />
+				<param name="type" path="@type" default="NONE" />
+				<param name="uri" path="@uri" default="NONE" />
+				<param name="user" path="@user" default="" />
+				<param name="password" path="@password" default="" />
+				<param name="dirname" path="@dirname" default="" />
+				<actions>
+					<echo message="checking revisions for: @{dest}" />
+					<property name="source-root" value="@{dest}" />
+					<java classname="org.tmatesoft.svn.cli.SVN" dir="${source-root}" fork="true" classpathref="svn.lib.path" outputproperty="project.wc">
+						<arg value="info" />
+					</java>
+					<antcontrib:propertyregex property="project.wc.revision" input="${project.wc}" regexp="Revision:\s*(.*)" select="\1" defaultValue="" casesensitive="false" />
+					<echo message="Working Copy Revision: ${project.wc.revision}" />
+					<java classname="org.tmatesoft.svn.cli.SVN" dir="${source-root}" fork="true" classpathref="svn.lib.path" outputproperty="project.head">
+						<jvmarg line="${proxy.jvmarg.line}"/>
+						<arg value="info" />
+						<arg value="--non-interactive" />
+						<arg value="--username" />
+						<arg value="@{user}" />
+						<arg value="--password" />
+						<arg value="@{password}" />
+						<arg value="--revision" />
+						<arg value="HEAD" />
+					</java>
+					<antcontrib:propertyregex property="project.head.revision" input="${project.head}" regexp="Revision:\s*(.*)" select="\1" defaultValue="" casesensitive="false" />
+					<echo message="HEAD Revision: ${project.head.revision}" />
+					<antcontrib:if>
+						<equals arg1="${project.head.revision}" arg2="${project.wc.revision}" />
+						<then>
+							<echo message="Revisions are the same" />
+							<property name="revisions.are.same" value="true" />
+						</then>
+						<else>
+							<echo message="Revisions differ" />
+							<echo message="${project.revision}" />
+							<echo message="${project.head}" />
+							<property name="revisions.are.same" value="false" />
+						</else>
+					</antcontrib:if>
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+	<target name="twitter-head-info">
+		<property name="repository.URL" value="http://svn.cfeclipse.org" />
+		<java classname="org.tmatesoft.svn.cli.SVN" classpathref="build.lib.path" fork="true" outputproperty="last.revision.info">
+			<arg value="log" />
+			<arg value="-rHEAD" />
+			<arg value="${repository.URL}/" />
+		</java>
+		<propertyregex property="info.smaller" input="${last.revision.info}" regexp="(?s)-+.(r\d+ \| \w+)\s?\|\s?.+(\(.*?).\|\s\d+\slines?(.*?).-{3}" select=" #ColdFusion \2 \1 > \3" casesensitive="false" />
+		<twitter message="${info.smaller} ${buildtype}" username="${twitter.username}" password="${twitter.password}" bitlyUsername="bitly-username" bitlyApiKey="bitly-key" enableBitly="false" />
+	</target>
+
+
+
+</project>

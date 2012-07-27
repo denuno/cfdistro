@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<mappings>
+<!-- 
+  <mapping physical="@src.dir@/../tests" virtual="/tests"/>
+  <mapping physical="@src.dir@/@distro.name@" virtual="/@distro.name@"/>
+ -->
+</mappings>

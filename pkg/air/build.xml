@@ -1,0 +1,55 @@
+<project name="default" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+	<dirname property="pkg.air.basedir" file="${ant.file.default}" />
+
+	<property name="cfdistro.build.file" value="../../build.xml"/>
+	<import file="${cfdistro.build.file}"/>
+
+	<target name="install" description="installs package ${pkg}">
+		<property name="air.file" value="${dist.dir}/${distro.name}.air" />
+		<property name="air.dir" location="${basedir}/../air" />
+		<property name="air.adl.path" value="${user.home}/programs/AdobeAIRSDK/bin/adl" />
+		<property name="air.adt.path" value="${user.home}/programs/AdobeAIRSDK/bin/adt" />
+		<property name="air.app.id" value="${distro.name}.cfdistro.air" />
+		<property name="air.app.name" value="${distro.name}" />
+		<property name="air.open.url" value="/${distro.name}/openair.cfm" />
+		<property name="air.start.server" value="${distro.name}" />
+		<startscript script-path="${air.dir}/${distro.name}" />
+		<echoproperties prefix="air." destfile="${temp.dir}/air.properties" />
+		<copy todir="${air.dir}" verbose="false" overwrite="true">
+			<fileset dir="${pkg.air.basedir}" includes="**" />
+			<filterchain>
+				<filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
+					<param type="propertiesfile" value="${temp.dir}/air.properties" />
+				</filterreader>
+			</filterchain>
+		</copy>
+		<delete file="${temp.dir}/air.properties" />
+		<move file="${air.dir}/build.air.properties" todir="${basedir}" />
+	</target>
+
+	<target name="configure" description="installs package ${pkg}">
+	</target>
+
+	<target name="uninstall" description="installs package ${pkg}">
+	</target>
+
+    <target name="certificate" unless="CERTIFICATE_FLAG">
+        <java jar="${ADT}" fork="true"
+            failonerror="true">
+            <arg value="-certificate"/>
+            <arg value="-cn"/>
+            <arg value="${CERT_NAME}"/>
+            <arg value="-ou"/>
+            <arg value="${CERT_ORG_UNIT}"/>
+            <arg value="-o"/>
+            <arg value="${CERT_ORG_NAME}"/>
+            <arg value="-c"/>
+            <arg value="${CERT_COUNTRY}"/>
+            <arg value="${CERT_KEY_TYPE}"/>
+            <arg value="${KEYSTORE}"/>
+            <arg value="${CERT_PASSWORD}"/>
+        </java>
+    </target>
+
+
+</project>

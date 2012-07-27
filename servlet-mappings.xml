@@ -1,0 +1,100 @@
+<project name="servlet-mappings" default="servlet.mappings.update"
+	basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<target name="servlet.fileservlet.install" if="exists.mappings.xml">
+	<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+		<xmlcatalog refId="commonDTDs"/>
+		<insert path="web-app/servlet[1]" position="before">
+			<![CDATA[
+	<!-- railo file servlet -->
+	<servlet>
+		<servlet-name>FileServlet</servlet-name>
+		<description>File Servlet for simple files</description>
+		<servlet-class>railo.loader.servlet.FileServlet</servlet-class>
+		<load-on-startup>2</load-on-startup>
+	</servlet>	 
+	<servlet-mapping> 
+		<servlet-name>FileServlet</servlet-name> 
+		<url-pattern>/</url-pattern> 
+	</servlet-mapping> 
+			]]>
+		</insert>
+	</xmltask>
+	</target>
+
+	
+	<target name="servlet.mappings.update" if="exists.mappings.xml">
+		<xmltask sourcebuffer="mappings.buff">
+			<xmlcatalog refId="commonDTDs"/>
+			<call path="mappings/*">
+				<param name="virtual" path="@virtual" default="NONE" />
+				<param name="physical" path="@physical" default="NONE" />
+				<actions>
+					<cfms-to-servlet-mapping physical="@{physical}" virtual="@{virtual}" />
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+	<macrodef name="servlet-mapping">
+		<attribute name="physical" />
+		<attribute name="virtual" />
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="${default.cfengine}" arg2="railo" />
+				<then>
+					<echo message="setting railo servlet mappings: ${default.cfengine} url-pattern:@{virtual}"/>
+					<property name="cfmlServletName" value="CFMLServlet" />
+				</then>
+				<else>
+					<echo message="setting acf servlet mappings: ${default.cfengine} url-pattern:@{virtual}"/>
+					<property name="cfmlServletName" value="CfmServlet" />
+				</else>
+			</antcontrib:if>
+			<antcontrib:var name="rule.exists" unset="true"/>
+				<xmltask source="${war.target.dir}/WEB-INF/web.xml"
+					dest="${war.target.dir}/WEB-INF/web.xml">
+					<xmlcatalog refId="commonDTDs"/>
+					<copy path="web-app/servlet-mapping[url-pattern='@{virtual}']/text()" attrValue="true" property="rule.exists"/>
+					<print path="web-app/servlet-mapping[url-pattern='@{virtual}']"/>
+					<replace path="web-app/servlet-mapping[url-pattern='@{virtual}']" if="rule.exists">
+					<![CDATA[
+<servlet-mapping>
+<servlet-name>${cfmlServletName}</servlet-name>
+<url-pattern>@{virtual}</url-pattern>
+</servlet-mapping>
+					]]>
+					</replace>
+					<insert path="web-app/servlet[last()]" position="after" unless="rule.exists">
+					<![CDATA[
+<servlet-mapping>
+<servlet-name>${cfmlServletName}</servlet-name>
+<url-pattern>@{virtual}</url-pattern>
+</servlet-mapping>
+					]]>
+					</insert>
+				</xmltask>
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="cfms-to-servlet-mapping">
+		<attribute name="physical" />
+		<attribute name="virtual" />
+		<sequential>
+			<antcontrib:for param="file">
+			    <fileset dir="@{physical}" includes="*.cfm *.cfc" excludes="Application.cfc Application.cfm"/>
+			    <sequential>
+					<antcontrib:var name="cfmlfile" unset="true" />
+					<antcontrib:propertyregex property="cfmlfile"
+					              input="@{file}"
+					              regexp=".*[/|\\]+(.*)"
+					              select="\1"
+					              casesensitive="false" />
+					<servlet-mapping physical="@{physical}" virtual="@{virtual}/${cfmlfile}/*"/>
+			    </sequential>
+			</antcontrib:for>
+		</sequential>
+	</macrodef>
+	
+	
+</project>
