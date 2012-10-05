@@ -5,15 +5,29 @@
 	<property name="cfmlengine.inspect.templates" value="always" />
 	
 	<target name="acf.requires">
-		<unzip src="${ext.acf.war}"
-		       dest="${war.target.dir}">
-<!--
-		    <patternset>
-		        <include name="**/*.java"/>
-		        <exclude name="**/Test*.java"/>
-		    </patternset>
--->		    
-		</unzip>
+		<!-- system unzip will be faster -->
+		<antcontrib:trycatch>
+			<try>
+				<mkdir dir="${war.target.dir}" />
+				<exec executable="unzip">
+					<arg value="${ext.acf.war}"/>
+					<arg value="-x"/>
+					<arg value="*CFIDE/administrator/help/*"/>
+					<arg value="-x"/>
+					<arg value="*CFIDE/scripts/ajax/*"/>
+					<arg value="-d"/>
+					<arg value="${war.target.dir}"/>
+				</exec>
+			</try>
+			<catch>
+				<unzip src="${ext.acf.war}"
+				       dest="${war.target.dir}">
+						<patternset>
+					        <include name="**CFIDE/scripts/ajax/**"/>
+					    </patternset>
+				</unzip>
+			</catch>
+		</antcontrib:trycatch>
 	</target>
 
 	<target name="acf.war.init" depends="acf.requires">
@@ -456,9 +470,12 @@ vendor=0YV\#Y\!,U&;_;YN@)&)B'"WP  \n
 	
 	<target name="acf.add.libs" if="add.libs.dir" unless="dont.add.libs">
 		<echo message="Copying libs: ${add.libs.dir} to: ${war.target.dir}/WEB-INF/cfusion/lib" /> 
+		<addlibs from="${add.libs.dir}"/>
+		<!--
 		<copy todir="${war.target.dir}/WEB-INF/cfusion/lib" overwrite="true">
 			<fileset dir="${add.libs.dir}"/>
 		</copy>
+		-->
 	</target>
 
 	

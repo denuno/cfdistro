@@ -164,6 +164,7 @@
 
 	<property name="railo.archive.dir" location="${dist.dir}/ra" />
 	<property name="ext.dir" location="${cfdistro.basedir}/ext" />
+	<property name="ext.mappings.dir" location="${ext.dir}/mappings" />
 	<property name="ext.acf.dir" location="${ext.dir}/acf" />
 	<property name="ext.acf.war" location="${ext.acf.dir}/9/cfusion.war" />
 	<property name="temp.dir" location="./temp" />
@@ -177,7 +178,7 @@
 a tiny 2m jar but getPageContext() throws errors!!
 	<property name="jetty-runner.jar" value="jetty-runner-8.0.4.v20111024.jar" />
 -->
-	<property name="jetty-runner.jar" value="jetty-runner-8.1.3.v20120416.jar" />
+	<property name="jetty-runner.jar" value="jetty-runner-8.1.5.v20120716.jar" />
 
 	<property name="ext.uri" value="http://subversion.assembla.com/svn/cfdistro/trunk/cfdistro/ext" />
 	<property name="creds.token.file" value="${basedir}/creds.txt" />
@@ -228,11 +229,14 @@ a tiny 2m jar but getPageContext() throws errors!!
 	<import file="maven.xml" />
 	<import file="rpm.xml" />
 	<import file="ci.xml" />
-	<delete dir="${temp.dir}" />
-	<mkdir dir="${temp.dir}" />
+
+<!--
+ 	<delete dir="${temp.dir}" />
+ -->
+ 	<mkdir dir="${temp.dir}" />
 
     <property name="cfdistro.repo.local.path" location="${cfdistro.basedir}/artifacts" />
-    <mvn-repo id="cfdistro.repo.remote" url="http://loganberry.viviotech.net/artifacts/" />
+    <mvn-repo id="cfdistro.repo.remote" url="http://cfmlprojects.org/artifacts/" />
 	<mvn-repo id="cfdistro.repo.local" url="file://${cfdistro.repo.local.path}/" />
 
 	<!--
@@ -492,8 +496,11 @@ a tiny 2m jar but getPageContext() throws errors!!
 			<then>
 				<requires-ext resource="${ext.railo.dir}/error.cfm" />
 				<requires-ext resource="${ext.dir}/cfeclipse" />
-				<addlibs from="${ext.dir}/cfeclipse" />
+				<error-template path="${ext.railo.dir}/error.cfm" />
 				<property name="cfmlengine.inspect.templates" value="always" />
+				<addlibs from="${ext.dir}/cfeclipse" />
+				<copy file="${ext.dir}/cfeclipse/cfeclipsecall.cfm" todir="${war.target.dir}" />
+				<copy file="${ext.dir}/cfeclipse/Dump.cfc" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag/railo" />
 			</then>
 		</antcontrib:if>
 	</target>
@@ -633,6 +640,7 @@ a tiny 2m jar but getPageContext() throws errors!!
 
 	<macrodef name="mapping">
 		<attribute name="physical" default="" />
+		<attribute name="physicalxml" default="@{physical}" />
 		<attribute name="virtual" />
 		<element name="args" optional="true" />
 		<sequential>
@@ -644,28 +652,28 @@ a tiny 2m jar but getPageContext() throws errors!!
 				<!-- if no mappings at all, just insert -->
 				<insert path="/mappings" position="under" unless="some.mapping.exists">
 					<![CDATA[
-  						<mapping physical="@{physical}" virtual="@{virtual}"/>
+  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
   					]]>
 				</insert>
 				<!-- if some mappings exist we can update and add -->
 				<copy path="/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
 				<replace path="/mappings/mapping[@virtual=@{virtual}]/text()" if="mapping.exists">
 					<![CDATA[
-  						<mapping physical="@{physical}" virtual="@{virtual}"/>
+  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
   					]]>
   					</replace>
 				<insert path="/mappings" position="under" unless="mapping.exists">
 					<![CDATA[
-  						<mapping physical="@{physical}" virtual="@{virtual}"/>
+  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
   					]]>
 				</insert>
 			</xmltask>
 			<antcontrib:switch value="${mapping.exists}">
 				<case value="@{virtual}">
-					<echo message="mappings.xml [updated] - @{virtual}	[@{physical}] (@{physical})" />
+					<echo message="mappings.xml [updated] - @{virtual}	[@{physicalxml}] (@{physical})" />
 				</case>
 				<default>
-					<echo message="mappings.xml [added] - @{virtual} 	[@{physical}] (@{physical})" />
+					<echo message="mappings.xml [added] - @{virtual} 	[@{physicalxml}] (@{physical})" />
 				</default>
 			</antcontrib:switch>
 			<antcontrib:if>
@@ -955,6 +963,7 @@ a tiny 2m jar but getPageContext() throws errors!!
 				<relpath property="src.dir.rel" to="${src.dir}" from="${war.target.dir}"/>
 			</else>
 		</antcontrib:if>
+		<mkdir dir="${temp.dir}" />
 		<echoproperties destfile="${temp.file}"/>
 		<loadfile property="mappings.xml" srcFile="${mappings.file}">
 			<filterchain>
@@ -1332,11 +1341,15 @@ a tiny 2m jar but getPageContext() throws errors!!
 		<copy todir="${dist.dir}/${distro.name}/build" verbose="false">
 			<fileset dir="${basedir}/">
 				<exclude name="**/.git/**" />
+				<exclude name="cfdistro/**" />
 				<exclude name="cfdistro/ext/**" />
 				<exclude name="${temp.dir}" />
 				<exclude name="${creds.token.filename}" />
 				<exclude name="*.key" />
 			</fileset>
+		</copy>
+		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
 		</copy>
 	</case>
 	<case value="src">
@@ -1354,10 +1367,13 @@ a tiny 2m jar but getPageContext() throws errors!!
 			<fileset dir="${basedir}/../">
 				<exclude name="${temp.dir}" />
 				<exclude name="**/.git/**" />
-				<exclude name="build/cfdistro/ext/**" />
+				<exclude name="build/cfdistro/**" />
 				<exclude name="build/${creds.token.filename}" />
 				<exclude name="build/*.key" />
 			</fileset>
+		</copy>
+		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
 		</copy>
 	</case>
 	<case value="all">
@@ -1369,6 +1385,9 @@ a tiny 2m jar but getPageContext() throws errors!!
 				<exclude name="build/*.key" />
 			</fileset>
 		</copy>
+		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+		</copy>
 	</case>
 	<default>
 		<fail message="Um, the dist include type '${dist.type}' is unknown to me, esse!" />
@@ -1379,7 +1398,7 @@ a tiny 2m jar but getPageContext() throws errors!!
 	</case>
 	<default>
 		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
 		</copy>
 		<chmod file="${dist.dir}/${distro.name}/build/cfdistro/ant/bin/ant" perm="ugo+rx" />
 		<!-- set the cfdistro file path to included cfdistro -->
@@ -1446,9 +1465,7 @@ a tiny 2m jar but getPageContext() throws errors!!
 		<copy todir="${rpm.repo.dir}" overwrite="true">
 			<fileset dir="${temp.dir}/rpmbuild/RPMS/noarch" />
 		</copy>
-		<exec executable="createrepo">
-			<arg value="${rpm.repo.dir}"/>
-		</exec>
+		<rpm-repo dir="${rpm.repo.dir}" />
 	</target>
 	
 	

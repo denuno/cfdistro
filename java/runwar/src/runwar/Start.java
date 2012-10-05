@@ -215,18 +215,29 @@ public class Start {
 		if(warFile.isDirectory() && !webinf.exists()) {
 			context = new ExternalContext(contexts, warPath, contextPath, warFile,new File(libDir,"server/WEB-INF"));
 			Class cfmlServlet;
+			Class restServlet;
 			try{
 				cfmlServlet = context.getClass().getClassLoader().loadClass("railo.loader.servlet.CFMLServlet");
 			} catch (java.lang.ClassNotFoundException e) {
 				cfmlServlet = _classLoader.loadClass("railo.loader.servlet.CFMLServlet");
 			}
+			try{
+				restServlet = context.getClass().getClassLoader().loadClass("railo.loader.servlet.RestServlet");
+			} catch (java.lang.ClassNotFoundException e) {
+				restServlet = _classLoader.loadClass("railo.loader.servlet.RestServlet");
+			}
+			String webConfigDir = new File(libDir,"server/railo-web/").getPath();
 			context.setClassLoader(context.getClass().getClassLoader());
 			ServletHolder servletHolder = new ServletHolder(cfmlServlet);
-			servletHolder.setInitParameter("configuration",new File(libDir,"server/railo-web/").getPath());
+			servletHolder.setInitParameter("configuration",webConfigDir);
 			servletHolder.setInitParameter("railo-server-root",new File(libDir,"server").getPath());
 			servletHolder.setInitOrder(1);
+			ServletHolder rservletHolder = new ServletHolder(restServlet);
+			rservletHolder.setInitParameter("railo-web-directory",webConfigDir);
+			rservletHolder.setInitOrder(1);
 			context.setWelcomeFiles(new String[] {"index.cfm","index.cfml","index.html","index.htm"});
 			context.addServlet(servletHolder, "*.cfm");
+			context.addServlet(rservletHolder, "/rest/*");
 		} else {
 			// WebAppContext context = new WebAppContext(contexts, warPath,contextPath);
 			context = new CFMLContext(contexts, warPath, contextPath, cfmlDirs);

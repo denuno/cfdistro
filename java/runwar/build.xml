@@ -11,6 +11,7 @@
 			<property name="server.deploy.dir" value="${war.target.dir}/../"/>
 			<property name="server.log.dir" value="${log.dir}/"/>
 			<property name="server.port" value="8088"/>
+			<property name="server.port.stop" value="8079"/>
 			<property name="server.port.http" value="${server.port}"/>
 			<property name="server.port.ajp" value="8009"/>
 			<property name="server.ajp.enable" value="false"/>
@@ -28,7 +29,7 @@
 			<property name="log.level" value="INFO" />
 			<property name="loglevel" value="${log.level}" />
 			<property name="runwar.log.level" value="${loglevel}" />
-			<property name="runwar.stop.socket" value="8079" />
+			<property name="runwar.stop.socket" value="${server.port.stop}" />
 			<property name="runwar.cfml.dirlist" value="${src.dir}" />
 			<property name="open.url" value="${server.url}" />
 			<fix-url-slashes property="open.url" />
@@ -197,7 +198,7 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 		<property name="runwar.openbrowser" value="false" />
 		<property name="runwar.keeprequestlog" value="false" />
 		<mkdir dir="${runwar.log.dir}" />
-		<echo message="starting jetty-runner (${server.jvm.args})"/>
+		<echo message="starting jetty-runner (server.jvm.args : ${server.jvm.args})"/>
 		<sequential>
 			<path id="cfdistro.libs.path">
 				<fileset dir="${cfdistro.basedir}/lib">
@@ -207,7 +208,7 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 			<condition property="osxJVMargs" value="-Dcom.apple.mrj.application.apple.menu.about.name=${distro.name} -Dcom.apple.mrj.application.growbox.intrudes=false -Dapple.laf.useScreenMenuBar=true -Dfile.encoding=UTF-8 -Xdock:name=${distro.name}" else="">
 			    <os family="mac"/>
 			</condition>
-
+			
   			<java jar="${cfdistro.basedir}/lib/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="true">
 				<jvmarg line="${server.jvm.args}"/>
 				<arg value="-war" /><arg value="${runwar.war.path}" />
@@ -235,7 +236,10 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 				-->
 			</java>
 			<antcontrib:if>
+				<and>
 				<equals arg1="${background}" arg2="true" />
+				<not><equals arg1="${runwar.port}" arg2="0" /></not>
+				</and>
 				<then>
 					<echo message="waiting for jetty-runner"/>
 					<sleep seconds="7" />
@@ -251,6 +255,7 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 					<antcontrib:runtarget target="if.toolong.echo" />
 					<echo message="stop server with target: ${server.type}.stop"/>
 				</then>
+				<else><echo message="${runwarou}" /></else>
 			</antcontrib:if>
 		</sequential>
 	</target>
@@ -382,7 +387,7 @@ __ARCHIVE_FOLLOWS__
 			<requires-ext resource="${ext.dir}/launch4j" />
 			<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask"
 			    classpath="${cfdistro.basedir}/ext/launch4j/launch4j.jar:${cfdistro.basedir}/ext/launch4j/lib/xstream.jar" />
-			<echo message="EXE Type: @{headerType}"/>
+			<echo message="EXE Type: @{headerType} for @{jar}"/>
 			<chmod dir="${cfdistro.basedir}/ext/launch4j/bin/" perm="ugo+rx" includes="*"/>
 			<antcontrib:if>
 				<equals arg1="@{headerType}" arg2="console" />

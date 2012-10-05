@@ -145,9 +145,21 @@
 	<macrodef name="git-checkout">
 		<attribute name="repository" />
 		<attribute name="branch" />
+		<attribute name="uri" default="" />
 		<attribute name="force" default="false"/>
 		<attribute name="use-jgit" default="${use.jgit}" />
 		<sequential>
+			<antcontrib:if>
+				<not><available file="@{repository}"/></not>
+				<then>
+					<git command="clone" use-jgit="@{use-jgit}">
+						<args>
+							<arg value="@{uri}" />
+							<arg value="@{repository}" />
+						</args>
+					</git>
+				</then>
+			</antcontrib:if>
 			<antcontrib:if>
 				<equals arg1="@{force}" arg2="true"/>
 				<then>
@@ -283,7 +295,7 @@
 								<args><arg value="origin" /></args>
 							</git>
 							<git command="merge" dir="@{dest}">
-								<args><arg>@{branch}</arg></args>
+								<args><arg value="@{branch}" /></args>
 							</git>
 						</else>
 					</antcontrib:if>
@@ -489,6 +501,7 @@
 	
     <macrodef name="git-fetch-from-remote">
         <sequential>
+        	<load-src-xml />
     		<xmltask sourcebuffer="src.buff">
     			<call path="src/project/src[@type='git']">
     				<param name="dest" path="@dest" default="NONE" />

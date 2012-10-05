@@ -352,7 +352,7 @@
 			<xmltask source="${jboss.domain.config.file}" dest="${jboss.domain.config.file}">
 				<remove path="//*[local-name()='interfaces']/*[local-name()='interface'][@name='@{name}']"/>
 				<print path="//*[local-name()='interfaces']/*[local-name()='interface'][@name='@{name}']"/>
-				<insert path="//*[local-name()='interfaces']" position="under"><![CDATA[<interface name="internal" xmlns="urn:jboss:domain:1.0">${interface.xml}</interface>]]></insert>
+				<insert path="//*[local-name()='interfaces']" position="under"><![CDATA[<interface name="internal" xmlns="urn:jboss:domain:1.2">${interface.xml}</interface>]]></insert>
 				<attr path="//:*[@interface='external']" attr="interface" value="@{name}" />
 				<attr path="//:*[@default-interface='external']" attr="default-interface" value="@{name}" />
 			</xmltask>
@@ -368,7 +368,7 @@
 			<xmltask source="${jboss.standalone.config.file}" dest="${jboss.standalone.config.file}">
 				<remove path="//*[local-name()='interfaces']/*[local-name()='interface'][@name='@{name}']"/>
 				<print path="//*[local-name()='interfaces']/*[local-name()='interface'][@name='@{name}']"/>
-				<insert path="//*[local-name()='interfaces']" position="under"><![CDATA[<interface name="@{name}" xmlns="urn:jboss:domain:1.0">${interface.xml}</interface>]]></insert>
+				<insert path="//*[local-name()='interfaces']" position="under"><![CDATA[<interface name="@{name}" xmlns="urn:jboss:domain:1.2">${interface.xml}</interface>]]></insert>
 			</xmltask>
 	    </sequential>
 	</macrodef>
@@ -380,7 +380,7 @@
 	    	<echo>mod-cluster-config : ${mod-cluster-config.xml}</echo>
 			<xmltask source="${jboss.standalone.config.file}" dest="${jboss.standalone.config.file}">
 				<remove path="//*[local-name()='extensions']/*[local-name()='extension'][@module='org.jboss.as.modcluster']"/>
-				<insert path="//*[local-name()='extensions']" position="under"><![CDATA[<extension module="org.jboss.as.modcluster" xmlns="urn:jboss:domain:1.0" />]]></insert>
+				<insert path="//*[local-name()='extensions']" position="under"><![CDATA[<extension module="org.jboss.as.modcluster" xmlns="urn:jboss:domain:1.2" />]]></insert>
 				<remove path="//*[namespace-uri()='urn:jboss:domain:modcluster:1.0']"/>
 				<insert path="//*[local-name()='profile']" position="under"><![CDATA[<subsystem xmlns="urn:jboss:domain:modcluster:1.0">${mod-cluster-config.xml}</subsystem>]]></insert>
 			</xmltask>
@@ -397,7 +397,7 @@
 	    	<echo>mod-cluster-config : ${socket-binding.xml}</echo>
 			<xmltask source="${jboss.standalone.config.file}" dest="${jboss.standalone.config.file}">
 				<remove path="//*[local-name()='socket-binding-group'][@name='@{socket-binding-group}']/*[local-name()='socket-binding'][@name='@{socket-binding}']"/>
-				<insert path="//*[namespace-uri()='urn:jboss:domain:1.0' and local-name()='socket-binding-group']" position="under"><![CDATA[${socket-binding.xml}]]></insert>
+				<insert path="//*[namespace-uri()='urn:jboss:domain:1.2' and local-name()='socket-binding-group']" position="under"><![CDATA[${socket-binding.xml}]]></insert>
 			</xmltask>
 	    </sequential>
 	</macrodef>
@@ -408,7 +408,7 @@
 	    	<xml-to-property property="interface.xml"><interface/></xml-to-property>
 	    	<echo>${interface.xml}</echo>
 			<xmltask source="${jboss.host.config.file}" dest="${jboss.host.config.file}">
-				<replace path="//*[local-name()='host']/*[local-name()='domain-controller']"><![CDATA[<domain-controller xmlns="urn:jboss:domain:1.0">${interface.xml}</domain-controller>]]></replace>
+				<replace path="//*[local-name()='host']/*[local-name()='domain-controller']"><![CDATA[<domain-controller xmlns="urn:jboss:domain:1.2">${interface.xml}</domain-controller>]]></replace>
 			</xmltask>
 	    </sequential>
 	</macrodef>
@@ -422,7 +422,7 @@
 			<xmltask source="${jboss.host.config.file}" dest="${jboss.host.config.file}">
 				<remove path="//*[local-name()='interfaces']/*[local-name()='interface'][@name='@{name}']"/>
 				<print path="//*[local-name()='interfaces']/*[local-name()='interface'][@name='@{name}']"/>
-				<insert path="//*[local-name()='interfaces']" position="under"><![CDATA[<interface name="internal" xmlns="urn:jboss:domain:1.0">${interface.xml}</interface>]]></insert>
+				<insert path="//*[local-name()='interfaces']" position="under"><![CDATA[<interface name="internal" xmlns="urn:jboss:domain:1.2">${interface.xml}</interface>]]></insert>
 				<attr path="//:*[@interface='public']" attr="interface" value="@{name}" />
 			</xmltask>
 	    </sequential>

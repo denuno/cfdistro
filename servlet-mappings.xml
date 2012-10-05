@@ -81,6 +81,8 @@
 		<attribute name="physical" />
 		<attribute name="virtual" />
 		<sequential>
+			<antcontrib:trycatch property="errmsg">
+			<try>
 			<antcontrib:for param="file">
 			    <fileset dir="@{physical}" includes="*.cfm *.cfc" excludes="Application.cfc Application.cfm"/>
 			    <sequential>
@@ -93,6 +95,11 @@
 					<servlet-mapping physical="@{physical}" virtual="@{virtual}/${cfmlfile}/*"/>
 			    </sequential>
 			</antcontrib:for>
+			</try>
+				<catch>
+					<echo message="${errmsg}"/>
+				</catch>
+			</antcontrib:trycatch>
 		</sequential>
 	</macrodef>
 	

@@ -1,7 +1,6 @@
 <project name="rpm" default="build.rpm" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:redline="antlib:org.redline_rpm"  basedir=".">
 	
-
-    <property name="redline.ant.tasks.jar" value="${cfdistro.basedir}/lib/redline-1.1.9.jar" />
+    <property name="redline.ant.tasks.jar" value="${cfdistro.basedir}/lib/redline-1.1.10-SNAPSHOT.jar" />
     <property name="redline.ant.tasks.bootstrap.location" value="http://cloud.github.com/downloads/craigwblake/redline/redline-1.1.9.jar" />
     <available property="redline.ant.tasks.jar.exists" file="${redline.ant.tasks.jar}" />
 
@@ -21,7 +20,7 @@ else
 	mkdir -p /home/${rpm.user}
 	useradd -d /home/${rpm.user} ${rpm.user}
 fi
-]]>
+]]>rm -rf dist/localdev/rpms/; ./oc package.rpms;rm -rf /var/www/html/rpms;cp -R dist/localdev/rpms /var/www/html/; createrepo /var/www/html/rpms/;
 		</echo>
 		<property name="rpm.railo.dir" value="/opt/railo/${railo.build.version.major}" />
 		<property name="rpm.packager" value="Railo" />
@@ -63,5 +62,76 @@ fi
 			<depends name="railo" version=""/>
 		</redline:rpm>
 	</target>
+	
+	<target name="cfdistro.rpm" depends="bootstrap_redline">
+		<property name="rpm.user" value="cfml" />
+		<property name="rpm.source.dir" value="${dist.dir}" />
+		<property name="rpm.target.dir" value="/opt/${distro.name}" />
+		<property name="rpm.packager" value="cfdistro" />
+		<property name="rpm.group" value="cfdistro" />
+		<property name="rpm.name" value="${distro.name}" />
+		<property name="rpm.version" value="1.0.0.0" />
+		<property name="rpm.url" value="http://cfmlprojects.org/cfdistro" />
+		<property name="rpm.repo" value="${basedir}/../RPMS/noarch" />
+		<cfdistro-rpm
+			rpm.user="${rpm.user}"
+			rpm.source.dir="${rpm.source.dir}"
+			rpm.target.dir="${rpm.target.dir}"
+			rpm.packager="${rpm.packager}"
+			rpm.group="${rpm.group}"
+			rpm.name="${rpm.name}"
+			rpm.version="${rpm.version}"
+			rpm.url="${rpm.url}"
+			rpm.repo="${rpm.repo}"
+		/>
+	</target>
+	
+	<macrodef name="rpm-repo">
+		<attribute name="dir" default="/opt/repo/RPMS/noarch" />
+		<sequential>
+			<exec executable="createrepo">
+				<arg value="-v"/>
+				<arg value="-d"/>
+				<arg value="@{dir}"/>
+			</exec>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="cfdistro-rpm">
+		<attribute name="rpm.user" default="cfml" />
+		<attribute name="rpm.source.dir" default="${dist.dir}" />
+		<attribute name="rpm.target.dir" default="/opt/${distro.name}" />
+		<attribute name="rpm.packager" default="cfdistro" />
+		<attribute name="rpm.group" default="cfdistro" />
+		<attribute name="rpm.name" default="${distro.name}" />
+		<attribute name="rpm.version" default="1.0.0.0" />
+		<attribute name="rpm.url" default="http://cfmlprojects.org/cfdistro" />
+		<attribute name="rpm.repo" default="${basedir}/../RPMS/noarch" />
+		<sequential>
+			<mkdir dir="@{rpm.repo}" />
+			<!--  make RC rpm -->
+			<echo file="${temp.dir}/preinstall.sh">
+			<![CDATA[if [ -e /home/@{rpm.user} ]; then
+	  echo "@{rpm.user} user exists, thus not trying to add again" >&2
+	else
+		mkdir -p /home/@{rpm.user}
+		useradd -d /home/@{rpm.user} @{rpm.user}
+	fi
+	]]>
+			</echo>
+			<!--  make core rpm -->
+			<redline:rpm destination="@{rpm.repo}"
+				provides="railo" release="1"
+				group="@{rpm.group}" name="@{rpm.name}" version="@{rpm.version}"
+				preinstallscript="${temp.dir}/preinstall.sh" packager="@{rpm.packager}"
+				url="@{rpm.url}">
+				<tarfileset prefix="@{rpm.target.dir}" 
+						dir="@{rpm.source.dir}"
+						filemode="644" username="@{rpm.user}" group="@{rpm.user}" />
+			</redline:rpm>
+
+		</sequential>
+
+	</macrodef>
 		
 </project>

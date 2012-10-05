@@ -383,6 +383,7 @@
 				<param name="connectionretries" path="@connectionretries" default="0" />
 				<param name="connectionlimit" path="@connectionlimit" default="-1" />
 				<param name="connectiontimeout" path="@connectiontimeout" default="120" />
+				<param name="storage" path="@storage" default="false" />
 				<param name="custom" path="@custom" default="" />
 				<param name="jdbc" path="@jdbc" default="mysql" />
 				<param name="jdbcstring" path="@jdbcstring" default="jdbc:mysql://{host}:{port}/{database}" />
@@ -401,6 +402,7 @@
 	  							username="@{username}"
 	  							clob="@{clob}" connectionLimit="@{connectionlimit}" connectionTimeout="@{connectiontimeout}" 
 	  							custom="@{custom}" 
+								storage="@{storage}" 
 	  							dsn="@{jdbcstring}" 
 	  						/>	  					    
 	  					]]>
@@ -416,6 +418,7 @@
 	  							username="@{username}"
 	  							clob="@{clob}" connectionLimit="@{connectionlimit}" connectionTimeout="@{connectiontimeout}" 
 	  							custom="@{custom}" 
+								storage="@{storage}" 
   								dsn="@{jdbcstring}" 
 	  						/>	  					    
 	  					]]>

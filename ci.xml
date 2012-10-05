@@ -2,6 +2,7 @@
 
 	<property name="ci.context" value="/ci" />
 	<property name="ci.port.http" value="8080" />
+	<property name="ci.port.ajp" value="8010" />
 	<property name="ci.host" value="127.0.0.1" />
 	<property name="ci.admin.user" value="ci" />
 	<property name="ci.admin.password" value="vorto" />
@@ -63,6 +64,10 @@
 		</sequential>
 	</target>
 
+	<target name="jenkins.stop">
+	    <kill-java name="jenkins-latest.war" jps="${jps.executable}"/>
+	</target>
+
 	<target name="jenkins.start" depends="jenkins.configure">
  		<!-- <cfdistro target="job.config" properties="dist.dir=${jenkins.dir}/jobs/cfdistrojob/config.xml" /> -->
 		<!-- figure out how to extract config first
@@ -73,7 +78,7 @@
 		-->
 		<java jar="${ext.jenkins.war}" fork="true" spawn="${jenkins.background}" maxmemory="${runwar.maxmemory}">
 			<env key="JENKINS_HOME" value="${jenkins.dir}"/>
-			<arg line="--prefix=${jenkins.prefix} --httpPort=${ci.port.http} --httpListenAddress=${ci.host} --argumentsRealm.passwd.${ci.admin.user}=${ci.admin.password} --argumentsRealm.roles.${ci.admin.user}=admin"/>
+			<arg line="--prefix=${jenkins.prefix} --httpPort=${ci.port.http} --ajp13Port=${ci.port.ajp} --httpListenAddress=${ci.host} --argumentsRealm.passwd.${ci.admin.user}=${ci.admin.password} --argumentsRealm.roles.${ci.admin.user}=admin"/>
 		</java>
 	</target>
 	

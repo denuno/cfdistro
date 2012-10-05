@@ -30,7 +30,9 @@
 		<required-resource
 			src="${ext.obd.war.uri}" 
 			dest="${ext.obd.war}" />
+		<!--
 		<requires-ext-file file="${ext.dir}/jboss/jboss-classloading.xml"/>
+		-->
 	</target>
 
 	

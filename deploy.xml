@@ -373,7 +373,7 @@
 					</antcontrib:if>
 				</then>
 				<else>
-					<echo message="scp: Using keyfile: @{keyfile}" />
+					<echo message="[scp: Using keyfile: @{keyfile}]" />
 					<antcontrib:if>
 						<equals arg1="@{file}" arg2="" />
 						<then>
@@ -400,6 +400,7 @@
 		<attribute name="keyfile" default="" />
 		<attribute name="port" />
 		<sequential>
+			<property name="ssh.verbose" value="false" />
 			<echo message="com: @{command}" />
 			<antcontrib:if>
 				<or>
@@ -408,11 +409,11 @@
 				</or>
 				<then>
 					<echo message="sshexec: using password" />
-					<sshexec verbose="false" command="@{command}" host="@{host}" outputproperty="@{outputproperty}" username="@{username}" password="@{password}" trust="true" port="@{port}" />
+					<sshexec verbose="${ssh.verbose}" command="@{command}" host="@{host}" outputproperty="@{outputproperty}" username="@{username}" password="@{password}" trust="true" port="@{port}" />
 				</then>
 				<else>
 					<echo message="sshexec: using keyfile: @{keyfile}" />
-					<sshexec verbose="false" command="@{command}" host="@{host}" outputproperty="@{outputproperty}" username="@{username}" passphrase="@{passphrase}" keyfile="@{keyfile}" trust="true" port="@{port}" />
+					<sshexec verbose="${ssh.verbose}" command="@{command}" host="@{host}" outputproperty="@{outputproperty}" username="@{username}" passphrase="@{passphrase}" keyfile="@{keyfile}" trust="true" port="@{port}" />
 				</else>
 			</antcontrib:if>
 		</sequential>

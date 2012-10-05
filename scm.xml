@@ -6,29 +6,6 @@
 	<import file="scm-svn.xml"/>
 	<import file="scm-cvs.xml"/>
 	
-	<antcontrib:if>
-		<equals arg1="${scm.branch}" arg2="$${scm.branch}" />
-		<then/>
-		<else>
-			<antcontrib:trycatch>
-				<try>
-					<property name="scm.dir" value="${src.dir}" />
-					<git-fetch-from-remote />
-					<!-- use the system git as jgit has trouble with conflicts --> 
-					<git command="checkout" dir="${scm.dir}" use-jgit="false">
-						<args>
-							<arg value="-f" />
-							<arg value="origin/${scm.branch}" />
-						</args>
-					</git>
-				</try>
-				<catch>
-					<echo message="could not check out origin/${scm.branch} for ${scm.dir}"/>
-				</catch>
-			</antcontrib:trycatch>
-		</else>
-	</antcontrib:if>
-
 	<macrodef name="apply-patch">
 		<attribute name="patchUrl"/>
 		<attribute name="patchlevel" default="0" />
@@ -43,26 +20,33 @@
 
 	<macrodef name="load-src-xml">
 		<sequential>
-			<antcontrib:runtarget target="check.creds" />
-			<echoproperties destfile="${temp.dir}/all.props" />
-			<loadfile property="src.xml" srcFile="${src.xml.file}">
-				<filterchain>
-					<filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
-						<param type="token" name="src.dir" value="${src.dir}"/>
-						<param type="token" name="pub.dir" value="${pub.dir}"/>
-						<param type="token" name="lib.dir" value="${lib.dir}"/>
-						<param type="token" name="distro.name" value="${distro.name}"/>
-						<param type="token" name="war.name" value="${war.name}"/>
-						<param type="token" name="war.target.dir" value="${war.target.dir}"/>
-						<param type="propertiesfile" value="${creds.token.file}" />
-						<param type="propertiesfile" value="${temp.dir}/all.props" />
-					</filterreader>
-				</filterchain>
-			</loadfile>
-			<delete file="${temp.dir}/all.props"/>
-			<xmltask destbuffer="src.buff" outputter="simple">
-				<insert path="/" xml="${src.xml}" position="under" />
-			</xmltask>
+			<antcontrib:if>
+				<available file="${src.xml.file}" type="file" property="exists.src.xml"/>
+				<then>
+					<tempfile property="temp.all.props.file" prefix="props"/>
+					<echoproperties destfile="${temp.all.props.file}"/>
+					<loadfile property="src.xml" srcFile="${src.xml.file}">
+						<filterchain>
+							<filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
+								<param type="token" name="src.dir" value="${src.dir}"/>
+								<param type="token" name="ext.mappings.dir" value="${ext.mappings.dir}"/>
+								<param type="token" name="pub.dir" value="${pub.dir}"/>
+								<param type="token" name="lib.dir" value="${lib.dir}"/>
+								<param type="token" name="distro.name" value="${distro.name}"/>
+								<param type="token" name="war.name" value="${war.name}"/>
+								<param type="token" name="war.target.dir" value="${war.target.dir}"/>
+								<param type="propertiesfile" value="${temp.all.props.file}" />
+							</filterreader>
+						</filterchain>
+					</loadfile>
+					<delete file="${temp.all.props.file}"/>
+					<xmltask destbuffer="src.buff" outputter="simple">
+						<insert path="/" xml="${src.xml}" position="under" />
+					</xmltask>
+					<src-init />
+				</then>
+				<else />
+			</antcontrib:if>
 		</sequential>
 	</macrodef>
 
@@ -72,6 +56,8 @@
 		<attribute name="uri" />
 		<attribute name="path" default="" />
 		<attribute name="tag" default="HEAD" />
+		<attribute name="user" default="" />
+		<attribute name="password" default="" />
 		<sequential>
 			<antcontrib:switch value="@{type}">
 				<case value="git">
@@ -79,6 +65,27 @@
 				</case>
 				<case value="svn">
 					<svn-export uri="@{uri}" dest="@{dest}" />
+				</case>
+			</antcontrib:switch>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="scm-checkout">
+		<attribute name="dest" />
+		<attribute name="type" />
+		<attribute name="uri" />
+		<attribute name="path" default="" />
+		<attribute name="tag" default="HEAD" />
+		<attribute name="branch" default="" />
+		<attribute name="user" default="" />
+		<attribute name="password" default="" />
+		<sequential>
+			<antcontrib:switch value="@{type}">
+				<case value="git">
+					<git-checkout uri="@{uri}" repository="@{dest}" branch="@{branch}"/>
+				</case>
+				<case value="svn">
+					<svn-checkout uri="@{uri}" dest="@{dest}" user="@{user}" password="@{password}"/>
 				</case>
 			</antcontrib:switch>
 		</sequential>
@@ -93,7 +100,6 @@
 			<then>
 				<echo message="src file exists : ${src.xml.file} " />
 				<load-src-xml />
-				<antcontrib:runtarget target="exists.src.dir"/>
 			</then>
 			<else>
 				<echo message="No src file to import : ${src.xml.file} does not exist." />
@@ -104,28 +110,18 @@
 		<property name="src.dir" location="${src.dir.absolute}" />
 	</target>
 
-	<target name="exists.src.dir">
-		<available file="${src.dir}" type="dir" property="exists.src.dir" />
-		<antcontrib:if>
-			<equals arg1="${exists.src.dir}" arg2="true" />
-			<then>
-				<echo message="Src dir : ${src.dir} " />
-			</then>
-			<else>
-				<echo message="Src dir : ${src.dir} ain't there, downloading" />
-				<mkdir dir="${src.dir}"/>
-				<antcontrib:runtarget target="project.update" />
-				<antcontrib:runtarget target="src.import" />
-				<antcontrib:var name="exists.src.dir" value="true" />
-			</else>
-		</antcontrib:if>
+	<macrodef name="src-init">
+		<sequential>
 		<xmltask sourcebuffer="src.buff">
-			<call path="src/sources/*">
+			<call path="src/project/*">
 				<param name="dest" path="@dest" default="NONE" />
 				<param name="type" path="@type" default="NONE" />
 				<param name="uri" path="@uri" default="NONE" />
 				<param name="path" path="@path" default="" />
+				<param name="branch" path="@branch" default="" />
 				<param name="tag" path="@tag" default="HEAD" />
+				<param name="user" path="@user" default="" />
+				<param name="password" path="@password" default="" />
 				<actions>
 					<antcontrib:if>
 						<available file="@{dest}" />
@@ -134,13 +130,35 @@
 						</then>
 						<else>
 							<echo message="Src dir : @{dest} ain't there, downloading" />
-							<scm-export dest="@{dest}" type="@{type}" uri="@{uri}" path="@{path}" tag="@{tag}" />
+							<scm-checkout dest="@{dest}" type="@{type}" uri="@{uri}" branch="@{branch}" path="@{path}" tag="@{tag}" user="@{user}" password="@{password}" />
+						</else>
+					</antcontrib:if>
+				</actions>
+			</call>
+			<call path="src/sources/*">
+				<param name="dest" path="@dest" default="NONE" />
+				<param name="type" path="@type" default="NONE" />
+				<param name="uri" path="@uri" default="NONE" />
+				<param name="path" path="@path" default="" />
+				<param name="tag" path="@tag" default="HEAD" />
+				<param name="user" path="@user" default="" />
+				<param name="password" path="@password" default="" />
+				<actions>
+					<antcontrib:if>
+						<available file="@{dest}" />
+						<then>
+							<echo message="Src dir : @{dest} exists " />
+						</then>
+						<else>
+							<echo message="Src dir : @{dest} ain't there, downloading" />
+							<scm-export dest="@{dest}" type="@{type}" uri="@{uri}" path="@{path}" tag="@{tag}" user="@{user}" password="@{password}" />
 						</else>
 					</antcontrib:if>
 				</actions>
 			</call>
 		</xmltask>
-	</target>
+		</sequential>
+	</macrodef>
 
 	<target name="src.import" depends="exists.src.xml" if="exists.src.xml">
 		<antcontrib:runtarget target="src.import.svn" />
@@ -203,4 +221,27 @@
 		</xmltask>
 	</target>
 
+	<antcontrib:if>
+		<equals arg1="${scm.branch}" arg2="$${scm.branch}" />
+		<then/>
+		<else>
+			<antcontrib:trycatch property="_erredesse">
+				<try>
+					<property name="scm.dir" value="${src.dir}" />
+					<git-fetch-from-remote />
+					<!-- use the system git as jgit has trouble with conflicts --> 
+					<git command="checkout" dir="${scm.dir}" use-jgit="false">
+						<args>
+							<arg value="-f" />
+							<arg value="origin/${scm.branch}" />
+						</args>
+					</git>
+				</try>
+				<catch>
+					<echo message="could not check out origin/${scm.branch} for ${scm.dir} (${_erredesse})"/>
+				</catch>
+			</antcontrib:trycatch>
+		</else>
+	</antcontrib:if>
+	
 </project>

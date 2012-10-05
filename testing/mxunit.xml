@@ -16,20 +16,7 @@
 		location="${ext.mxunit.dir}/mxunit-${mxunit.version}.zip" />
 
 	<target name="mxunit.install">
-		<mkdir dir="${ext.mxunit.dir}" />
-		<sequential>
-			<antcontrib:if>
-				<available file="${ext.mxunit.zip}" />
-				<then />
-				<else>
-					<get src="${ext.mxunit.zip.uri}" dest="${ext.mxunit.zip}"
-						verbose="true" ignoreerrors="false" />
-				</else>
-			</antcontrib:if>
-			<unzip src="${ext.mxunit.zip}" dest="${mxunit.dir}">
-				<regexpmapper from="mxunit/(.*)$" to="\1" />
-			</unzip>
-		</sequential>
+		<dependency groupId="org.mxunit" artifactId="core" version="2.1.1" mapping="/mxunit" />
 	</target>
 
 	<target name="mxunit.uninstall">

@@ -2,6 +2,11 @@
 
 	<!--
 	http://nfolamp.wordpress.com/2010/06/10/running-virtualbox-guest-vms-in-headless-mode/
+
+
+prekdev:prek ecscadmin$ VBoxManage setextradata loadbalancer autostop savestate
+prekdev:prek ecscadmin$ VBoxManage setextradata loadbalancer autostart headless
+
 	-->
 	
 	<property name="vbox.cmd" value="/usr/bin/VBoxManage" />

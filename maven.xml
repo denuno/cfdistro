@@ -8,7 +8,7 @@
     <property name="mvn.repo.id" value="mvn.repo.${mvn.repo.dest}" />
     <property name="maven.repo.local" location="${pub.dir}/maven2" />
    	-->
-    <property name="maven.ant.tasks.jar" value="${cfdistro.basedir}/lib/maven-ant-tasks-2.1.4-SNAPSHOT.jar" />
+    <property name="maven.ant.tasks.jar" value="${cfdistro.basedir}/lib/maven-ant-tasks-2.1.3.jar" />
 	<path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
     <available property="maven.ant.tasks.jar.exists" file="${maven.ant.tasks.jar}" />
 
@@ -175,6 +175,35 @@
         </artifact:dependencies>
     </target>
 
+
+    <target name="mvn.deploy.jre" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+		<!-- only used to fill repo initially - put exploded JREs in arch subdirs -->
+		<property name="mvn.jre.tmp" location="${temp.dir}/jre" />
+		<property name="mvn.jre.version" value="1.7.0_04" />
+		<property name="mvn.jre.version" value="1.6.0_32" />
+		<property name="mvn.jre.dir" value="${basedir}/../jre" />
+		
+    	<mkdir dir="${mvn.jre.tmp}" />
+    	<zipdir destfile="${mvn.jre.tmp}/jre-linux32.zip" sourcedir="${mvn.jre.dir}/linux32/jre${mvn.jre.version}" />
+    	<zipdir destfile="${mvn.jre.tmp}/jre-linux64.zip" sourcedir="${mvn.jre.dir}/linux64/jre${mvn.jre.version}" />
+		<zip destfile="${mvn.jre.tmp}/jre-win32.zip" update="false">
+			<zipfileset dir="${mvn.jre.dir}/win32/jre${mvn.jre.version}" prefix="jre/"/>
+		</zip>
+		<zip destfile="${mvn.jre.tmp}/jre-win64.zip" update="false">
+			<zipfileset dir="${mvn.jre.dir}/win64/jre${mvn.jre.version}" prefix="jre/"/>
+		</zip>
+		<pom-and-deploy pomid="jre.pom" packaging="pom" buildtype="${mvn.type}"
+		 groupId="oracle" artifactId="jre" version="${mvn.jre.version}" name="oracle.jre">
+			<attachments>
+        		<attach file="${mvn.jre.tmp}/jre-win32.zip" type="zip" classifier="win32"/>
+        		<attach file="${mvn.jre.tmp}/jre-win64.zip" type="zip" classifier="win64"/>
+        		<attach file="${mvn.jre.tmp}/jre-linux32.zip" type="zip" classifier="linux32"/>
+        		<attach file="${mvn.jre.tmp}/jre-linux64.zip" type="zip" classifier="linux64"/>
+			</attachments>
+		</pom-and-deploy>
+		<delete dir="${mvn.jre.tmp}" />
+	</target>	
+	
 	<macrodef name="mvn-repo">
 		<attribute name="id" />
 		<attribute name="url"/>
@@ -221,6 +250,41 @@
 		</sequential>
 	</macrodef>
 	
+	<macrodef name="mvn-get-deps" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+		<attribute name="todir" />
+		<attribute name="scope" default="runtime" />
+		<attribute name="pomfile" default="" />
+		<element name="deps" implicit="true" optional="true"/>
+		<sequential>
+	        <path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
+	        <typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="urn:maven-artifact-ant" classpathref="maven.ant.tasks.classpath" />
+	        <antcontrib:var unset="true" name="_dependency.fileset" />
+			<antcontrib:if>
+				<equals arg1="@{pomfile}" arg2="" />
+				<then>
+					<artifact:dependencies filesetId="_dependency.fileset" useScope="@{scope}">
+			            <deps />
+			            <localRepository path="${cfdistro.repo.local.path}" />
+			            <remoteRepository refid="cfdistro.repo.local" />
+			            <remoteRepository refid="cfdistro.repo.remote" />
+			        </artifact:dependencies>
+				</then>
+				<else>
+					<artifact:dependencies filesetId="_dependency.fileset" useScope="@{scope}">
+						<pom file="@{pomfile}"/>
+			            <localRepository path="${cfdistro.repo.local.path}" />
+			            <remoteRepository refid="cfdistro.repo.local" />
+			            <remoteRepository refid="cfdistro.repo.remote" />
+			        </artifact:dependencies>
+				</else>
+			</antcontrib:if>
+			<copy todir="@{todir}">
+			  <fileset refid="_dependency.fileset" />
+			  <mapper type="flatten" />
+			</copy>
+		</sequential>
+	</macrodef>
+	
 	<macrodef name="dependency">
 		<attribute name="groupId" />
 		<attribute name="artifactId"/>
@@ -229,6 +293,7 @@
 		<attribute name="mapping" default=""/>
 		<attribute name="dest" default=""/>
 		<sequential>
+			<property name="ext.mappings.dir" value="${ext.dir}/mappings" />
 			<antcontrib:propertyregex 
 			property="dependency.location" 
 			input="@{groupId}/@{artifactId}" 
@@ -242,14 +307,15 @@
 				<equals arg1="${mapping}" arg2="" />
 				<then/>
 				<else>
-					<antcontrib:var name="ext.mapping.dir" value="${ext.dir}/mappings/@{groupId}/@{artifactId}/@{version}" />
+					<antcontrib:var name="ext.mapping.dir" value="${ext.mappings.dir}/@{groupId}/@{artifactId}/@{version}" />
 					<antcontrib:if>
 						<available file="${ext.mapping.dir}"/><then/>
 						<else>
 							<unzip src="${_dep.file}" dest="${ext.mapping.dir}"/>
 						</else>
 					</antcontrib:if>
-					<mapping physical="${ext.mapping.dir}/@{mapping}" virtual="@{mapping}"/>
+					<!-- physicalxml is what goes in the mappings.xml file. a token vs. the fixed path. -->
+					<mapping physical="${ext.mapping.dir}@{mapping}" physicalxml="@ext.mappings.dir@/@{groupId}/@{artifactId}/@{version}@{mapping}" virtual="@{mapping}"/>
 				</else>
 			</antcontrib:if>
 			<antcontrib:if>
@@ -325,7 +391,8 @@
 				<equals arg1="@{artifact}" arg2="" />
 				<then>
 					<artifact:deploy>
-					  <remoteRepository refid="${mvn.repo.id}" />
+					  <remoteRepository refid="@{repoId}" />
+					  <!-- <localRepository path="${cfdistro.repo.local.path}" /> -->
 			          <attachments />
 					  <pom refid="@{pomid}"/>
 					</artifact:deploy>
@@ -343,6 +410,7 @@
 				 -->
 					<artifact:deploy file="@{artifact}">
 					  <remoteRepository refid="@{repoId}" />
+					  <!-- <localRepository path="${cfdistro.repo.local.path}" /> -->
 			          <attachments />
 					  <pom refid="@{pomid}"/>
 					</artifact:deploy>
@@ -360,11 +428,19 @@
 		</sequential>
 	</macrodef>
 
-	<property name="loganberry.repo.user" value="admin" />
-   	<property name="loganberry.repo.password" value="admin123" />
-    <mvn-repo id="loganberry.repo" url="http://loganberry.viviotech.net/nexus/content/repositories/releases">
+	<macrodef name="pom-info">
+		<attribute name="pomfile" />
+		<attribute name="pomid" />
+		<sequential>
+			<artifact:pom id="@{pomid}" file="@{pomfile}" />
+		</sequential>
+	</macrodef>
+
+	<property name="cfmlprojects.repo.user" value="admin" />
+   	<property name="cfmlprojects.repo.password" value="admin123" />
+    <mvn-repo id="cfmlprojects.repo" url="http://cfmlprojects.org/artifacts">
     	<authentication>
-    		<authentication username="${loganberry.repo.user}" password="${loganberry.repo.password}"/>
+    		<authentication username="${cfmlprojects.repo.user}" password="${cfmlprojects.repo.password}"/>
 		</authentication>
     </mvn-repo>
 	

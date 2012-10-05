@@ -179,7 +179,8 @@
 		<attribute name="maxmemory" default="128" />
 		<attribute name="fork" default="true" />
 		<sequential>
-
+			<mkdir dir="${temp.dir}" />
+			<delete file="${temp.dir}/ecjresult.txt" />
 			<antcontrib:trycatch property="foo" reference="bar">
 				<try>
 					<!-- http://help.eclipse.org/galileo/index.jsp?topic=/org.eclipse.jdt.doc.isv/guide/jdt_api_compile.htm -->
@@ -188,8 +189,10 @@
 					<!-- we use the temp file because the cp gets too long for windows sometimes -->
 					<echo file="ecj-classpath.txt">-classpath
 						"${toString:javac-ecj.compile.classpath}"</echo>
- 					<record name="${temp.dir}/ecjresult.txt" action="start"/>
-					<java jar="${cfdistro.basedir}/lib/ecj-3.6.jar" fork="true"
+					<antcontrib:trycatch>
+					<try><record name="${temp.dir}/ecjresult.txt" action="start"/></try><catch></catch>
+					</antcontrib:trycatch>
+					<java jar="${cfdistro.basedir}/lib/ecj-3.8.jar" fork="true"
 						classpathref="build.lib.path" maxmemory="@{maxmemory}" failonerror="true">
 						<arg value="-@{compliance}" />
 						<arg value="-warn:none" />
@@ -204,12 +207,13 @@
 						<arg line="@ecj-classpath.txt" />
 						<arg value="@{srcdir}" />
 					</java>
- 					<record name="${temp.dir}/ecjresult.txt" action="stop"/>
+					<antcontrib:trycatch>
+					<try><record name="${temp.dir}/ecjresult.txt" action="stop"/></try><catch></catch>
+					</antcontrib:trycatch>
 					<delete file="ecj-classpath.txt" />
 				</try>
 				<catch>
- 					<record name="${temp.dir}/ecjresult.txt" action="start"/>
-					<loadfile srcFile="${temp.dir}/ecjresult.txt" property="ecj.result" />
+					<loadfile srcFile="${temp.dir}/ecjresult.txt" property="ecj.result" failonerror="false" />
 					<echo message="Something bad happened while trying to Compile.  Gonna abort now, yo. Sorries."/>
 					<property name="baz" refid="bar" />
 					<echo>From reference: ${baz}</echo>
@@ -299,6 +303,19 @@
 						</try>
 						<catch>
 							<echo message="no built-in custom properties: ${cfdistro.basedir}/buildtypes/build.@{buildtype}.properties" />
+							<echo message="storing cmdline props for @{buildtype} : ${basedir}/buildtypes/build.@{buildtype}.properties" />
+							<storeUserProperties silent="false"/>
+							<antcontrib:var name="usersuppliedprops.___echoprefix" unset="true" />
+							<antcontrib:var name="usersuppliedprops.list" unset="true" />
+							<antcontrib:var name="usersuppliedprops.basedir" unset="true" />
+							<antcontrib:var name="usersuppliedprops.dist.root.dir" unset="true" />
+							<propertyset id="cmdlineprops">
+							    <propertyref prefix="usersuppliedprops."/>
+							    <mapper type="glob" from="usersuppliedprops.*" to="*"/>
+							</propertyset>
+							<echoproperties destfile="${basedir}/build.${build.type}.properties" >
+								 <propertyset refid="cmdlineprops" />
+							</echoproperties>
 						</catch>
 					</antcontrib:trycatch>
 				</catch>
