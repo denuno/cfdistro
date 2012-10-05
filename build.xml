@@ -1,5 +1,6 @@
 <project name="cfdistro" default="help" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:classloader="antlib:net.jtools.classloadertask">
 
+`
 	<dirname property="cfdistro.basedir" file="${ant.file.cfdistro}" />
 	<property file="${user.home}/.cfdistrorc" />
 	<property name="dist.root.dir" location="../" />
