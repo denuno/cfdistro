@@ -5,7 +5,6 @@
 	<property name="dist.root.dir" location="../" />
 	<property file="${cfdistro.basedir}/i18n/en_us.properties" prefix="i18n" />
 	<property file="${basedir}/build.${build.type}.properties" />
-
 	<property name="build.type" value="localdev" />
 <!-- 
  	<record name="/tmp/log.txt" action="start"/>
