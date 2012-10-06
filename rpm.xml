@@ -121,6 +121,7 @@ fi
 			rpm.repo="${rpm.repo}"
 		/>
 		<echo file="cfdistro.version" message="cfdistro.version=${cfdistro.version}" />
+		<rpm-repo dir="${rpm.repo}" />
 	</target>
 	
 	<macrodef name="rpm-repo">
