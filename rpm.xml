@@ -97,7 +97,6 @@ fi
 		<property name="rpm.version" value="1.0.0.0" />
 		<property name="rpm.url" value="http://cfmlprojects.org/cfdistro" />
 		<property name="rpm.repo" value="${cfdistro.basedir}/artifacts/RPMS/noarch" />
-
 		<cfdistro-rpm
 			rpm.user="${rpm.user}"
 			rpm.source.dir="${rpm.source.dir}"
