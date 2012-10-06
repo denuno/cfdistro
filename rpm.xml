@@ -20,7 +20,7 @@ else
 	mkdir -p /home/${rpm.user}
 	useradd -d /home/${rpm.user} ${rpm.user}
 fi
-]]>rm -rf dist/localdev/rpms/; ./oc package.rpms;rm -rf /var/www/html/rpms;cp -R dist/localdev/rpms /var/www/html/; createrepo /var/www/html/rpms/;
+]]>
 		</echo>
 		<property name="rpm.railo.dir" value="/opt/railo/${railo.build.version.major}" />
 		<property name="rpm.packager" value="Railo" />
@@ -86,6 +86,31 @@ fi
 		/>
 	</target>
 	
+	<target name="build.cfdistro.rpm" depends="bootstrap_redline">
+		<property name="rpm.user" value="root" />
+		<property name="rpm.source.dir" value="${cfdistro.basedir}" />
+		<property name="rpm.source.excludes" value="ext/**,artifacts/**" />
+		<property name="rpm.target.dir" value="/opt/${distro.name}" />
+		<property name="rpm.packager" value="cfdistro" />
+		<property name="rpm.group" value="cfdistro" />
+		<property name="rpm.name" value="cfdistro" />
+		<property name="rpm.version" value="1.0.0.0" />
+		<property name="rpm.url" value="http://cfmlprojects.org/cfdistro" />
+		<property name="rpm.repo" value="${cfdistro.basedir}/artifacts/RPMS/noarch" />
+		<cfdistro-rpm
+			rpm.user="${rpm.user}"
+			rpm.source.dir="${rpm.source.dir}"
+			rpm.source.excludes="${rpm.source.excludes}"
+			rpm.target.dir="${rpm.target.dir}"
+			rpm.packager="${rpm.packager}"
+			rpm.group="${rpm.group}"
+			rpm.name="${rpm.name}"
+			rpm.version="${rpm.version}"
+			rpm.url="${rpm.url}"
+			rpm.repo="${rpm.repo}"
+		/>
+	</target>
+	
 	<macrodef name="rpm-repo">
 		<attribute name="dir" default="/opt/repo/RPMS/noarch" />
 		<sequential>
@@ -100,6 +125,7 @@ fi
 	<macrodef name="cfdistro-rpm">
 		<attribute name="rpm.user" default="cfml" />
 		<attribute name="rpm.source.dir" default="${dist.dir}" />
+		<attribute name="rpm.source.excludes" default="" />
 		<attribute name="rpm.target.dir" default="/opt/${distro.name}" />
 		<attribute name="rpm.packager" default="cfdistro" />
 		<attribute name="rpm.group" default="cfdistro" />
@@ -126,7 +152,7 @@ fi
 				preinstallscript="${temp.dir}/preinstall.sh" packager="@{rpm.packager}"
 				url="@{rpm.url}">
 				<tarfileset prefix="@{rpm.target.dir}" 
-						dir="@{rpm.source.dir}"
+						dir="@{rpm.source.dir}" excludes="@{rpm.source.excludes}"
 						filemode="644" username="@{rpm.user}" group="@{rpm.user}" />
 			</redline:rpm>
 

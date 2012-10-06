@@ -24,6 +24,8 @@
 	<macrodef name="boxgrinder-build">
 		<attribute name="vm.name" description="vm name" />
 		<attribute name="vm.image.dir" default="${dist.dir}/vmimage" />
+		<attribute name="vm.type" default="vmware" />
+		<!-- vmware | virtualbox  -->
 		<sequential>
 			<mkdir dir="@{vm.image.dir}"/>
 			<copy file="${basedir}/vm/@{vm.name}/@{vm.name}.appl" todir="${user.home}/appliances" overwrite="true">
@@ -38,8 +40,9 @@
 					<arg value="--delivery-config" />
 					<arg value="path:'@{vm.image.dir}',package:false" />
 					<arg value="-p" />
-					<arg value="virtualbox" />
-					<arg value="-f" />
+					<arg value="@{vm.type}" />
+					<arg value="--platform-config" />
+					<arg value="type:personal,thin_disk:true" />
 				</args>
 			</boxgrinder>
 		</sequential>
