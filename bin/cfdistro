@@ -11,9 +11,10 @@ if [ "$2" == "-propertyfile" ] ; then
 	shift
 	shift
 fi
-if [ ! -d  "./build"] ; then
+if [ ! -d  "./build" ] ; then
 	buildfile="$reldir/../build.xml"
 fi
+
 shift
 for var in "$@"
 do
