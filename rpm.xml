@@ -99,7 +99,7 @@ fi
 		<property name="rpm.repo" value="${cfdistro.basedir}/artifacts/RPMS/noarch" />
 
 		<property name="cfdistro.version.bump" value="revision" description="one of [major|minor|build|revision] or empty to not bump number."/>
-		<antcontrib:var propertyfile="cfdistro.properties" />
+		<antcontrib:var file="cfdistro.properties" />
 		<version-splitter property="cfdistro.build.version" version="${cfdistro.version}" bump="${cfdistro.version.bump}"/>
 		<antcontrib:var name="cfdistro.version" value="${extension.build.version.long}" />
 		<echoproperties>
