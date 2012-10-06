@@ -94,7 +94,6 @@ fi
 		<property name="rpm.packager" value="cfdistro" />
 		<property name="rpm.group" value="cfdistro" />
 		<property name="rpm.name" value="cfdistro" />
-		<property name="rpm.version" value="1.0.0.0" />
 		<property name="rpm.url" value="http://cfmlprojects.org/cfdistro" />
 		<property name="rpm.repo" value="${cfdistro.basedir}/artifacts/RPMS/noarch" />
 
@@ -108,6 +107,7 @@ fi
 				<propertyref prefix="cfdistro." />
 			</propertyset>
 		</echoproperties>
+		<property name="rpm.version" value="${cfdistro.version}" />
 
 		<cfdistro-rpm
 			rpm.user="${rpm.user}"
