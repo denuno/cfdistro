@@ -90,7 +90,7 @@ fi
 		<property name="rpm.user" value="root" />
 		<property name="rpm.source.dir" value="${cfdistro.basedir}" />
 		<property name="rpm.source.excludes" value="ext/**,artifacts/**" />
-		<property name="rpm.target.dir" value="/opt/${distro.name}" />
+		<property name="rpm.target.dir" value="/opt/cfdistro" />
 		<property name="rpm.packager" value="cfdistro" />
 		<property name="rpm.group" value="cfdistro" />
 		<property name="rpm.name" value="cfdistro" />
