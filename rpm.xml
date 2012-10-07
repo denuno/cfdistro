@@ -109,8 +109,8 @@ fi
 		</echoproperties>
 		<property name="rpm.version" value="${cfdistro.version}" />
 		<redline:rpm destination="@{rpm.repo}" release="1"
-			group="@{rpm.group}" name="@{rpm.name}" version="@{rpm.version}"
-			preinstallscript="${temp.dir}/preinstall.sh" packager="@{rpm.packager}"
+			group="@{rpm.group}" name="@{rpm.name}" version="${rpm.version}"
+			packager="@{rpm.packager}"
 			url="@{rpm.url}">
 			<tarfileset prefix="@{rpm.target.dir}" 
 					dir="@{rpm.source.dir}" excludes="@{rpm.source.excludes}"
