@@ -87,7 +87,7 @@ fi
 	</target>
 	
 	<target name="build.cfdistro.rpm" depends="bootstrap_redline">
-		<property name="rpm.user" value="cfml" />
+		<property name="rpm.user" value="root" />
 		<property name="rpm.source.dir" value="${cfdistro.basedir}" />
 		<property name="rpm.source.excludes" value="ext/**,artifacts/**" />
 		<property name="rpm.target.dir" value="/opt/${distro.name}" />
@@ -96,6 +96,7 @@ fi
 		<property name="rpm.name" value="cfdistro" />
 		<property name="rpm.url" value="http://cfmlprojects.org/cfdistro" />
 		<property name="rpm.repo" value="${cfdistro.basedir}/artifacts/RPMS/noarch" />
+		<mkdir dir="${rpm.repo}"/>
 
 		<property name="cfdistro.version.bump" value="revision" description="one of [major|minor|build|revision] or empty to not bump number."/>
 		<antcontrib:var file="cfdistro.properties" />
