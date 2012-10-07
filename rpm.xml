@@ -115,7 +115,6 @@ fi
 			<tarfileset prefix="${rpm.target.dir}" 
 					dir="${rpm.source.dir}" excludes="${rpm.source.excludes}"
 					filemode="644" username="${rpm.user}" group="${rpm.user}" />
-			<link path="/bin/cfdistro" target="${rpm.target.dir}/bin/cfdistro"/>
 		</redline:rpm>
 		<echo file="cfdistro.properties" message="cfdistro.version=${cfdistro.version}" />
 		<rpm-repo dir="${rpm.repo}" />
