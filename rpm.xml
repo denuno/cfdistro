@@ -120,7 +120,7 @@ fi
 			rpm.url="${rpm.url}"
 			rpm.repo="${rpm.repo}"
 		/>
-		<echo file="cfdistro.version" message="cfdistro.version=${cfdistro.version}" />
+		<echo file="cfdistro.properties" message="cfdistro.version=${cfdistro.version}" />
 		<rpm-repo dir="${rpm.repo}" />
 	</target>
 	
