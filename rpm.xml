@@ -115,7 +115,7 @@ fi
 			packager="${rpm.packager}"
 			url="${rpm.url}">
 			<tarfileset prefix="${rpm.target.dir}" 
-					dir="${rpm.source.dir}" excludes="${rpm.source.excludes}"
+					dir="${rpm.source.dir}" excludes="${rpm.source.excludes},bin/**"
 					filemode="644" username="${rpm.user}" group="${rpm.user}" />
 			<tarfileset prefix="${rpm.target.dir}/bin/" 
 					file="${rpm.source.dir}/bin/*"
@@ -123,7 +123,6 @@ fi
 			<tarfileset prefix="/bin/" 
 					file="${temp.dir}/cfdistro"
 					filemode="755" username="${rpm.user}" group="${rpm.user}" />
-			<link path="/bin/cfdistro" target="${rpm.target.dir}/bin/cfdistro"/>
 		</redline:rpm>
 		<echo file="cfdistro.properties" message="cfdistro.version=${cfdistro.version}" />
 		<rpm-repo dir="${rpm.repo}" />

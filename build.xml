@@ -162,7 +162,7 @@
 	<property name="cfadmin.password" value="testtest" />
 
 	<property name="railo.archive.dir" location="${dist.dir}/ra" />
-	<property name="ext.dir" location="${cfdistro.basedir}/ext" />
+	<property name="ext.dir" location="${user.home}/cfdistro/ext" />
 	<property name="ext.mappings.dir" location="${ext.dir}/mappings" />
 	<property name="ext.acf.dir" location="${ext.dir}/acf" />
 	<property name="ext.acf.war" location="${ext.acf.dir}/9/cfusion.war" />
@@ -234,7 +234,7 @@ a tiny 2m jar but getPageContext() throws errors!!
  -->
  	<mkdir dir="${temp.dir}" />
 
-    <property name="cfdistro.repo.local.path" location="${cfdistro.basedir}/artifacts" />
+    <property name="cfdistro.repo.local.path" location="${user.home}/cfdistro/artifacts" />
     <mvn-repo id="cfdistro.repo.remote" url="http://cfmlprojects.org/artifacts/" />
 	<mvn-repo id="cfdistro.repo.local" url="file://${cfdistro.repo.local.path}/" />
 
