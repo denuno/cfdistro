@@ -87,7 +87,7 @@ fi
 	</target>
 	
 	<target name="build.cfdistro.rpm" depends="bootstrap_redline">
-		<property name="rpm.user" value="root" />
+		<property name="rpm.user" value="none" />
 		<property name="rpm.source.dir" value="${cfdistro.basedir}" />
 		<property name="rpm.source.excludes" value="ext/**,artifacts/**" />
 		<property name="rpm.target.dir" value="/opt/cfdistro" />
@@ -109,6 +109,7 @@ fi
 			</propertyset>
 		</echoproperties>
 		<property name="rpm.version" value="${cfdistro.version}" />
+		<echo file="${temp.dir}/cfdistro.bin.tmp">${rpm.target.dir}/bin/cfdistro</echo>
 		<redline:rpm destination="${rpm.repo}" release="1"
 			group="${rpm.group}" name="${rpm.name}" version="${rpm.version}"
 			packager="${rpm.packager}"
@@ -116,6 +117,12 @@ fi
 			<tarfileset prefix="${rpm.target.dir}" 
 					dir="${rpm.source.dir}" excludes="${rpm.source.excludes}"
 					filemode="644" username="${rpm.user}" group="${rpm.user}" />
+			<tarfileset prefix="${rpm.target.dir}/bin/cfdistro" 
+					file="${rpm.source.dir}/bin/cfdistro"
+					filemode="755" username="${rpm.user}" group="${rpm.user}" />
+			<tarfileset prefix="/bin/cfdistro" 
+					file="${temp.dir}/cfdistro.bin.tmp"
+					filemode="755" username="${rpm.user}" group="${rpm.user}" />
 			<link path="/bin/cfdistro" target="${rpm.target.dir}/bin/cfdistro"/>
 		</redline:rpm>
 		<echo file="cfdistro.properties" message="cfdistro.version=${cfdistro.version}" />
