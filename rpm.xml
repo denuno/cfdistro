@@ -87,7 +87,7 @@ fi
 	</target>
 	
 	<target name="build.cfdistro.rpm" depends="bootstrap_redline">
-		<property name="rpm.user" value="none" />
+		<property name="rpm.user" value="root" />
 		<property name="rpm.source.dir" value="${cfdistro.basedir}" />
 		<property name="rpm.source.excludes" value="ext/**,artifacts/**" />
 		<property name="rpm.target.dir" value="/opt/cfdistro" />
@@ -117,8 +117,8 @@ fi
 			<tarfileset prefix="${rpm.target.dir}" 
 					dir="${rpm.source.dir}" excludes="${rpm.source.excludes}"
 					filemode="644" username="${rpm.user}" group="${rpm.user}" />
-			<tarfileset prefix="${rpm.target.dir}/bin/cfdistro" 
-					file="${rpm.source.dir}/bin/cfdistro"
+			<tarfileset prefix="${rpm.target.dir}/bin/" 
+					file="${rpm.source.dir}/bin/*"
 					filemode="755" username="${rpm.user}" group="${rpm.user}" />
 			<tarfileset prefix="/bin/cfdistro" 
 					file="${temp.dir}/cfdistro.bin.tmp"
