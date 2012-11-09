@@ -9,8 +9,8 @@
 	<property name="server.maxmemory" value="256M"/>
 	<property name="server.sharedlibs" value="false"/>
 
-	<property name="jetty.version" value="7" />
-	<property name="jetty.version.minor" value="5.4.v20111024" />
+	<property name="jetty.version" value="8" />
+	<property name="jetty.version.minor" value="1.7.v20120910" />
 	<property name="jetty.host" value="${server.host}"/>
 	<property name="jetty.host.aliases" value=""/>
 	<property name="ext.jetty.dir" location="${ext.dir}/jetty/${jetty.version}" />
@@ -59,7 +59,7 @@
 		<mkdir dir="${ext.jetty.dir}"/>
 		<sequential>
 		<antcontrib:if>
-			<available file="${jetty.dir}" />
+			<and><available file="${jetty.dir}" /><not><equals arg1="true" arg2="${server.install.force}" /></not></and>
 			<then>
 			<echo message="server dir ${jetty.dir} already exists, not installing!  Remove with: ant server.uninstall"/> 
 			</then>
@@ -71,6 +71,7 @@
 				       dest="${jetty.dir}">
 					<regexpmapper from="jetty-distribution-${jetty.version.long}/(.*)$" to="\1"/>
 				</unzip>
+				<delete file="${jetty.dir}/webapps/spdy.war" />
 				<delete file="${jetty.dir}/webapps/test.war" />
 				<delete dir="${jetty.dir}/contexts/test.d" />
 				<delete file="${jetty.dir}/contexts/test.xml" />
@@ -80,17 +81,17 @@
 		<antcontrib:if>
 			<equals arg1="${server.sharedlibs}" arg2="true" />
 			<then>
-				<antcontrib:runtarget target="railo.requires" />
-				<mkdir dir="${jetty.dir}/lib/railo" />
-				<unzip src="${cfml.engine.war}" dest="${jetty.dir}/lib/ext">
-			        <patternset>
-						<include name="WEB-INF/lib/**" />
-			        </patternset>
-					<regexpmapper from="WEB-INF/lib/(.*)$" to="\1"/>
-				</unzip>
-				<copy todir="${jetty.dir}/lib/ext" overwrite="true">
-					<fileset dir="${add.libs.dir}" />
-				</copy>
+				<move todir="${jetty.dir}/lib/ext">
+					<fileset dir="${war.target.dir}/WEB-INF/lib" includes="*.jar" />
+				</move>
+				<antcontrib:if>
+					<available file="${add.libs.dir}" />
+					<then>
+						<copy todir="${jetty.dir}/lib/ext" overwrite="true">
+							<fileset dir="${add.libs.dir}" />
+						</copy>
+					</then>
+				</antcontrib:if>
 				<!-- current railo ships incompatible logger 
 				-->
 				<delete file="${jetty.dir}/lib/ext/railo-sl4j.jar"/>

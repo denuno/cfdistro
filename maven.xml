@@ -177,32 +177,107 @@
 
 
     <target name="mvn.deploy.jre" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
-		<!-- only used to fill repo initially - put exploded JREs in arch subdirs -->
-		<property name="mvn.jre.tmp" location="${temp.dir}/jre" />
-		<property name="mvn.jre.version" value="1.7.0_04" />
-		<property name="mvn.jre.version" value="1.6.0_32" />
+    	<antcontrib:var name="mvn.jre.version" value="1.7.0_09" />
+		<!--
+		<antcontrib:var name="mvn.jre.version" value="1.6.0_37" />
+    	-->
 		<property name="mvn.jre.dir" value="${basedir}/../jre" />
-		
-    	<mkdir dir="${mvn.jre.tmp}" />
-    	<zipdir destfile="${mvn.jre.tmp}/jre-linux32.zip" sourcedir="${mvn.jre.dir}/linux32/jre${mvn.jre.version}" />
-    	<zipdir destfile="${mvn.jre.tmp}/jre-linux64.zip" sourcedir="${mvn.jre.dir}/linux64/jre${mvn.jre.version}" />
-		<zip destfile="${mvn.jre.tmp}/jre-win32.zip" update="false">
-			<zipfileset dir="${mvn.jre.dir}/win32/jre${mvn.jre.version}" prefix="jre/"/>
-		</zip>
-		<zip destfile="${mvn.jre.tmp}/jre-win64.zip" update="false">
-			<zipfileset dir="${mvn.jre.dir}/win64/jre${mvn.jre.version}" prefix="jre/"/>
-		</zip>
 		<pom-and-deploy pomid="jre.pom" packaging="pom" buildtype="${mvn.type}"
 		 groupId="oracle" artifactId="jre" version="${mvn.jre.version}" name="oracle.jre">
 			<attachments>
-        		<attach file="${mvn.jre.tmp}/jre-win32.zip" type="zip" classifier="win32"/>
-        		<attach file="${mvn.jre.tmp}/jre-win64.zip" type="zip" classifier="win64"/>
-        		<attach file="${mvn.jre.tmp}/jre-linux32.zip" type="zip" classifier="linux32"/>
-        		<attach file="${mvn.jre.tmp}/jre-linux64.zip" type="zip" classifier="linux64"/>
+        		<attach file="${mvn.jre.dir}/win32/jre${mvn.jre.version}.zip" type="zip" classifier="win32"/>
+        		<attach file="${mvn.jre.dir}/win64/jre${mvn.jre.version}.zip" type="zip" classifier="win64"/>
+        		<attach file="${mvn.jre.dir}/linux32/jre${mvn.jre.version}.zip" type="zip" classifier="linux32"/>
+        		<attach file="${mvn.jre.dir}/linux64/jre${mvn.jre.version}.zip" type="zip" classifier="linux64"/>
+        		<attach file="${mvn.jre.dir}/darwin64/jre${mvn.jre.version}.zip" type="zip" classifier="darwin64"/>
 			</attachments>
 		</pom-and-deploy>
 		<delete dir="${mvn.jre.tmp}" />
 	</target>	
+
+    <target name="pack2zip.jre" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="convert packed bins to zip">
+		<!-- only used to fill repo initially - put exploded JREs in arch subdirs -->
+		<property name="mvn.jre.tmp" location="${temp.dir}/jre" />
+		<antcontrib:var name="mvn.jre.version" value="1.6.0_37" />
+		<!--
+    	<antcontrib:var name="mvn.jre.version" value="1.7.0_09" />
+    	-->
+		<property name="mvn.jre.dir" location="${basedir}/../jre" />
+    	<delete dir="${temp.dir}" />
+    	<mkdir dir="${temp.dir}" />
+		<echo message="*** UNPACKING AND REPACKING LINUX PACKS ***" />    	
+    	<antcontrib:for param="file">
+			<path><fileset dir="${mvn.jre.dir}" includes="*.bin.sh" /></path>
+			<sequential>
+				<antcontrib:var name="basename" unset="true" />
+				<antcontrib:var name="__locdirr" unset="true" />
+				<basename file="@{file}" property="basename" suffix=".bin.sh" />
+				<antcontrib:propertyregex global="true" override="yes" 
+				 property="basename" input="${basename}" regexp="\." replace="-"/>
+				<echo message="${basename}"/>
+				<property name="__locdirr" location="${temp.dir}/jre/${basename}" />
+				<mkdir dir="${__locdirr}" />
+				<exec executable="unzip">
+				    <arg value="-qq"/>
+				    <arg value="@{file}"/>
+				    <arg value="-d"/>
+				    <arg value="${__locdirr}"/>
+				</exec>
+		    	<antcontrib:for param="pack">
+					<path><fileset dir="${__locdirr}" includes="**/*.pack" /></path>
+					<sequential>
+						<antcontrib:propertyregex property="jar" global="true" override="yes" 
+						input="@{pack}" regexp="pack" replace="jar"/>
+				        <exec executable="${java.home}/bin/unpack200">
+				            <arg value="@{pack}"/>
+				            <arg value="${jar}"/>
+				        </exec>
+						<delete file="@{pack}"/>
+					</sequential>
+		    	</antcontrib:for>
+				<delete file="${mvn.jre.dir}/${basename}.zip" />
+				<exec executable="/bin/sh">
+				    <arg line='-c "cd ${__locdirr}/jre${mvn.jre.version}; zip -9 -qq -r ${mvn.jre.dir}/${basename}.zip *"'/>
+				</exec>
+			</sequential>
+    	</antcontrib:for>
+    	<fail/>
+		<echo message="*** UNPACKING AND REPACKING WINDOWS PACKS ***" />    	
+    	<antcontrib:for param="file">
+			<path><fileset dir="${mvn.jre.dir}" includes="*.exe" /></path>
+			<sequential>
+				<antcontrib:var name="basename" unset="true" />
+				<basename file="@{file}" property="basename" suffix=".exe" />
+				<antcontrib:propertyregex property="basename" global="true" override="yes" 
+				input="${basename}" regexp="\." replace="-"/>
+				<echo message="${basename}"/>
+				<exec executable="7z">
+				    <arg value="x"/><arg value="-y"/>
+				    <arg value="-o${temp.dir}/jre/${basename}"/>
+				    <arg value="@{file}"/><arg value="core.zip"/>
+				</exec>
+				<unzip src="${temp.dir}/jre/${basename}/core.zip" dest="${temp.dir}/jre/${basename}/core" />
+		    	<antcontrib:for param="pack">
+					<path><fileset dir="${temp.dir}/jre/${basename}/core/lib" includes="**/*.pack" /></path>
+					<sequential>
+						<antcontrib:propertyregex property="jar" global="true" override="yes" 
+						input="@{pack}" regexp="pack" replace="jar"/>
+				        <exec executable="${java.home}/bin/unpack200">
+				            <arg value="@{pack}"/>
+				            <arg value="${jar}"/>
+				        </exec>
+						<delete file="@{pack}"/>
+					</sequential>
+		    	</antcontrib:for>
+				<delete file="${mvn.jre.dir}/${basename}.zip" />
+				<zip destfile="${mvn.jre.dir}/${basename}.zip" level="9" update="false">
+					<fileset dir="${temp.dir}/jre/${basename}/core/" /> 
+				</zip>
+			</sequential>
+    	</antcontrib:for>    	
+    	<delete dir="${temp.dir}" />
+	</target>	
+		
 	
 	<macrodef name="mvn-repo">
 		<attribute name="id" />
@@ -292,19 +367,20 @@
 		<attribute name="type" default="zip"/>
 		<attribute name="mapping" default=""/>
 		<attribute name="dest" default=""/>
+		<attribute name="unzip" default="true"/>
 		<sequential>
 			<property name="ext.mappings.dir" value="${ext.dir}/mappings" />
 			<antcontrib:propertyregex 
 			property="dependency.location" 
-			input="@{groupId}/@{artifactId}" 
+			input="@{groupId}" 
 			global="true" override="yes" 
 			regexp="\." 
 			replace="/" />
-			<antcontrib:var name="_dep.loc" value="${cfdistro.repo.local.path}/${dependency.location}/@{version}/"/>
-			<antcontrib:var name="_dep.file" value="${cfdistro.repo.local.path}/${dependency.location}/@{version}/@{artifactId}-@{version}.@{type}"/>
+			<antcontrib:var name="_dep.loc" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/"/>
+			<antcontrib:var name="_dep.file" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/@{artifactId}-@{version}.@{type}"/>
 			<mvn-get groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" />
 			<antcontrib:if>
-				<equals arg1="${mapping}" arg2="" />
+				<equals arg1="@{mapping}" arg2="" />
 				<then/>
 				<else>
 					<antcontrib:var name="ext.mapping.dir" value="${ext.mappings.dir}/@{groupId}/@{artifactId}/@{version}" />
@@ -322,9 +398,12 @@
 				<equals arg1="${dest}" arg2="" /><then/>
 				<else>
 					<antcontrib:if>
-						<available file="@{dest}"/><then/>
-						<else>
+						<equals arg1="true" arg2="@{unzip}" />
+						<then>
 							<unzip src="${_dep.file}" dest="@{dest}"/>
+						</then>
+						<else>
+							<copy file="${_dep.file}" todir="@{dest}"/>
 						</else>
 					</antcontrib:if>
 				</else>
@@ -443,5 +522,7 @@
     		<authentication username="${cfmlprojects.repo.user}" password="${cfmlprojects.repo.password}"/>
 		</authentication>
     </mvn-repo>
+
+	
 	
 </project>

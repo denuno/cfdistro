@@ -1,12 +1,12 @@
 <project name="infinispan" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
-	<property name="infinispan.version" value="5.1.3.FINAL" />
+	<property name="infinispan.version" value="5.1.6.FINAL" />
 	<property name="ext.infinispan.dir" location="${ext.dir}/infinispan/${infinispan.version}" />
 	<property name="infinispan.dir" location="${basedir}/../infinispan${infinispan.version}" />
 	<property name="ext.infinispan.zip.uri" value="http://downloads.jboss.org/infinispan/${infinispan.version}/infinispan-${infinispan.version}-all.zip" />
 	<property name="ext.infinispan.zip" location="${ext.infinispan.dir}/infinispan-${infinispan.version}.zip" />
 
-	<property name="rhq.version" value="4.3.0" />
+	<property name="rhq.version" value="4.5.1" />
 	<pathconvert property="rhq.version.lc">
 		<path path="${rhq.version}"/>
 		<chainedmapper><flattenmapper/><scriptmapper language="javascript">self.addMappedName(source.toLowerCase());</scriptmapper></chainedmapper>
@@ -68,7 +68,7 @@ ${infinispan.dir}bin/startServer.sh -r hotrod -c ${infinispan.config} -l ${serve
 	</target>
 	
 	<target name="rhq.agent.install">
-		<property name="rhq.agent.version" value="4.3.0" />
+		<property name="rhq.agent.version" value="4.5.1" />
 		<property name="ext.rhq.agent.dir" location="${ext.dir}/rhq.agent/${rhq.agent.version}" />
 		<property name="rhq.agent.dir" location="./rhq-agent${rhq.agent.version}" />
 		<property name="ext.rhq.agent.zip.uri" value="http://127.0.0.1:7080/agentupdate/download" />
@@ -80,7 +80,6 @@ ${infinispan.dir}bin/startServer.sh -r hotrod -c ${infinispan.config} -l ${serve
 	        <entry key="rhq.agent.plugins.server-discovery.period-secs" value="60"/>
 	        <entry key="rhq.agent.plugins.availability-scan.period-secs" value="30"/>
 		-->
-
 	</target>
 
 	</project>
