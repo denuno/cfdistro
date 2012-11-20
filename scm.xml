@@ -198,6 +198,28 @@
 		</sequential>
 	</target>
 
+	<target name="exit.1.if.unchanged">
+		<mkdir dir="${war.target.dir}" />
+		<property name="testresult.file" value="${war.target.dir}/test.results.html/" />
+		<sequential>
+			<antcontrib:runtarget target="project.update" />
+			<antcontrib:if>
+				<or>
+					<equals arg1="${revisions.are.same}" arg2="false" />
+					<equals arg1="${revisions.remote.differ}" arg2="true" />
+				</or>
+				<then>
+					<echo message="Revisions differ, exiting with status 0." />
+					<fail message="&lt;cause&gt;SCM change&lt;/cause&gt; &lt;description&gt;SCM change: Revisions differ&lt;/description&gt;" status="0"/>
+				</then>
+				<else>
+					<echo message="Revisions are the same, not building" />
+					<fail message="Revisions are the same, unchanged.  Exiting with status 1." status="1"/>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</target>	
+	
 	<target name="project.update" depends="check.project.for.newrevision" unless="revisions.are.same" if="exists.src.xml">
 		<antcontrib:runtarget target="project.update.${project.src.type}" />
 	</target>

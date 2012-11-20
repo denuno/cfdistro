@@ -6,7 +6,7 @@
 		-->
 		<dependency name="org.eclipse.equinox.executable" componentType="eclipse.feature"/>
 		<dependency name="org.eclipse.platform" componentType="eclipse.feature"/>
-		<dependency name="org.eclipse.debug.ui" componentType="eclipse.feature"/>
+		<dependency name="org.eclipse.debug.ui" componentType="osgi.bundle"/>
 		
 		<!-- need a new cpex for plugin-only updates (vs products, which uses this crap prolly?)
 		<dependency name="org.eclipse.core.filesystem" componentType="eclipse.feature"/>
@@ -57,13 +57,13 @@
             </actorProperties>
             <properties>
                 <property key="profile" value="Profile" />
-                <property key="iu" value="org.getrailo.eclipse.product" />
+                <property key="iu" value="${product.iu}" />
             </properties>
             <prerequisites alias="repository">
                 <attribute name="site.p2" />
             </prerequisites>
             <products alias="destination" base="${buckminster.output}">
-                <path path="railo.${target.os}.${target.ws}.${target.arch}/" />
+                <path path="${product.name}.${target.os}.${target.ws}.${target.arch}/" />
             </products>
         </public>
         <!-- 

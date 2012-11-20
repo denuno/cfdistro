@@ -21,6 +21,9 @@
 	<property name="test.workspace" location="${basedir}/test-workspace" />
 	<property name="junit-report-output" value="${build.dir}/test-results" />
 	<property name="raw-junit-report-output" value="${build.dir}/raw-test-results" />
+	<property name="log.level" value="INFO" />
+	<property name="buckminster.loglevel" value="${log.level}" />
+
 
 	<target name="init.platform">
 		<record name="build.log" loglevel="verbose" append="false"/>
@@ -63,6 +66,10 @@
 	</target>
 
 	<target name="install.p2.director.internal" unless="p2.director.installed">
+		<!--
+		<get dest="${buckminster.cfd.basedir}/director_latest.zip" src="http://download.eclipse.org/tools/buckminster/headless-3.7/" />
+		-->
+		<get dest="${buckminster.cfd.basedir}/director_latest.zip" src="http://www.eclipse.org/downloads/download.php?file=/tools/buckminster/products/director_latest.zip&amp;r=1" />
 		<unzip dest="${build.dir}" src="${buckminster.cfd.basedir}/director_latest.zip" />
 	</target>
 
@@ -80,7 +87,7 @@
 					<include name="org.eclipse.equinox.launcher_*.jar" />
 				</fileset>
 			</classpath>
-			<arg line='-data "${director.dir}/workspace"' />
+			<arg line='-data "${workspace.dir}"' />
 			<arg line="-r http://download.eclipse.org/tools/buckminster/headless-3.7/,http://download.eclipse.org/releases/indigo/" />
 			<arg line='-d "${buckminster-headless.dir}"' />
 			<arg line="-p Buckminster" />
@@ -106,7 +113,7 @@
 					<include name="org.eclipse.equinox.launcher_*.jar" />
 				</fileset>
 			</classpath>
-			<arg line='-data "${director.dir}/workspace"' />
+			<arg line='-data "${workspace.dir}"' />
 			<arg line="-application org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher" />
 			<arg line="-metadataRepository ${local.p2.repository.file.url}" />
 			<arg line="-artifactRepository ${local.p2.repository.file.url}" />
@@ -128,7 +135,7 @@
 
 	<target name="rebuild.local.test.framework.p2.repository">
 		<antcontrib:var name="local.p2.repository.dir" value="${basedir}/eclipse-test-framework-local-repository"/>
-		<antcontrib:var name="local.p2.repository.content.dir" value="${buckminster.cfd.basedir}/buckminster.build.feature/eclipse-test-framework-local-repository-content"/>
+		<antcontrib:var name="local.p2.repository.content.dir" value="${basedir}/eclipse-test-framework-local-repository-content"/>
 		<antcontrib:runtarget target="rebuild.p2.repository" />
 	</target>
 
@@ -142,8 +149,8 @@
 		<attribute name="rebuildrepos" default="true" />
 		<sequential>
 			<antcontrib:var name="build.feature.name" value="@{featurename}"/>
-			<antcontrib:var name="build.feature.dir" value="@{featuredir}"/>
-			<antcontrib:var name="product.checkout" value="@{sourcelocation}"/>
+			<abspath property="build.feature.dir" path="@{featuredir}"/>
+			<abspath property="product.checkout" path="@{sourcelocation}"/>
 
 			<antcontrib:var name="product.checkout.url" unset="true"/>
 			<antcontrib:var name="build.feature.dir.url" unset="true"/>
@@ -153,6 +160,7 @@
 			<antcontrib:if><equals arg1="${rebuildrepos}" arg2="true"/>
 				<then><antcontrib:runtarget target="rebuild.local.p2.repositories" /></then>
 			</antcontrib:if>
+			<antcontrib:runtarget target="init.platform" />
 			<java fork="true" dir="${buckminster-headless.dir}" logError="true" classname="org.eclipse.core.launcher.Main" failonerror="true">
 				<classpath>
 					<fileset dir="${buckminster-headless.dir}/plugins">
@@ -160,7 +168,7 @@
 					</fileset>
 				</classpath>
 				<arg line='-data "${workspace.dir}"' />
-				<arg line='--script "${buckminster.cfd.basedir}/product.buckminster"' />
+				<arg line='--script "${build.feature.dir}/product.buckminster"' />
 				<sysproperty key="buckminster.cfd.basedir" value="${buckminster.cfd.basedir}" />
 				<sysproperty key="buckminster.ext.dir" value="${buckminster.ext.dir}" />
 				<!--
@@ -170,6 +178,7 @@
 				<sysproperty key="target.platform.dir" value="${target.platform.dir}" />
 				<sysproperty key="build.feature.name" value="${build.feature.name}" />
 				<sysproperty key="build.feature.dir" value="${build.feature.dir}" />
+				<sysproperty key="releng.dir" value="${build.feature.dir}" />
 				<sysproperty key="build.feature.dir.url" value="${build.feature.dir.url}" />
 				<sysproperty key="product.checkout" value="${product.checkout}" />
 				<sysproperty key="product.checkout.url" value="${product.checkout.url}" />
@@ -204,6 +213,7 @@
 			<makeurl file="${product.checkout}" property="product.checkout.url" />
 			<makeurl file="${build.feature.dir}" property="build.feature.dir.url" />
 
+			<antcontrib:runtarget target="init.platform" />
 			<antcontrib:runtarget target="install-buckminster-headless" />
 			<antcontrib:if><equals arg1="${rebuildrepos}" arg2="true"/>
 				<then><antcontrib:runtarget target="rebuild.local.p2.repositories" /></then>
@@ -244,7 +254,66 @@
 			
 		</sequential>
 	</macrodef>
-	
+
+	<macrodef name="bucky.headless">
+		<attribute name="script"/>
+		<element name="properties" implicit="true"/>
+		<sequential>
+			<antcontrib:runtarget target="init.platform" />
+			<echo message="running @{script} (workspace.dir: ${workspace.dir})"/>
+			<echo message="Current Platform -- os: ${os} ws: ${ws} arch:${arch}"/>
+
+<!--
+			<property name="local.p2.repository.absolute.dir" location="${target.platform.dir}" />
+			<property name="local.p2.repository.content.absolute.dir" location="${target.platform.dir}" />
+			<makeurl file="${local.p2.repository.absolute.dir}" property="local.p2.repository.file.url" validate="false"/>
+			<java fork="true" dir="${director.dir}" logError="true" classname="org.eclipse.core.launcher.Main" failonerror="true">
+				<classpath>
+					<fileset dir="${director.dir}/plugins">
+						<include name="org.eclipse.equinox.launcher_*.jar" />
+					</fileset>
+				</classpath>
+				<arg line='-data "${workspace.dir}"' />
+				<arg line="-application org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher" />
+				<arg line="-metadataRepository ${local.p2.repository.file.url}" />
+				<arg line="-artifactRepository ${local.p2.repository.file.url}" />
+				<arg line='-source "${workspace.dir}/.metadata/.plugins/org.eclipse.pde.core/.bundle_pool"' />
+				<arg line="-compress" />
+				<arg line="-publishArtifacts" />
+			</java>
+-->
+			<java fork="true" dir="${buckminster-headless.dir}" logError="true" classname="org.eclipse.core.launcher.Main" failonerror="true">
+				<classpath>
+					<fileset dir="${buckminster-headless.dir}/plugins">
+						<include name="org.eclipse.equinox.launcher_*.jar" />
+					</fileset>
+				</classpath>
+				<!--
+				<arg line='-os macosx -ws cocoa -arch x86_64' />
+				-->
+				<arg line='-data "${workspace.dir}"' />
+				<arg line='--script "@{script}"' />
+				<arg line='--displaystacktrace' />
+				<arg line='--loglevel ${buckminster.loglevel}' />
+				<properties />
+				<sysproperty key="targetPlatformPath" value="${target.platform.dir}" />
+				<sysproperty key="target.platform.dir" value="${target.platform.dir}" />
+				<sysproperty key="buckminster.output.root" value="${buckminster.output.root.dir}" />
+				<sysproperty key="buckminster.temp.root" value="${buckminster.temp.root.dir}" />
+				<!--<sysproperty key="qualifier.replacement.*" value="generator:lastRevision" /> -->
+				<!--<sysproperty key="qualifier.replacement.*" value="generator:lastModified" /> -->
+				<sysproperty key="qualifier.replacement.*" value="generator:buildTimestamp" />
+				<sysproperty key="generator.buildTimestamp.format" value="'R'yyyyMMddHHmm" />
+				<sysproperty key="target.os" value="${os}" />
+				<sysproperty key="target.ws" value="${ws}" />
+				<sysproperty key="target.arch" value="${arch}" />
+				<sysproperty key="eclipse.p2.MD5Check" value="false" />
+				<jvmarg line=" -Xms256m -Xmx512m"/>
+			</java>
+			
+		</sequential>
+	</macrodef>
+
 	
 	<target name="build.target.product" depends="install-buckminster-headless, rebuild.local.p2.repositories, init.platform">
 		<fail unless="product.target.name" message="product.target.name must be specified" />
@@ -453,6 +522,7 @@
 
 	<target name="materialize.target.platform" depends="rebuild.local.p2.repositories, install-buckminster-headless">
 		<property name="featurename" value="org.getrailo.eclipse.update" />
+		<echo message="Materializing Target Platform to ${workspace.target.platform.dir}" />
 		<java fork="true" dir="${buckminster-headless.dir}" logError="true" classname="org.eclipse.core.launcher.Main" failonerror="true">
 			<classpath>
 				<fileset dir="${buckminster-headless.dir}/plugins">
@@ -461,7 +531,7 @@
 			</classpath>
 			<arg line='-data "${workspace.dir}"' />
 			<arg line='--script "${buckminster.cfd.basedir}/materialize.target.platform.buckminster"' />
-			<sysproperty key="build.feature.name" value="buckminster.build.feature" />
+			<sysproperty key="build.feature.name" value="${featurename}" />
 			<sysproperty key="buckminster.cfd.basedir" value="${buckminster.cfd.basedir}" />
 			<sysproperty key="basedir" value="${basedir}" />
 			<sysproperty key="workspace.target.platform.dir" value="${workspace.target.platform.dir}" />

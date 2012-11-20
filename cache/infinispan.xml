@@ -62,7 +62,7 @@ ${infinispan.dir}bin/startServer.sh -r hotrod -c ${infinispan.config} -l ${serve
 		</sequential>
 		<copy file="${infinispan.dir}/modules/rhq-plugin/infinispan-rhq-plugin.jar" todir="${rhq.dir}/plugins" />
 		<copy todir="${rhq.dir}/jbossas/server/default/lib">
-			<fileset dir="${infinispan.dir}/modules/rhq-plugin/lib" />
+			<fileset dir="${infinispan.dir}/modules/rhq-plugin" />
 		</copy>
 		<open-url url="http://127.0.0.1:7080/installer/start.jsf" />
 	</target>

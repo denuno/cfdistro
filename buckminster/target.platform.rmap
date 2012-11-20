@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rm:rmap xmlns:rm="http://www.eclipse.org/buckminster/RMap-1.0"
 	xmlns:bc="http://www.eclipse.org/buckminster/Common-1.0">
-	<rm:searchPath name="indigo">
-		<rm:provider componentTypes="osgi.bundle,eclipse.feature"
-			readerType="p2" source="false" mutable="false">
+
+	<rm:searchPath name="equinox">
+		<rm:provider componentTypes="osgi.bundle,eclipse.feature" readerType="p2" source="false" mutable="false">
+			<rm:uri format="http://download.eclipse.org/releases/indigo/" />
+		</rm:provider>
+	</rm:searchPath>
+
+	<rm:searchPath name="equinox-update">
+		<rm:provider componentTypes="osgi.bundle,eclipse.feature" readerType="p2" source="false" mutable="false">
 			<rm:uri format="http://download.eclipse.org/eclipse/updates/3.7" />
 		</rm:provider>
 	</rm:searchPath>
+
 	<rm:searchPath name="swtbot">
 		<rm:provider componentTypes="osgi.bundle,eclipse.feature"
 			readerType="p2" source="false" mutable="false">
@@ -86,7 +93,8 @@
 	
  -->
 	
-	<rm:locator searchPathRef="indigo" failOnError="false" />
+	<rm:locator searchPathRef="equinox" failOnError="false"/>
+	<rm:locator searchPathRef="equinox-update" failOnError="false"/>
 	<rm:locator searchPathRef="cfd-source" failOnError="false" />
 	<rm:locator searchPathRef="local-source" failOnError="false" />
 	<rm:locator searchPathRef="local-repository" failOnError="false" />

@@ -98,7 +98,7 @@ fi
 		<property name="rpm.repo" value="${cfdistro.basedir}/artifacts/RPMS/noarch" />
 		<mkdir dir="${rpm.repo}"/>
 
-		<property name="cfdistro.version.bump" value="revision" description="one of [major|minor|build|revision] or empty to not bump number."/>
+		<property name="cfdistro.version.bump" value="none" description="one of [major|minor|build|revision] or empty to not bump number."/>
 		<antcontrib:var file="cfdistro.properties" />
 		<version-splitter property="cfdistro.build.version" version="${cfdistro.version}" bump="${cfdistro.version.bump}"/>
 		<antcontrib:var name="cfdistro.version" value="${cfdistro.build.version.long}" />
@@ -110,6 +110,7 @@ fi
 		</echoproperties>
 		<property name="rpm.version" value="${cfdistro.version}" />
 		<echo file="${temp.dir}/cfdistro">${rpm.target.dir}/bin/cfdistro $*</echo>
+		<echo message="using rpm.repo: ${rpm.repo}" />
 		<redline:rpm destination="${rpm.repo}" release="1"
 			group="${rpm.group}" name="${rpm.name}" version="${rpm.version}"
 			packager="${rpm.packager}"

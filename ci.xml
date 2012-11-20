@@ -39,7 +39,23 @@
  		<get src="http://updates.jenkins-ci.org/download/plugins/view-job-filters/1.22/view-job-filters.hpi" 
 		    dest="${jenkins.dir}/plugins/view-job-filters.hpi" 
 		    usetimestamp="true"/>
+
+		<get src="http://mirrors.jenkins-ci.org/plugins/scripttrigger/latest/scripttrigger.hpi" 
+		    dest="${jenkins.dir}/plugins/scripttrigger.hpi" 
+		    usetimestamp="true"/>
+
 <!--
+		<get src="http://ftp-chi.osuosl.org/pub/jenkins/plugins/run-condition/latest/run-condition.hpi" 
+		    dest="${jenkins.dir}/plugins/run-condition.hpi" 
+		    usetimestamp="true"/>
+		<get src="http://mirrors.jenkins-ci.org/plugins/token-macro/latest/token-macro.hpi" 
+		    dest="${jenkins.dir}/plugins/token-macro.hpi" 
+		    usetimestamp="true"/>
+		    
+		<get src="http://ftp-chi.osuosl.org/pub/jenkins/plugins/buckminster/latest/buckminster.hpi" 
+		    dest="${jenkins.dir}/plugins/buckminster.hpi" 
+		    usetimestamp="true"/>
+
  		<get src="http://updates.jenkins-ci.org/latest/git.hpi" 
 		    dest="${jenkins.dir}/plugins/git.hpi" 
 		    usetimestamp="true"/>
@@ -76,6 +92,10 @@
 			<attr path="hudson/securityRealm" attr="class" value="hudson.security.LegacySecurityRealm" />
 		</xmltask>
 		-->
+		<get src="http://mirrors.jenkins-ci.org/plugins/scripttrigger/latest/scripttrigger.hpi" 
+		    dest="${jenkins.dir}/plugins/scripttrigger.hpi" 
+		    usetimestamp="true"/>
+
 		<java jar="${ext.jenkins.war}" fork="true" spawn="${jenkins.background}" maxmemory="${runwar.maxmemory}">
 			<env key="JENKINS_HOME" value="${jenkins.dir}"/>
 			<arg line="--prefix=${jenkins.prefix} --httpPort=${ci.port.http} --ajp13Port=${ci.port.ajp} --httpListenAddress=${ci.host} --argumentsRealm.passwd.${ci.admin.user}=${ci.admin.password} --argumentsRealm.roles.${ci.admin.user}=admin"/>

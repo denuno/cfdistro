@@ -200,7 +200,7 @@
 		<attribute name="repository" />
 		<attribute name="property" />
 		<sequential>
-			<git command="log" dir="${src.dir}"><args><arg value="-n"/><arg value="1"/></args></git>
+			<git command="log" dir="@{repository}"><args><arg value="-n"/><arg value="1"/></args></git>
 			<antcontrib:propertyregex override="yes" property="@{property}" input="${git.results}" regexp=".*commit\s(.\w+).*" select="\1" />
 		</sequential>
 	</macrodef>
@@ -425,6 +425,7 @@
 				<actions>
 					<antcontrib:var name="revisions.are.same" value="true"/>
 					<antcontrib:var name="desthash" unset="true"/>
+					<antcontrib:var name="pre.fetch.commit.hash" unset="true"/>
 					<safestring value="@{dest}" property="desthash"/>
 					<echo message="DestHash: ${desthash}"/>
 					<git-commit-hash repository="@{dest}" property="pre.fetch.commit.hash" />
@@ -448,19 +449,12 @@
 						</else>
 					</antcontrib:if> 
 					<!-- check for remote commits (defaults to origin) -->
-					<git command="fetch" dir="@{dest}">
-						<args><arg value="origin" /></args>
+					<git command="pull" dir="@{dest}">
+						<args><arg value="origin" /><arg value="@{branch}" /></args>
 					</git>
-					<git command="log" dir="@{dest}">
-						<args>
-							<arg value="-n" />
-							<arg value="1" />
-							<arg value="--" />
-							<arg value="HEAD..origin/master" />
-						</args>
-					</git>
+					<git-commit-hash repository="@{dest}" property="post.fetch.commit.hash" />
 					<antcontrib:if>
-						<equals arg1="${git.results}" arg2="" />
+						<equals arg1="${pre.fetch.commit.hash}" arg2="${post.fetch.commit.hash}" />
 						<then>
 							<echo message="Remote revision is the same" />
 						</then>
