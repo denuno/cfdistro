@@ -128,6 +128,14 @@ fi
 		<echo file="cfdistro.properties" message="cfdistro.version=${cfdistro.version}" />
 		<rpm-repo dir="${rpm.repo}" />
 	</target>
+
+	<target name="add.rpmrepo.cfmlprojects" depends="bootstrap_redline">
+		<echo file="/etc/yum.repos.d/cfmlprojects.conf" message="[cfmlprojects]
+	name=cfmlprojects
+	baseurl=http://cfmlprojects.org/artifacts/RPMS/noarch
+	enabled=1
+	gpgcheck=0" />
+	</target>
 	
 	<macrodef name="rpm-repo">
 		<attribute name="dir" default="/opt/repo/RPMS/noarch" />
