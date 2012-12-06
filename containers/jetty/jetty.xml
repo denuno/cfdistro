@@ -265,7 +265,6 @@
     <!-- uses settings from deploy.xml stuff -->
     <target name="war.deploy" description="Install application to servlet container">
 		<requires-ext resource="/ext/containers/jetty/" />
-		<antcontrib:runtarget target="check.creds" />
     	<deploy-sshsession>
     	    <sequential>
     			<jetty-ant action="deploy"/>
@@ -275,7 +274,6 @@
 
 	<target name="war.list" description="List installed applications on servlet container">
 		<requires-ext resource="/ext/containers/jetty/" />
-		<antcontrib:runtarget target="check.creds" />
     	<deploy-sshsession>
     	    <sequential>
     			<jetty-ant action="list"/>

@@ -2,7 +2,6 @@
 
 	<property name="remoteprops" value="" />
 	<property name="remote" value="" />
-	<antcontrib:runtarget target="check.creds" />
 
 	<propertyset id="remote-properties">
 	  <propertyref prefix="remote.${remote}."/>
@@ -39,7 +38,6 @@
 
 	<target name="remote.sshexec.test">
 		<sequential>
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy" />
 			<deploy-sshexec command="ls" />
 		</sequential>
@@ -72,7 +70,6 @@
 
 	<target name="remote.scp.from.test">
 		<sequential>
-			<antcontrib:runtarget target="check.creds" />
 			<deploy-scp file="${remote.user}@${remote.host}:./buildinfo.properties" todir="${basedir}/" />
 		</sequential>
 	</target>
@@ -80,7 +77,6 @@
 	<target name="remote.cfdistro.dist">
 		<sequential>
 			<verifyRemoteProperties />
-			<antcontrib:runtarget target="check.creds" />
 			<antcontrib:runtarget target="cfdistro.dist" />
 			<deploy-sshexec 
 				command="rm -rf ${distro.name};rm -rf ${distro.name}.zip" />
@@ -92,7 +88,6 @@
 	</target>
 	
 	<target name="remote.server">
-		<antcontrib:runtarget target="check.creds" />
 		<sequential>
 			<echo message="${remoteprops}" />
 			<echoproperties prefix="deploy"/>
@@ -104,7 +99,6 @@
 	<target name="remote.runtarget">
 		<sequential>
 			<verifyRemoteProperties />
-			<antcontrib:runtarget target="check.creds" />
 			<property name="target" value="build" />
 			<deploy-sshexec
 				command="${distro.name}/${distro.name} ${target} ${remoteprops}" />
@@ -114,7 +108,6 @@
 	<target name="remote.server.deploy">
 		<sequential>
 			<verifyRemoteProperties />
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy"/>
 			<deploy-scp file="${dist.zip.file}" 
 				toDir="${remote.user}@${remote.host}:." />
@@ -128,7 +121,6 @@
 	<target name="remote.cfdistro.install">
 		<sequential>
 			<verifyRemoteProperties />
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy"/>
 			<deploy-scp file="${dist.zip.file}" 
 				toDir="${remote.user}@${remote.host}:." />
@@ -139,7 +131,6 @@
 
 	<target name="remote.cfdistro.update">
 		<sequential>
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy"/>
 			<deploy-sshexec
 				command="${distro.name}/${distro.name} cfdistro.update" />
@@ -148,7 +139,6 @@
 
 	<target name="remote.server.start">
 		<sequential>
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy"/>
 			<deploy-sshexec
 				command="${distro.name}/${distro.name} ${server.type}.start" />
@@ -157,7 +147,6 @@
 
 	<target name="remote.server.stop">
 		<sequential>
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy"/>
 			<deploy-sshexec
 				command="${distro.name}/${distro.name} ${server.type}.stop" />
@@ -166,7 +155,6 @@
 
 	<target name="remote.server.processes">
 		<sequential>
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy"/>
 			<deploy-sshexec
 				command="ps aux | grep 'java\|tomcat\|jetty'" />
@@ -175,7 +163,6 @@
 
 	<target name="remote.server.log.tail">
 		<sequential>
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy"/>
 			<deploy-sshexec
 				command="${distro.name}/${distro.name} server.log.tail" />
@@ -185,7 +172,6 @@
 	
 	<target name="remote.start">
 		<sequential>
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy" />
 			<deploy-sshexec command="${distro.name}/${distro.name} server.start ${remoteprops}" />
 		</sequential>
@@ -193,7 +179,6 @@
 
 	<target name="remote.stop">
 		<sequential>
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy" />
 			<deploy-sshexec command="${distro.name}/${distro.name} server.stop ${remoteprops}" />
 		</sequential>

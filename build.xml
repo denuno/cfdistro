@@ -981,7 +981,7 @@ a tiny 2m jar but getPageContext() throws errors!!
 </antcontrib:if>
 </target>
 
-<target name="exists.datasources.xml" depends="check.creds">
+<target name="exists.datasources.xml">
 	<antcontrib:var name="exists.datasources.xml" unset="true" />
 	<property name="datasources.file" location="datasources.xml" />
 	<!-- we get the absolute path cuz some FS DBs work better that way, plus dllutil stuff -->
@@ -1123,6 +1123,8 @@ a tiny 2m jar but getPageContext() throws errors!!
 </antcontrib:if>
 </target>
 
+<!--
+THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc 
 <target name="check.creds">
 <antcontrib:if>
 	<available file="${creds.token.file}" />
@@ -1135,8 +1137,9 @@ a tiny 2m jar but getPageContext() throws errors!!
 </antcontrib:if>
 </target>
 
+ -->
 
-<target name="exists.mail.xml" depends="check.creds">
+<target name="exists.mail.xml">
 <available file="${basedir}/mail.${build.type}.xml" type="file" property="exists.mail.xml" />
 <antcontrib:if>
 	<equals arg1="${exists.mail.xml}" arg2="true" />

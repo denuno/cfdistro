@@ -76,7 +76,6 @@
 	<target name="server.processes">
 		<sequential>
 			<requires-ext resource="/ext/containers/util/" />
-			<antcontrib:runtarget target="check.creds" />
 			<echoproperties prefix="deploy"/>
 			<exec executable="sh" osfamily="unix">
 				<arg value="-c"/>

@@ -267,7 +267,6 @@
 	<!-- uses settings from deploy.xml stuff -->
     <target name="war.deploy" description="Install application to servlet container">
 		<requires-ext resource="/ext/containers/resin/" />
-		<antcontrib:runtarget target="check.creds" />
     	<sshsession host="${deploy.remote.host}"
     	    localtunnels="8080:localhost:8080"
 			username="${deploy.remote.user}"
@@ -281,7 +280,6 @@
 
 	<target name="war.list" description="List installed applications on servlet container">
 		<requires-ext resource="/ext/containers/resin/" />
-		<antcontrib:runtarget target="check.creds" />
     	<sshsession host="${deploy.remote.host}"
     	    localtunnels="8080:localhost:8080"
 			username="${deploy.remote.user}"

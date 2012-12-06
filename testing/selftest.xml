@@ -1,0 +1,125 @@
+<project name="selftest" default="test.all" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+<!-- 
+to run:  ant -f selftest.xml -lib ../ant/lib
+ -->
+	<property name="temp.dir" location="./temp" />
+	<property name="git.repo.dir" location="./temp/gitrepo" />
+	<property name="test.project.dir" location="${temp.dir}/testproject" />
+	<property name="test.src.dir" location="${test.project.dir}/src" />
+	<delete dir="${temp.dir}" />
+	<mkdir dir="${test.project.dir}" />
+	<mkdir dir="${git.repo.dir}" />
+
+
+	<property name="cfdistro.basedir" location="./../" />
+	<path id="build.lib.path">
+		<fileset dir="${cfdistro.basedir}/lib">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="${cfdistro.basedir}/ant/lib">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+	<macrodef name="cfdistro">
+		<attribute name="target" />
+		<attribute name="properties" default=""/>
+		<sequential>
+			<antcontrib:var name="cfdistro.mdef.out" unset="true" />
+			<antcontrib:var name="cfdistro.mdef.err" unset="true" />
+			<antcontrib:var name="cfdistro.mdef.result" unset="true" />
+			<echo message="CFDISTRO: @{target}" />
+			<exec  os="Linux,Mac OS X" executable="sh" dir="${test.project.dir}" failonerror="false" 
+				outputproperty="cfdistro.mdef.out" errorproperty="cfdistro.mdef.err" resultproperty="cfdistro.mdef.result">
+				<arg line="${cfdistro.basedir}/bin/cfdistro @{target} @{properties}" />
+			</exec>
+			<exec  os="Windows,Windows 7" executable="cmd" dir="${test.project.dir}"  failonerror="false" 
+				outputproperty="cfdistro.mdef.out" errorproperty="cfdistro.mdef.err" resultproperty="cfdistro.mdef.result">
+				<arg line="/c ${cfdistro.basedir}\bin\cfdistro.bat @{target} @{properties}" />
+			</exec>
+			<echo message="${cfdistro.mdef.out}" />
+			<fail message="${cfdistro.mdef.err}">
+				<condition><not><equals arg1="0" arg2="${cfdistro.mdef.result}"/></not></condition>
+			</fail>
+		</sequential>
+	</macrodef>
+	<import file="${cfdistro.basedir}/scm-git.xml"/>
+
+	<echo>*******************  BEGIN TESTS  **********************</echo>
+
+	<macrodef name="test.setup">
+		<sequential>
+		<echo message="*******************  SETUP  **********************"/>
+		<git command="init" dir="${git.repo.dir}" />
+		<git command="commit" dir="${git.repo.dir}">
+			<args><arg value="-m" /><arg value="testing bro" /></args>
+		</git>
+		<cfdistro target="cfdistro.skeleton"
+			properties="target.dir='${test.project.dir}' distro.name='testproject'" />
+		<echo message="*******************  /SETUP  **********************"/>
+		</sequential>
+	</macrodef>
+	<test.setup />
+
+	<target name="test.all">
+		<antcontrib:runtarget target="test.project.update" />
+		<!-- 
+		<test.teardown />
+		 -->
+	</target>
+
+	<target name="test.project.update">
+		<antcontrib:var name="props" value="src.dir=${test.src.dir}" />
+		<antcontrib:var value="${props} src.dir=${test.src.dir}" name="props" />
+		<antcontrib:var value="${props} sc=myrepo" name="props" />
+		<antcontrib:var value="${props} sc.myrepo.type=git" name="props" />
+		<antcontrib:var value="${props} sc.myrepo.dest=@src.dir@/" name="props" />
+		<antcontrib:var value="${props} sc.myrepo.uri=${git.repo.dir}/.git" name="props" />
+		<antcontrib:var value="${props} sc.myrepo.branch='master'" name="props" />
+
+		<cfdistro target="project.update" properties="${props}" />
+
+		<echo message="newcommit" file="${git.repo.dir}/fun.txt" />
+		<checksum file="${git.repo.dir}/fun.txt" property="funMD5"/>
+		<git command="add" dir="${git.repo.dir}">
+			<args><arg value="fun.txt" /></args>
+		</git>
+		<git command="commit" dir="${git.repo.dir}">
+			<args><arg value="-a" /><arg value="-m" /><arg value="testing updated bro" /></args>
+		</git>
+		<echo message="CONFLICT YO!" file="${test.src.dir}/fun.txt" />
+
+		<cfdistro target="project.update" properties="${props}" />
+
+		<fail message="test.check.newrevision failure!  Did not update. ${test.src.dir}/fun.txt">
+			<condition><not><available file="${test.src.dir}/fun.txt" /></not></condition>
+		</fail>
+		<checksum file="${git.repo.dir}/fun.txt" property="${funMD5}" verifyProperty="isEqual"/>
+		<fail message="test.check.newrevision failure!  Did not update. ${test.src.dir}/fun.txt" unless="isEqual" />
+
+		<echo message="newfile" file="${test.src.dir}/fun2.txt" />
+		<git command="add" dir="${git.repo.dir}">
+			<args><arg value="fun2.txt" /></args>
+		</git>
+		<git command="commit" dir="${git.repo.dir}">
+			<args><arg value="-a" /><arg value="-m" /><arg value="testing new bro" /></args>
+		</git>
+
+		<cfdistro target="project.update" properties="${props}" />
+
+		<fail message="test.check.newrevision failure!  Did not update. ${test.src.dir}/fun2.txt">
+			<condition><not><available file="${test.src.dir}/fun2.txt" /></not></condition>
+		</fail>
+
+	</target>
+
+
+	<macrodef name="test.teardown">
+		<sequential>
+		<echo message="*******************  TEARDOWN  **********************"/>
+ 		<delete dir="${temp.dir}" />
+<!-- 
+ -->
+		</sequential>
+	</macrodef>
+
+</project>

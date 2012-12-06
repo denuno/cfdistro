@@ -199,8 +199,10 @@
 	<macrodef name="git-commit-hash">
 		<attribute name="repository" />
 		<attribute name="property" />
+		<attribute name="remote" default="origin" />
+		<attribute name="branch" default="master" />
 		<sequential>
-			<git command="log" dir="@{repository}"><args><arg value="-n"/><arg value="1"/></args></git>
+			<git command="log" dir="@{repository}"><args><arg value="-n"/><arg value="1"/><arg value="@{remote}/@{branch}"/></args></git>
 			<antcontrib:propertyregex override="yes" property="@{property}" input="${git.results}" regexp=".*commit\s(.\w+).*" select="\1" />
 		</sequential>
 	</macrodef>
@@ -269,11 +271,15 @@
 				<param name="type" path="@type" default="NONE" />
 				<param name="uri" path="@uri" default="NONE" />
 				<param name="branch" path="@branch" default="master" />
+				<param name="remote" path="@remote" default="origin" />
 				<param name="sshkey" path="@sshkey" default="NONE" />
 				<actions>
 					<antcontrib:if>
 						<or>
-							<not><available file="@{dest}.git" type="dir"/></not>
+							<and>
+								<not><available file="@{dest}.git" type="dir"/></not>
+								<not><available file="@{dest}/.git" type="dir"/></not>
+							</and>
 							<equals arg1="${project.overwrite}" arg2="true" />
 						</or>
 						<then>
@@ -289,14 +295,26 @@
 						</then>
 						<else>
 							<echo message="updating src: @{dest}" />
-							<!--
-							-->
-							<git command="fetch" dir="@{dest}">
-								<args><arg value="origin" /></args>
+							<!-- do funky stuff to get around jgit conflict error stuff -->
+							<antcontrib:var name="tmpgitdir" unset="true" />
+							<property name="tmpgitdir" location="${temp.dir}/tmpgit"/>
+							<delete dir="${tmpgitdir}"/>
+							<mkdir dir="${tmpgitdir}"/>
+							<echo message="${tmpgitdir}"/>
+							<replace file="@{dest}/.git/config" token="[core]" value='[core]${line.separator}	worktree = ${tmpgitdir}'/>
+							<echo message='"origin/@{branch}"'/>
+							<git-checkout repository="@{dest}" branch="@{remote}/@{branch}"/>
+							<move todir="@{dest}">
+							    <fileset dir="${tmpgitdir}"/>
+							</move>
+							<delete dir="${tmpgitdir}"/>
+							<replace file="@{dest}/.git/config" token="worktree = ${tmpgitdir}${line.separator}" value=""/>
+<!--
+							<git-checkout repository="@{dest}" branch="@{remote}/@{branch}"/>
+							<git command="checkout" dir="@{dest}">
+								<args><arg value="-b localchanges" /></args>
 							</git>
-							<git command="merge" dir="@{dest}">
-								<args><arg value="@{branch}" /></args>
-							</git>
+-->
 						</else>
 					</antcontrib:if>
 				</actions>
@@ -449,8 +467,8 @@
 						</else>
 					</antcontrib:if> 
 					<!-- check for remote commits (defaults to origin) -->
-					<git command="pull" dir="@{dest}">
-						<args><arg value="origin" /><arg value="@{branch}" /></args>
+					<git command="fetch" dir="@{dest}">
+						<args><arg value="origin" /></args>
 					</git>
 					<git-commit-hash repository="@{dest}" property="post.fetch.commit.hash" />
 					<antcontrib:if>

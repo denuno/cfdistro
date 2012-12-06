@@ -6,7 +6,6 @@
 	<property name="vm.name" value="${vm}" />
 	<property name="vm.basedir" value="${basedir}/vm/${vm}" />
 	<property name="vm.dir" location="${user.home}/.cfdistro/vm/${vm.name}/" />
-	<antcontrib:runtarget target="check.creds" />
 
 	<propertyset id="vm-properties">
 	  <propertyref prefix="vm.${vm}."/>

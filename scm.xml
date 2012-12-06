@@ -1,5 +1,26 @@
 <project name="revisions" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
+	<propertyset id="sc-properties">
+	  <propertyref prefix="sc.${sc}."/>
+	</propertyset>
+	<antcontrib:for list="${toString:sc-properties}" param="prop">
+		<sequential>
+			<antcontrib:propertyregex property="scprop"
+			              input="@{prop}"
+			              regexp="sc\..+?\.(.*)="
+			              select="sc.\1"
+			              casesensitive="false" override="true" />
+			<antcontrib:propertyregex property="scpropval"
+			              input="@{prop}"
+			              regexp=".+?=(.*)"
+			              select="\1"
+			              casesensitive="false" override="true" />
+			<echo message="${scprop} is ${scpropval} "/>
+			<antcontrib:var name="${scprop}" value="${scpropval}"/>
+		</sequential>
+	</antcontrib:for>
+
+	
 	<property name="basedir.absolute" location="${basedir}" />
 	<property name="src.xml.file" value="${basedir.absolute}/src.xml" />
 	<import file="scm-git.xml"/>
@@ -220,7 +241,8 @@
 		</sequential>
 	</target>	
 	
-	<target name="project.update" depends="check.project.for.newrevision" unless="revisions.are.same" if="exists.src.xml">
+	<target name="project.update" depends="check.project.for.newrevision" if="exists.src.xml">
+		<echo message="${exists.src.xml}" />
 		<antcontrib:runtarget target="project.update.${project.src.type}" />
 	</target>
 
@@ -263,6 +285,46 @@
 					<echo message="could not check out origin/${scm.branch} for ${scm.dir} (${_erredesse})"/>
 				</catch>
 			</antcontrib:trycatch>
+		</else>
+	</antcontrib:if>
+
+    <macrodef name="sc-persist">
+		<attribute name="dest" />
+		<attribute name="type" />
+		<attribute name="uri" />
+		<attribute name="branch" default="" />
+		<attribute name="user" default="" />
+		<attribute name="password" default="" />
+		<attribute name="path" default="" />
+        <sequential>
+			<xmltask source="${basedir}/src.xml" dest="${basedir}/src.xml">
+				<copy path="src/project/src[@dest='@{dest}']/@dest" attrValue="true" property="sc.exists" />
+				<replace path="src/project/src[@dest='@{dest}']/text()" if="sc.exists">
+					<![CDATA[
+					<src uri="@{uri}" dest="@{dest}" type="@{type}" 
+					user="@{user}" password="@{password}" />
+  					]]>
+					</replace>
+				<insert path="src/project" position="under" unless="sc.exists">
+					<![CDATA[
+					<src uri="@{uri}" dest="@{dest}" type="@{type}" 
+					user="@{user}" password="@{password}" />
+  					]]>
+					</insert>
+			</xmltask>
+    	</sequential>
+	</macrodef>
+	
+	<antcontrib:if>
+		<equals arg1="${sc}" arg2="$${sc}" />
+		<then/>
+		<else>
+			<fail message="undefined!  sc.uri ${sc.type}" unless="sc.type" />
+			<fail message="undefined!  sc.uri ${sc.uri}" unless="sc.uri" />
+			<fail message="undefined!  sc.dest ${sc.dest}" unless="sc.dest" />
+			<sc-persist 
+				dest="${sc.dest}" type="${sc.type}" uri="${sc.uri}"
+				branch="${sc.branch}" user="${sc.user}" password="${sc.password}" />
 		</else>
 	</antcontrib:if>
 	
