@@ -137,7 +137,7 @@ fi
 	        todir="${deb.repo}"
 	        package="${rpm.name}"
 	        section="web"
-	        depends="sun-java6-jre | openjdk-6-jre">
+	        depends="java-common">
 	        <version upstream="${cfdistro.version}"/>
 	        <maintainer name="${rpm.packager}" email="cfml@cfmlprojects.org"/>
 	        <description synopsis="${rpm.group}.${rpm.name}">${rpm.name}</description>
