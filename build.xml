@@ -177,7 +177,8 @@
 a tiny 2m jar but getPageContext() throws errors!!
 	<property name="jetty-runner.jar" value="jetty-runner-8.0.4.v20111024.jar" />
 -->
-	<property name="jetty-runner.jar" value="jetty-runner-8.1.5.v20120716.jar" />
+	<property name="jetty-runner.version" value="8.1.5.v20120716" />
+	<property name="jetty-runner.jar" value="jetty-runner-${jetty-runner.version}.jar" />
 
 	<property name="ext.uri" value="http://subversion.assembla.com/svn/cfdistro/trunk/cfdistro/ext" />
 	<property name="creds.token.file" value="${basedir}/creds.txt" />
@@ -495,11 +496,12 @@ a tiny 2m jar but getPageContext() throws errors!!
 			<then>
 				<requires-ext resource="${ext.railo.dir}/error.cfm" />
 				<requires-ext resource="${ext.dir}/cfeclipse" />
-				<error-template path="${ext.railo.dir}/error.cfm" />
 				<property name="cfmlengine.inspect.templates" value="always" />
 				<addlibs from="${ext.dir}/cfeclipse" />
 				<copy file="${ext.dir}/cfeclipse/cfeclipsecall.cfm" todir="${war.target.dir}" />
 				<copy file="${ext.dir}/cfeclipse/Dump.cfc" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag/railo" />
+				<copy file="${ext.railo.dir}/error.cfm" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag/" />
+				<error-template path="/WEB-INF/lib/railo-server/context/library/tag/error.cfm" />
 			</then>
 		</antcontrib:if>
 	</target>

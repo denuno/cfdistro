@@ -2,27 +2,55 @@
 
 	<property name="remoteprops" value="" />
 	<property name="remote" value="" />
-
-	<propertyset id="remote-properties">
-	  <propertyref prefix="remote.${remote}."/>
-	</propertyset>
-
-	<antcontrib:for list="${toString:remote-properties}" param="prop">
+	<property name="deploy.quiet" value="false" />
+	
+	<macrodef name="echo.if">
+		<attribute name="message" />
+		<element name="comp" implicit="true"/>
 		<sequential>
-			<antcontrib:propertyregex property="remoteprop"
-			              input="@{prop}"
-			              regexp="remote\..+?\.(.*)="
-			              select="remote.\1"
-			              casesensitive="false" override="true" />
-			<antcontrib:propertyregex property="remotepropval"
-			              input="@{prop}"
-			              regexp=".+?=(.*)"
-			              select="\1"
-			              casesensitive="false" override="true" />
-			<echo message="${remoteprop} is ${remotepropval} "/>
-			<antcontrib:var name="${remoteprop}" value="${remotepropval}"/>
+			<antcontrib:if>
+				<comp />
+				<then>
+					<echo message="@{message}" />
+				</then>
+			</antcontrib:if>
 		</sequential>
-	</antcontrib:for>
+	</macrodef>
+	
+	<macrodef name="deploy.echo">
+		<attribute name="message" />
+		<sequential>
+			<echo.if message="@{message}">
+				<equals arg1="${deploy.quiet}" arg2="false" />
+			</echo.if>
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="cfdistro.setremote">
+		<sequential>
+			<antcontrib:var name="remote-properties" unset="true" />
+			<propertyset id="remote-properties">
+			  <propertyref prefix="remote.${remote}."/>
+			</propertyset>
+			<antcontrib:for list="${toString:remote-properties}" param="prop">
+				<sequential>
+					<antcontrib:propertyregex property="remoteprop"
+					              input="@{prop}"
+					              regexp="remote\..+?\.(.*)="
+					              select="remote.\1"
+					              casesensitive="false" override="true" />
+					<antcontrib:propertyregex property="remotepropval"
+					              input="@{prop}"
+					              regexp=".+?=(.*)"
+					              select="\1"
+					              casesensitive="false" override="true" />
+					<deploy.echo message="remote: ${remote} - ${remoteprop} ${remotepropval}"/>
+					<antcontrib:var name="${remoteprop}" value="${remotepropval}"/>
+				</sequential>
+			</antcontrib:for>
+		</sequential>
+	</macrodef>
+	<cfdistro.setremote />
 
 	<macrodef name="verifyRemoteProperties">
 		<sequential>
@@ -30,7 +58,6 @@
 			<fail message="remote.host ${remote.host}" unless="remote.host" />
 		</sequential>
 	</macrodef>
-	
 	
 	<target name="get.server.log.dir">
 		<antcontrib:runtarget target="${server.type}.server.log.dir" />
@@ -89,7 +116,7 @@
 	
 	<target name="remote.server">
 		<sequential>
-			<echo message="${remoteprops}" />
+			<deploy.echo message="${remoteprops}" />
 			<echoproperties prefix="deploy"/>
 			<deploy-sshexec
 				command="${distro.name}/${distro.name} ${server.type}.install ${remoteprops}" />
@@ -189,7 +216,7 @@
 	</target>
 
 	<target name="remote.scp.modified" description="scp wrapped with ssh tunnel modified ${src.dir} and ${pub.dir} to ${env.remote_host} ${env.remote_dir}">
-		<echo message="Copying modified to ${remote.user}@${remote.host}:${remote.dir}${distro.name}/" />
+		<deploy.echo message="Copying modified to ${remote.user}@${remote.host}:${remote.dir}${distro.name}/" />
 		<property name="scp.dir" value="**" />
 		<verifyRemoteProperties />
 		<deploy-scp toDir="${remote.user}@${remote.host}:${remote.dir}${distro.name}">
@@ -208,7 +235,7 @@
 	</target>
 
 	<target name="remote.scp.build" description="scp wrapped with ssh tunnel modified ${src.dir} and ${pub.dir} to ${env.remote_host} ${env.remote_dir}">
-		<echo message="Copying build dir to ${remote.user}@${remote.host}:${remote.dir}${distro.name}/" />
+		<deploy.echo message="Copying build dir to ${remote.user}@${remote.host}:${remote.dir}${distro.name}/" />
 		<verifyRemoteProperties />
 		<deploy-scp toDir="${remote.user}@${remote.host}:${remote.dir}${distro.name}">
 			<scpfiles>
@@ -226,7 +253,7 @@
 	</target>
 
 	<target name="remote.scp.dist" description="scp wrapped with ssh tunnel dist ${dist.dir} to ${env.remote_host} ${env.remote_dir}">
-		<echo message="Copying ${dist.dir} dir to ${remote.user}@${remote.host}:${remote.dir}${distro.name}/" />
+		<deploy.echo message="Copying ${dist.dir} dir to ${remote.user}@${remote.host}:${remote.dir}${distro.name}/" />
 		<verifyRemoteProperties />
 		<deploy-scp toDir="${remote.user}@${remote.host}:${remote.dir}${distro.name}" fromdir="${dist.dir}/${distro.name}">
 			<scpfiles>
@@ -243,7 +270,7 @@
 	</target>
 
 	<target name="remote.scp.war" description="scp wrapped with ssh tunnel ${war.target.dir} to ${remote.deploy.dir}">
-		<echo message="Copying ${war.target.dir} to ${remote.user}@${remote.host}:${remote.deploy.dir}/" />
+		<deploy.echo message="Copying ${war.target.dir} to ${remote.user}@${remote.host}:${remote.deploy.dir}/" />
 		<verifyRemoteProperties />
 		<deploy-scp toDir="${remote.user}@${remote.host}:${remote.deploy.dir}"
 			file="${war.target.dir}">
@@ -268,7 +295,7 @@
 					<equals arg1="${remote.bastion.host}" arg2="$${remote.bastion.host}" />
 				</or>
 				<then>
-					<echo message="sshsession: using direct SSH to server" />
+					<deploy.echo message="sshsession: using direct SSH to server" />
 					<sshsession host="${remote.host}" username="${remote.user}" verbose="${cfdistro.debug}" passphrase="${remote.keyfile.pass}" keyfile="${remote.keyfile}" trust="true" port="${remote.host.port}">
 						<sequential>
 							<some-tasks />
@@ -276,7 +303,7 @@
 					</sshsession>
 				</then>
 				<else>
-					<echo message="sshsession: using bastion SSH server for port forwarding" />
+					<deploy.echo message="sshsession: using bastion SSH server for port forwarding" />
 					<sshsession host="${remote.bastion.host}" localtunnels="${remote.bastion.localport}:${remote.host}:${remote.host.port}" username="${remote.bastion.user}" verbose="${cfdistro.debug}" passphrase="${remote.bastion.keyfile.pass}" keyfile="${remote.bastion.keyfile}" trust="true" port="${remote.bastion.host.port}">
 						<sequential>
 							<some-tasks />
@@ -297,11 +324,11 @@
 					<equals arg1="${remote.bastion.host}" arg2="$${remote.bastion.host}" />
 				</or>
 				<then>
-					<echo message="sshexec: using direct SSH to server" />
+					<deploy.echo message="sshexec: using direct SSH to server" />
 					<cfdistro-sshexec command="@{command}" host="${remote.host}" outputproperty="sshres" username="${remote.user}" password="${remote.user.pass}" passphrase="${remote.keyfile.pass}" keyfile="${remote.keyfile}" port="${remote.host.port}" />
 				</then>
 				<else>
-					<echo message="sshexec: using bastion SSH server for port forwarding" />
+					<deploy.echo message="sshexec: using bastion SSH server for port forwarding" />
 					<deploy-sshsession>
 						<cfdistro-sshexec command="@{command}" host="${remote.host}" outputproperty="sshres" username="${remote.user}" password="${remote.user.pass}" passphrase="${remote.keyfile.pass}" keyfile="${remote.keyfile}" port="${remote.bastion.localport}" />
 					</deploy-sshsession>
@@ -336,15 +363,15 @@
 			                       pathrefid="scp.files.ref"
 			                       dir="@{fromdir}"/>
 			<pathconvert pathsep="${line.separator}" property="scp.files.list" refid="scp.files.fileset"/>
-			<echo message="Transferring:@{file} ${scp.files.list}"/>
+			<echo message="Transferring:@{file} ${line.separator}${scp.files.list}"/>
+			<deploy.echo message="to remote directory: @{todir}"/>
 			<antcontrib:if>
 				<or>
 					<equals arg1="@{keyfile}" arg2="" />
 					<equals arg1="@{keyfile}" arg2="$${remote.keyfile}" />
 				</or>
 				<then>
-					<echo message="scp: Using password" />
-					<echo message="@{password} to: @{port}" />
+					<deploy.echo message="scp: Using password" />
 					<antcontrib:if>
 						<equals arg1="@{file}" arg2="" />
 						<then>
@@ -358,7 +385,7 @@
 					</antcontrib:if>
 				</then>
 				<else>
-					<echo message="[scp: Using keyfile: @{keyfile}]" />
+					<deploy.echo message="[scp: Using keyfile: @{keyfile}]" />
 					<antcontrib:if>
 						<equals arg1="@{file}" arg2="" />
 						<then>
@@ -393,11 +420,11 @@
 					<equals arg1="@{keyfile}" arg2="$${remote.keyfile}" />
 				</or>
 				<then>
-					<echo message="sshexec: using password" />
+					<deploy.echo message="sshexec: using password" />
 					<sshexec verbose="${ssh.verbose}" command="@{command}" host="@{host}" outputproperty="@{outputproperty}" username="@{username}" password="@{password}" trust="true" port="@{port}" />
 				</then>
 				<else>
-					<echo message="sshexec: using keyfile: @{keyfile}" />
+					<deploy.echo message="sshexec: using keyfile: @{keyfile}" />
 					<sshexec verbose="${ssh.verbose}" command="@{command}" host="@{host}" outputproperty="@{outputproperty}" username="@{username}" passphrase="@{passphrase}" keyfile="@{keyfile}" trust="true" port="@{port}" />
 				</else>
 			</antcontrib:if>
@@ -416,14 +443,14 @@
 					<equals arg1="${remote.bastion.host}" arg2="$${remote.bastion.host}" />
 				</or>
 				<then>
-					<echo message="scp: using direct SSH to server" />
+					<deploy.echo message="scp: using direct SSH to server" />
 					<cfdistro-scp file="@{file}" toDir="@{todir}" password="${remote.user.pass}" keyfile="${remote.keyfile}" 
 						fromdir="@{fromdir}" passphrase="${remote.keyfile.pass}" port="${remote.host.port}">
 						<files><scpfiles/></files>
 					</cfdistro-scp>
 				</then>
 				<else>
-					<echo message="scp: using bastion SSH server for port forwarding" />
+					<deploy.echo message="scp: using bastion SSH server for port forwarding" />
 					<deploy-sshsession>
 						<cfdistro-scp file="@{file}" fromdir="@{fromdir}" toDir="@{todir}" password="${remote.user.pass}" keyfile="${remote.keyfile}" passphrase="${remote.keyfile.pass}" port="${remote.bastion.localport}">
 							<files><scpfiles/></files>

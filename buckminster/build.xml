@@ -308,7 +308,7 @@
 				<sysproperty key="target.ws" value="${ws}" />
 				<sysproperty key="target.arch" value="${arch}" />
 				<sysproperty key="eclipse.p2.MD5Check" value="false" />
-				<jvmarg line=" -Xms256m -Xmx512m"/>
+				<jvmarg line=" -Xms256m -Xmx512m -XX:MaxPermSize=128M"/>
 			</java>
 			
 		</sequential>

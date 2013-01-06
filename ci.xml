@@ -252,7 +252,7 @@
 
 	<macrodef name="jenkins-config">
 		<sequential>
-		<echo message="Configurig jenkins in: ${jenkins.dir}" />
+		<echo message="Configuring jenkins in: ${jenkins.dir}" />
 		<echo file="${jenkins.dir}/config.xml"><![CDATA[<?xml version='1.0' encoding='UTF-8'?>
 			<hudson>
 			  <disabledAdministrativeMonitors/>

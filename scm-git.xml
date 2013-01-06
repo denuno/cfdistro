@@ -5,6 +5,7 @@
 		<attribute name="command" />
 		<attribute name="dir" default="${basedir}" />
 		<attribute name="use-jgit" default="${use.jgit}" />
+		<attribute name="verbose" default="true" />
 		<element name="args" optional="true" />
 		<sequential>
 			<antcontrib:var name="git.results" unset="true" />
@@ -42,7 +43,12 @@
 					</antcontrib:if>
 				</else>
 			</antcontrib:if>
-			<echo message="${git.results}" />
+			<antcontrib:if>
+				<equals arg1="@{verbose}" arg2="true" />
+				<then>
+					<echo message="${git.results}" />
+				</then>
+			</antcontrib:if>
 		</sequential>
 	</macrodef>
 	
@@ -295,6 +301,7 @@
 						</then>
 						<else>
 							<echo message="updating src: @{dest}" />
+							<git command="fetch" dir="@{dest}"/>
 							<!-- do funky stuff to get around jgit conflict error stuff -->
 							<antcontrib:var name="tmpgitdir" unset="true" />
 							<property name="tmpgitdir" location="${temp.dir}/tmpgit"/>

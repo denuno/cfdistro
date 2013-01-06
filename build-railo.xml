@@ -877,6 +877,8 @@
 		<filter filtersfile="${basedir}/build.properties" />		
 		<!-- defaults -->
 		<property name="extension.name" value="${distro.name}"/>
+		<property name="extension.label" value="${distro.name}"/>
+		<property name="extension.author" value="${user.name}"/>
 		<property name="extension.basedir" location="${src.dir}/${distro.name}"/>
 		<property name="extension.dist" location="../dist"/>
 		<property name="extension.temp.dir" value="./temp" />
@@ -1144,7 +1146,7 @@
 	</macrodef>	
 		
 	<macrodef name="railo-error-template">
-		<attribute name="path" default="always" />
+		<attribute name="path" />
 		<attribute name="type" default="500" />
 		<sequential>
 			<echo>setting railo template-@{type} to @{path}</echo>

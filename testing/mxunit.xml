@@ -7,16 +7,12 @@
 	<property name="mxunit.recurse" value="true" />
 	<property name="mxunit.packageName" value="${mxunit.componentpath}" />
 	<dirname property="mxunit.basedir" file="${ant.file.mxunit}" />
-	<property name="mxunit.version" value="2.1.1" />
+	<property name="mxunit.version" value="2.1.3" />
 	<property name="ext.mxunit.dir" location="${ext.dir}/mxunit/${mxunit.version}" />
 	<property name="mxunit.dir" location="${war.target.dir}/mxunit" />
-	<property name="ext.mxunit.zip.uri"
-		value="http://cloud.github.com/downloads/mxunit/mxunit/mxunit-${mxunit.version}.zip" />
-	<property name="ext.mxunit.zip"
-		location="${ext.mxunit.dir}/mxunit-${mxunit.version}.zip" />
 
 	<target name="mxunit.install">
-		<dependency groupId="org.mxunit" artifactId="core" version="2.1.1" mapping="/mxunit" />
+		<dependency groupId="org.mxunit" artifactId="core" version="${mxunit.version}" mapping="/mxunit" />
 	</target>
 
 	<target name="mxunit.uninstall">

@@ -1,4 +1,4 @@
-<project name="rpm" default="build.rpm" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:redline="antlib:org.redline_rpm"  basedir=".">
+<project name="rpm" default="rpm" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:redline="antlib:org.redline_rpm"  basedir=".">
 	
     <property name="redline.ant.tasks.jar" value="${cfdistro.basedir}/lib/redline-1.1.10-SNAPSHOT.jar" />
     <property name="redline.ant.tasks.bootstrap.location" value="http://cloud.github.com/downloads/craigwblake/redline/redline-1.1.9.jar" />
@@ -127,8 +127,33 @@ fi
 		</redline:rpm>
 		<echo file="cfdistro.properties" message="cfdistro.version=${cfdistro.version}" />
 		<rpm-repo dir="${rpm.repo}" />
-	</target>
 
+		<property name="deb.repo" value="${cfdistro.basedir}/artifacts/debs/noarch" />
+		<mkdir dir="${deb.repo}"/>
+	   	<echo message="Creating debian .deb file from: ${rpm.source.dir}"/>
+	   	<delete file="${dist.dir}/${rpm.name}-${rpm.version}-1_all.deb" />
+	    <taskdef name="deb" classname="com.googlecode.ant_deb_task.Deb" classpathref="build.lib.path"/>
+	   	<deb
+	        todir="${deb.repo}"
+	        package="${rpm.name}"
+	        section="web"
+	        depends="sun-java6-jre | openjdk-6-jre">
+	        <version upstream="${cfdistro.version}"/>
+	        <maintainer name="${rpm.packager}" email="cfml@cfmlprojects.org"/>
+	        <description synopsis="${rpm.group}.${rpm.name}">${rpm.name}</description>
+			<tarfileset prefix="${rpm.target.dir}" 
+					dir="${rpm.source.dir}" excludes="${rpm.source.excludes},bin/**"
+					filemode="644" username="${rpm.user}" group="${rpm.user}" />
+			<tarfileset prefix="${rpm.target.dir}/bin/" 
+					file="${rpm.source.dir}/bin/*"
+					filemode="755" username="${rpm.user}" group="${rpm.user}" />
+			<tarfileset prefix="/bin/" 
+					file="${temp.dir}/cfdistro"
+					filemode="755" username="${rpm.user}" group="${rpm.user}" />
+	   	</deb>
+		<deb-repo dir="${deb.repo}" />
+	</target>
+	
 	<target name="add.rpmrepo.cfmlprojects" depends="bootstrap_redline">
 		<echo file="/etc/yum.repos.d/cfmlprojects.conf" message="[cfmlprojects]
 	name=cfmlprojects
@@ -144,6 +169,16 @@ fi
 				<arg value="-v"/>
 				<arg value="-d"/>
 				<arg value="@{dir}"/>
+			</exec>
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="deb-repo">
+		<attribute name="dir" default="/opt/repo/debs/noarch" />
+		<sequential>
+			<echo message="dpkg-scanpackages @{dir} | gzip -9c > @{dir}/Packages.gz"/> 
+			<exec executable="/bin/sh">
+				<arg line="dpkg-scanpackages @{dir} | gzip -9c > @{dir}/Packages.gz"/>
 			</exec>
 		</sequential>
 	</macrodef>
