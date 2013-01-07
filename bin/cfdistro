@@ -5,7 +5,7 @@ propertyfile=""
 props=""
 buildfile="build/build.xml"
 target=$1
-if [ "$2" == "-propertyfile" ] ; then
+if [ "$2" = "-propertyfile" ] ; then
 	propertyfile="-propertyfile $3"
 	shift
 	shift
@@ -23,4 +23,3 @@ do
 done
 #echo $reldir/../ant/bin/ant -nouserlib -f $reldir/build.xml $target $props
 /bin/sh $reldir/../ant/bin/ant $propertyfile -nouserlib -f $buildfile $target -Dcfdistro.build.file=$reldir/../build.xml $props
-		
