@@ -227,7 +227,7 @@ $ANTCMD $target -Dbasedir=. $parameters
 			</echo>
 			<echo file="${dist.script.bat}"><![CDATA[@echo off
 set CFDISTRO_HOME=%userprofile%\cfdistro
-set FILE_URL="https://github.com/denuno/cfdistro/zipball/master"
+set FILE_URL="http://cfmlprojects.org/artifacts/cfdistro/latest/cfdistro.zip"
 set FILE_DEST="%CFDISTRO_HOME%\cfdistro.zip"
 rem set ANT_HOME="%CFDISTRO_HOME%\ant"
 if not exist "%CFDISTRO_HOME%\cfdistro.zip" (
