@@ -3,14 +3,14 @@
 	<info>
 		<id>${extension.id}</id>
 		<type>${extension.type}</type>
-		<name>cfmarkdown-${extension.version}-extension</name>
+		<name><![CDATA[${extension.name}]]></name>
 		<label><![CDATA[${extension.label}]]></label>
 		<codename><![CDATA[${extension.codename}]]></codename>
 		<description><![CDATA[${extension.description}]]></description>
 		<sources><![CDATA[${extension.sources}]]></sources>
 		<author><![CDATA[${extension.author}]]></author>
 		<category><![CDATA[${extension.category}]]></category>
-		<image>${extension.image}</image>
+		<image><![CDATA[${extension.image}]]></image>
 		<support><![CDATA[${extension.support}]]></support>
 		<documentation><![CDATA[${extension.documentation}]]></documentation>
 		<mailinglist><![CDATA[${extension.mailinglist}]]></mailinglist>
@@ -18,6 +18,6 @@
 		<version>${extension.version}</version>
 		<packaged-by><![CDATA[${extension.packagedby}]]></packaged-by>
 		<paypal><![CDATA[${extension.paypal}]]></paypal>
-		<licensetemplate>${extension.license}</licensetemplate>
+		<licensetemplate><![CDATA[${extension.license}]]></licensetemplate>
 	</info>
 </config>

@@ -4,6 +4,7 @@
 	<property file="${user.home}/.cfdistrorc" />
 	<property name="dist.root.dir" location="../" />
 	<property file="${cfdistro.basedir}/i18n/en_us.properties" prefix="i18n" />
+	<property file="${cfdistro.basedir}/cfdistro.properties" />
 	<property file="${basedir}/build.${build.type}.properties" />
 	<property name="build.type" value="localdev" />
 <!-- 
@@ -1353,7 +1354,7 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 			</fileset>
 		</copy>
 		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
 		</copy>
 	</case>
 	<case value="src">
@@ -1377,7 +1378,7 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 			</fileset>
 		</copy>
 		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
 		</copy>
 	</case>
 	<case value="all">
@@ -1390,7 +1391,7 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 			</fileset>
 		</copy>
 		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
 		</copy>
 	</case>
 	<default>
@@ -1402,7 +1403,7 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 	</case>
 	<default>
 		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
 		</copy>
 		<chmod file="${dist.dir}/${distro.name}/build/cfdistro/ant/bin/ant" perm="ugo+rx" />
 		<!-- set the cfdistro file path to included cfdistro -->
@@ -1502,6 +1503,20 @@ cfdistro is freaking insane
    	</deb>
     </target>
 	
+	<target name="cfdistro.mvn.release" description="builds and adds to mvn repo">
+		<delete file="${dist.dir}/cfdistro.zip" />
+		<delete dir="${dist.dir}/cfdistro" />
+		<mkdir dir="${dist.dir}/cfdistro" />
+		<copy todir="${dist.dir}/cfdistro" verbose="false">
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+		</copy>
+		<zipdir destfile="${dist.dir}/cfdistro.zip" sourcedir="${dist.dir}/cfdistro" />
+		<copy file="${dist.dir}/cfdistro.zip" todir="${cfdistro.basedir}/artifacts/cfdistro/latest/cfdistro.zip" />
+		<mvn-put artifact="${dist.dir}/cfdistro.zip" packaging="zip" repoId="cfdistro.repo.local"
+		 groupId="cfdistro" artifactId="core" version="${cfdistro.version}"/>
+		
+	</target>
+
 <target name="cfdistro.install" description="installs cfdistro into user home and sets build.property cfdistro path">
 	<copy todir="${user.home}/cfdistro" verbose="false" overwrite="true">
 		<fileset dir="${cfdistro.basedir}/" excludes="ext/**" />

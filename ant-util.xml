@@ -227,10 +227,11 @@
 	<macrodef name="zipdir">
 		<attribute name="destfile" />
 		<attribute name="sourcedir" />
+		<attribute name="compresslevel" default="9" />
 		<sequential>
 			<echo>Building zip: @{destfile}</echo>
 			<exec executable="zip" dir="@{sourcedir}">
-				<arg value="-qR" />
+				<arg value="-qR@{compresslevel}" />
 				<arg value="@{destfile}" />
 				<arg value="*" />
 				<arg value="-x *.svn* *.git*" />

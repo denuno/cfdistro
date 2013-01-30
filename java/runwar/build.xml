@@ -209,7 +209,7 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 			    <os family="mac"/>
 			</condition>
 			
-  			<java jar="${cfdistro.basedir}/lib/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="true">
+  			<java jar="${cfdistro.basedir}/lib/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="false" resultproperty="runwarstatus">
 				<jvmarg line="${server.jvm.args}"/>
 				<arg value="-war" /><arg value="${runwar.war.path}" />
 				<arg value="-context" /><arg value="${runwar.war.contextpath}" />
@@ -225,16 +225,20 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 				<arg value="-requestlog" /><arg value="${runwar.keeprequestlog}" />
 				<arg value="-open-browser" /><arg value="${runwar.openbrowser}" />
 				<arg value="-open-url" /><arg value="${open.url}" />
-				<arg value="-osxprocessname" /><arg value="${distro.name}" />
-
+				<arg value="-processname" /><arg value="${distro.name}" />
 				<jvmarg line="${osxJVMargs}" />
 				<!--
-				
 				<jvmarg value="-Djetty.logs=${runwar.log.dir}" />
 				<jvmarg value="-Dorg.eclipse.jetty.util.log.DEBUG=true" />
 				<jvmarg value="-Xdebug"/>
 				-->
 			</java>
+			<antcontrib:if>
+				<not><equals arg1="0" arg2="${runwarstatus}"/></not>
+				<then>
+					<fail message="could not start runner" />
+				</then>
+			</antcontrib:if>
 			<antcontrib:if>
 				<and>
 				<equals arg1="${background}" arg2="true" />
@@ -255,8 +259,13 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 					<antcontrib:runtarget target="if.toolong.echo" />
 					<echo message="stop server with target: ${server.type}.stop"/>
 				</then>
-				<else><echo message="${runwarou}" /></else>
+				<!-- <else><echo message="${runwarou}" /></else> -->
 			</antcontrib:if>
+			<loadfile property="runwarou" srcfile="${runwar.log.dir}/server.out.txt" />
+			<antcontrib:propertyregex property="runwar.pid" input="${runwarou}" regexp=".*PID:([^\s]+)?.*" select="\1" global="false" override="yes" />
+			<antcontrib:propertyregex property="runwar.port" input="${runwarou}" regexp=".*http-port:([^\s]+)?.*" select="\1" global="false" override="yes" />
+			<antcontrib:propertyregex property="runwar.stop.socket" input="${runwarou}" regexp=".*stop-port:([^\s]+)?.*" select="\1" global="false" override="yes" />
+			<antcontrib:var name="server.port.http" value="${runwar.port}" />
 		</sequential>
 	</target>
 	

@@ -1,17 +1,23 @@
 @echo off
 if "%1" == "" goto error
-set ANT_HOME=%CD%\build\cfdistro\ant\
-set var1=%1
+set ANT_HOME=%CD%\..\ant
+set buildfile="build/build.xml"
+set args=%1
 SHIFT
 :Loop
 IF "%1"=="" GOTO Continue
-SET var1=%var1% -D%1%
+SET args=%args% -D%1%
 SHIFT
-SET var1=%var1%=%1%
+IF "%1"=="" GOTO Continue
+SET args=%args%=%1%
 SHIFT
 GOTO Loop
 :Continue
-call %CD%\build\cfdistro\ant\bin\ant.bat -nouserlib -f build/build.xml %var1%
+# if build dir exists run its build
+if not exist %buildfile% (
+	set buildfile="%CD%\..\build.xml"
+)
+call %ANT_HOME%\bin\ant.bat -nouserlib -f %buildfile% %args%
 goto end
 :error
 echo usage:

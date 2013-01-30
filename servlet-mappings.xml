@@ -39,7 +39,15 @@
 	<macrodef name="servlet-mapping">
 		<attribute name="physical" />
 		<attribute name="virtual" />
+		<attribute name="rest" default="false" />
 		<sequential>
+			<antcontrib:var unset="true" name="cfmlServletName" />
+			<antcontrib:if>
+				<equals arg1="@{rest}" arg2="true" />
+				<then>
+					<property name="cfmlServletName" value="RESTServlet" />
+				</then>
+			</antcontrib:if>
 			<antcontrib:if>
 				<equals arg1="${default.cfengine}" arg2="railo" />
 				<then>

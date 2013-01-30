@@ -91,7 +91,7 @@ public class Start {
 	private static final String SYNTAX = " java -jar runwar.jar [-war] path/to/war [options]";
 	private static final String HEADER = " The runwar lib wraps jetty-runner with more awwsome. Defaults (parenthetical)";
 	private static final String FOOTER = " source: github somewhere";
-	private static String OSXProcessName= "RunWAR";
+	private static String processName= "RunWAR";
 	private static URLClassLoader _classLoader;
 	private static String libDirs = null;
 	private static URL jarURL = null;
@@ -137,9 +137,21 @@ public class Start {
 		} else {
 			System.setProperty("java.library.path",libDir.getPath() + ":" + System.getProperty("java.library.path"));
 		}
-				
+		// check/get available ports
+        try {
+			ServerSocket nextAvail = new ServerSocket(portNumber, 1, InetAddress.getByName(host));
+			portNumber = nextAvail.getLocalPort();
+			ServerSocket nextAvail2 = new ServerSocket(socketNumber, 1, InetAddress.getByName(host));
+			socketNumber = nextAvail2.getLocalPort();
+			nextAvail.close();
+			nextAvail2.close();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+
 		//System.out.println("warpath:"+warPath+" contextPath:" + contextPath + " host:"+host+" port:" + portNumber + " cfml-dirs:"+cfmlDirs);
 		//System.out.println("background: " + background);
+
 		if (background) {
 			// this will eventually system.exit();
 			relaunchAsBackgroundProcess(launchTimeout);
@@ -150,10 +162,10 @@ public class Start {
         String osName = System.getProperties().getProperty("os.name");
         if(osName != null && osName.startsWith("Mac OS X"))
         {   
-    		System.setProperty("com.apple.mrj.application.apple.menu.about.name",OSXProcessName);
+    		System.setProperty("com.apple.mrj.application.apple.menu.about.name",processName);
     		System.setProperty("com.apple.mrj.application.growbox.intrudes","false");
     		System.setProperty("apple.laf.useScreenMenuBar","true");
-    		System.setProperty("-Xdock:name",OSXProcessName);
+    		System.setProperty("-Xdock:name",processName);
             try{
             	Image dockIcon = ImageIO.read(Start.class.getResource("/runwar/icon.png"));
             	Class<?> appClass = Class.forName("com.apple.eawt.Application");
@@ -164,13 +176,9 @@ public class Start {
             }
             catch(Exception e) { }
         }
-
-		
 		server = new Server();
-		System.out.println("warpath: " + warPath);
+		System.out.println("port:" + portNumber + " stop-port:" + socketNumber + " warpath: " + warPath);
 		System.out.println("contextPath: " + contextPath);
-		System.out.println("Port: " + portNumber);
-		System.out.println("Stop Port: " + socketNumber);
 		System.out.println("Log Directory: " + logDir);
 		System.out.println("********************************");
 		// runwar.BrowserOpener.openURL("http://127.0.0.1:8080/blah/index.cfm");
@@ -237,6 +245,7 @@ public class Start {
 			rservletHolder.setInitOrder(1);
 			context.setWelcomeFiles(new String[] {"index.cfm","index.cfml","index.html","index.htm"});
 			context.addServlet(servletHolder, "*.cfm");
+			context.addServlet(servletHolder, "*.cfc");
 			context.addServlet(rservletHolder, "/rest/*");
 		} else {
 			// WebAppContext context = new WebAppContext(contexts, warPath,contextPath);
@@ -298,7 +307,7 @@ public class Start {
 		}
 		server.start();
 		portNumber = server.getConnectors()[0].getLocalPort();
-		System.out.println("Assigned Port: " + server.getConnectors()[0].getLocalPort() + " PID:" + PID);
+		System.out.println("http-port:" + server.getConnectors()[0].getLocalPort() + " stop-port:" + socketNumber +" PID:" + PID);
 		// BrowserOpener.openURL("http://" + host + ":" + server.getConnectors()[0].getLocalPort() + contextPath +
 		// openurl.replaceFirst("^/", ""));
 		server.join();
@@ -507,14 +516,14 @@ public class Start {
 				.create("debug") );
 		
 		options.addOption( OptionBuilder
-				.withLongOpt( "osxprocessname" )
-				.withDescription( "Process name on OS X" )
+				.withLongOpt( "processname" )
+				.withDescription( "Process name where applicable" )
 				.hasArg().withArgName("name")
 				.create("procname") );
 
 		options.addOption( OptionBuilder
 				.withLongOpt( "iconpath" )
-				.withDescription( "Process name on OS X" )
+				.withDescription( "icon path for OS X" )
 				.hasArg().withArgName("path")
 				.create("icon") );
 		
@@ -615,8 +624,8 @@ public class Start {
 		    	pidFile  = line.getOptionValue("pidfile");
 		    }
 
-		    if (line.hasOption("osxprocessname")) {
-		    	OSXProcessName  = line.getOptionValue("osxprocessname");
+		    if (line.hasOption("processname")) {
+		    	processName  = line.getOptionValue("processname");
 		    }
 
 		    if (line.hasOption("icon")) {
@@ -873,10 +882,10 @@ public class Start {
 			List<String> currentVMArgs = getCurrentVMArgs();
 	        String osName = System.getProperties().getProperty("os.name");
 	        if(osName != null && osName.startsWith("Mac OS X")) {
-	        	cmdarray.add("-Dcom.apple.mrj.application.apple.menu.about.name=" + OSXProcessName);
+	        	cmdarray.add("-Dcom.apple.mrj.application.apple.menu.about.name=" + processName);
 	        	cmdarray.add("-Dcom.apple.mrj.application.growbox.intrudes=false");
 	        	cmdarray.add("-Dapple.laf.useScreenMenuBar=true");
-	        	cmdarray.add("-Xdock:name=" + OSXProcessName);
+	        	cmdarray.add("-Xdock:name=" + processName);
 	        	cmdarray.add("-Dfile.encoding=UTF-8");
 	        }
 			for(String arg : currentVMArgs) {
@@ -999,7 +1008,7 @@ public class Start {
 			};
 			
 			PopupMenu popup = new PopupMenu();
-			MenuItem item = new MenuItem("Stop Server");
+			MenuItem item = new MenuItem("Stop Server (" + processName + ")");
 			item.addActionListener(exitListener);
 			popup.add(item);
 			item = new MenuItem("Open Browser");
@@ -1009,7 +1018,7 @@ public class Start {
 			item.addActionListener(openAdminListener);
 			popup.add(item);
 			
-			trayIcon = new TrayIcon(image, "Server on " + host + ":" + portNumber + " PID:" + PID, popup);
+			trayIcon = new TrayIcon(image, processName + " server on " + host + ":" + portNumber + " PID:" + PID, popup);
 			
 			ActionListener actionListener = new ActionListener() {
 				public void actionPerformed(ActionEvent e) {

@@ -67,6 +67,11 @@
 		<unzip src="${ext.railo.war}" dest="${war.target.dir}"/>
 		<property name="extracted" location="${java.io.tmpdir}/extracted"/> 
 		<mkdir dir="${extracted}"/> 
+
+		<loadfile property="railo.web.mxl" srcfile="${war.target.dir}/WEB-INF/web.xml" />
+		<antcontrib:propertyregex override="yes" property="railo.web.mxl" input="${railo.web.mxl}" regexp="&lt;web-app[^&gt;]+&gt;" replace="&lt;web-app&gt;" global="true" />
+		<echo file="${war.target.dir}/WEB-INF/web.xml" message="${railo.web.mxl}" />
+
 		<unzip src="${war.target.dir}/WEB-INF/lib/railo.jar" dest="${extracted}">
 	        <patternset> 
 	            <include name="core/core.rc"/> 
@@ -681,6 +686,63 @@
 		</sequential>
 	</macrodef>	
 
+	<macrodef name="railo-rest-mapping">
+		<attribute name="physical" />
+		<attribute name="virtual" />
+		<attribute name="default" default="true"/>
+		<sequential>
+			<!--
+			<servlet-mapping rest="true" virtual="@{virtual}" physical="@{physical}" />
+			-->
+			<antcontrib:var name="___physical" value="@{physical}" />
+			<antcontrib:if>
+				<equals arg1="${mappings.relative}" arg2="true" />
+				<then>
+					<antcontrib:var name="___physical" unset="true" />
+					<relpath from="${war.target.dir}" to="@{physical}" property="___physical"/>
+				</then>
+			</antcontrib:if>
+			<antcontrib:var name="mapping.exists" unset="true" />
+			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+				<copy path="/railo-configuration/rest" attrValue="false" property="mapping.exists" />
+				<insert path="/railo-configuration" position="under" unless="mapping.exists">
+				<![CDATA[<rest></rest>]]>
+				</insert>
+			</xmltask>
+			<antcontrib:var name="mapping.exists" unset="true" />
+			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
+				<copy path="/railo-configuration/rest/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
+				<replace path="/railo-configuration/rest/mapping[@virtual='@{virtual}']" if="mapping.exists">
+					<![CDATA[
+					<mapping
+						virtual="@{virtual}"
+						physical="${___physical}"
+						default="@{default}"
+					/>
+					]]>
+					</replace>
+				<insert path="/railo-configuration/rest" position="under" unless="mapping.exists">
+					<![CDATA[
+					<mapping
+						virtual="@{virtual}"
+						physical="${___physical}"
+						default="@{default}"
+					/>
+					]]>
+					</insert>
+			</xmltask>
+			<antcontrib:switch value="${mapping.exists}">
+				<case value="@{virtual}">
+					<echo message="Updated REST Mapping - @{virtual}	 ${___physical}" />
+				</case>
+				<default>
+					<echo message="Added REST Mapping - @{virtual} 	${___physical}" />
+				</default>
+			</antcontrib:switch>
+			<antcontrib:var name="___physical" unset="true" />
+		</sequential>
+	</macrodef>	
+
 	<macrodef name="railo-customtag">
 		<attribute name="physical" />
 		<attribute name="virtual" />
@@ -868,32 +930,18 @@
 		</sequential>
 	</macrodef>	
 
-	<target name="extension.build" description="builds the extension">
-		<echo message="Building Extension" />
-		<tstamp/>
+	<target name="extension.loadprops">
 		<!-- these property files will override the defaults  -->
 		<property file="${basedir}/build.properties" />
 		<property file="${basedir}/build.extension.properties" />
 		<filter filtersfile="${basedir}/build.properties" />		
 		<!-- defaults -->
-		<property name="extension.name" value="${distro.name}"/>
-		<property name="extension.label" value="${distro.name}"/>
-		<property name="extension.author" value="${user.name}"/>
-		<property name="extension.basedir" location="${src.dir}/${distro.name}"/>
-		<property name="extension.dist" location="../dist"/>
-		<property name="extension.temp.dir" value="./temp" />
-		<property name="extension.lib" location="../lib"/>
-		<property name="extension.docs.dir" location="../docs"/>
-		<property name="extension.applications.dir" location="${extension.basedir}/applications"/>
-		<property name="extension.plugin.dir" location="${extension.basedir}/plugin"/>
-		<property name="extension.tag.dir" location="${extension.basedir}/tag"/>
-		<property name="extension.function.dir" location="${extension.basedir}/function"/>
-		<property name="extension.cdriver.dir" location="${extension.basedir}/cdriver"/>
-		<property name="extension.gdriver.dir" location="${extension.basedir}/gdriver"/>
-		<property name="extension.java.src.dir" location="${extension.basedir}/java/src"/>
-		<property name="extension.java.bin.dir" value="${extension.temp.dir}/javabin" />
-		<property name="extension.java.lib.dir" value="${extension.basedir}/java/lib" />
-		<property name="extension.src" value="${extension.basedir}/extension" />
+		<property file="${cfdistro.basedir}/buildtypes/build.extension.properties" />
+	</target>
+
+	<target name="extension.build" description="builds the extension" depends="extension.loadprops">
+		<echo message="Building Extension" />
+		<tstamp/>
 		<delete dir="${extension.temp.dir}" />
 		<mkdir dir="${extension.temp.dir}" />
 		<mkdir dir="${extension.dist}" />
@@ -985,6 +1033,8 @@
 	</target>
 
 	<target name="extension.mvn.release" depends="extension.build">
+		<antcontrib:var name="runwar.port" value="0" />
+		<antcontrib:var name="runwar.stop.socket" value="0" />
 		<antcontrib:runtarget target="build.mxunit.tests.run" />
 		<mvn-put artifact="${extension.dist}/${extension.archive}" packaging="zip" repoId="cfdistro.repo.local"
 		 groupId="cfml.extension.${extension.name}" artifactId="${extension.name}" version="${extension.version}"/>
@@ -1008,6 +1058,234 @@
 			</antcontrib:for>		
 		</sequential>
 	</target>
+
+	<target name="extension.submit" depends="extension.loadprops">
+		<input message="Please enter getrailo user:" addproperty="getrailo.user" />
+		<input message="Please enter getrailo password:" addproperty="getrailo.password" />
+		<railo-extension-upload 
+			railo.store.url="http://127.0.0.1:8088/railoorg/index.cfm/extensions/for-developers/index.cfm"
+			getrailo.user="${getrailo.user}"
+			getrailo.password="${getrailo.password}"
+			extension.name="${extension.name}"
+			extension.id="${extension.id}"
+			extension.file="${extension.dist}/${extension.archive}"
+			extension.image="${extension.image}"
+			extension.type="${extension.type}"
+			extension.category="${extension.category}"
+			extension.version="${extension.version}"
+			extension.summary="${extension.summary}"
+			extension.support="${extension.support}"
+			extension.paypal="${extension.paypal}"
+			extension.description="${extension.description}"
+			extension.releasenotes="${extension.releasenotes}"
+			extension.developercomments="${extension.developercomments}"
+			extension.properties.file="${basedir}/build.extension.properties"
+			extension.price="0"
+		/>
+	</target>
+	
+	
+	<macrodef name="railo-extension-upload">
+		<attribute name="railo.store.url" default="http://127.0.0.1:8088/railoorg/index.cfm/extensions/for-developers/index.cfm" />
+		<attribute name="getrailo.user" />
+		<attribute name="getrailo.password" />
+		<attribute name="result" default="uploadresult" />
+		<attribute name="extension.properties.file" />
+		<attribute name="extension.id" default="" />
+		<attribute name="extension.name" />
+		<attribute name="extension.summary" />
+		<attribute name="extension.description" />
+		<attribute name="extension.version" />
+		<attribute name="extension.file" />
+		<attribute name="extension.image" />
+		<attribute name="extension.category" />
+		<attribute name="extension.check" default="No" />
+		<attribute name="extension.price" default="0" />
+		<attribute name="extension.type" default="all" />
+		<attribute name="extension.releasenotes" default="" />
+		<attribute name="extension.developercomments" default="" />
+		<attribute name="extension.license" default="" />
+		<attribute name="extension.support" default="" />
+		<attribute name="extension.paypal" default="" />
+		<attribute name="extension.display" default="1" />
+		<sequential>
+			<echo message="submitting " /> 
+			<echoproperties prefix="extension" /> 
+			<taskdef name="httpmpost" classname="net.sf.fikin.ant.httpclientanttask.AntMultipartPostMethod" classpathref="build.lib.path" />
+			<!--
+			<property name="railo.store.url" value="http://www.getrailo.org/index.cfm/extensions/for-developers/index.cfm" />
+			-->
+			<httpmpost url="@{railo.store.url}?nocache=1" logLevel="none" sslAcceptUntrusted="true">
+				<postString name="username" value="@{getrailo.user}" />
+				<postString name="password" value="@{getrailo.password}" />
+				<postString name="rememberMe" value="1" />
+				<postString name="doaction" value="login" />
+				<postString name="linkServID" value="" />
+				<postString name="returnURL" value="" />
+			</httpmpost>
+			<httpmpost url="@{railo.store.url}?gfa=saveGadget" sslAcceptUntrusted="true" retryAttempts="1" logFile="${temp.dir}/submitlog.html">
+				<postFile name="gadgetFile" file="@{extension.file}" />
+				<!--NewFile: Icon (JPG or PNG format)"  -->
+				<postFile name="NewFile" file="@{extension.image}" />
+				<postString name="price" value="@{extension.price}" />
+				<postString name="paypalaccount" value="@{extension.paypal}" />
+				<postString name="gadgetDisplay" value="@{extension.display}" />
+				<!-- installType:  web | server | all -->
+				<postString name="installType" value="@{extension.type}" />
+				<postString name="categories" value="" />
+	<!--
+	<option value="C4686030-A00B-454E-AD3D9E4C3A7AEFA9
+	<option value="F94C5C93-ECC5-45C3-A5B7300D6D133088
+	<option value="2B587539-0D9B-40CB-9C4C97CC235B6074
+	<option value="2BA5C7E6-C0C1-4561-AA82D1862E04FF6D
+	<option value="42587D3F-6B6A-4636-8011E36903B90ABF
+	<option value="E03A1D44-F209-4529-9E4473F894D80FC9
+	-->
+				<postString name="newCategory" value="@{extension.category}" />
+				<postString name="title" value="@{extension.name}" />
+
+				<!-- description in 15 words or less -->
+				<postString name="summary" value="@{extension.summary}" />
+				<!-- long description -->
+				<postString name="body" value="@{extension.description}" />
+				<!-- Separate multiple tags with commas -->
+				<postString name="tags" value="" />
+				<postString name="extCheck" value="@{extension.check}" />
+
+				<postString name="versionNumber" value="@{extension.version}" />
+				<postString name="releaseNotes" value="@{extension.releasenotes}" />
+				<postString name="developerComments" value="@{extension.developercomments}" />
+				<!--
+	http://www.opensource.org/licenses/afl-3.0|Academic Free License 3.0 (AFL 3.0)
+		http://www.opensource.org/licenses/apl-1.0|Adaptive Public License
+		http://www.opensource.org/licenses/apache2.0|Apache License, 2.0
+		http://www.opensource.org/licenses/apsl-2.0|Apple Public Source License
+		http://www.opensource.org/licenses/artistic-license-2.0|Artistic license 2.0
+		http://www.opensource.org/licenses/attribution|Attribution Assurance Licenses
+		http://www.opensource.org/licenses/bsd-license|BSD licenses (New and Simplified)
+		http://www.opensource.org/licenses/bsl1.0|Boost Software License (BSL1.0)
+		http://www.opensource.org/licenses/ca-tosl1.1|Computer Associates Trusted Open Source License 1.1
+		http://www.opensource.org/licenses/cddl1|Common Development and Distribution License
+		http://www.opensource.org/licenses/cpal_1.0|Common Public Attribution License 1.0 (CPAL)
+		http://www.opensource.org/licenses/cuaoffice|CUA Office Public License Version 1.0
+		http://www.opensource.org/licenses/eudatagrid|EU DataGrid Software License
+		http://www.opensource.org/licenses/eclipse-1.0|Eclipse Public License
+		http://www.opensource.org/licenses/ecl2|Educational Community License, Version 2.0
+		http://www.opensource.org/licenses/ver2_eiffel|Eiffel Forum License V2.0
+		http://www.opensource.org/licenses/entessa|Entessa Public License
+		http://www.osor.eu/eupl/european-union-public-licence-eupl-v.1.1|European Union Public License
+		http://www.opensource.org/licenses/fair|Fair License
+		http://www.opensource.org/licenses/frameworx|Frameworx License
+		http://www.opensource.org/licenses/agpl-v3|GNU Affero General Public License v3 (AGPLv3)
+		http://www.opensource.org/licenses/gpl-2.0|GNU General Public License version 2.0 (GPLv2)
+		http://www.opensource.org/licenses/gpl-3.0|GNU General Public License version 3.0 (GPLv3)
+		http://www.opensource.org/licenses/lgpl-2.1|GNU Library or 'Lesser' General Public License version 2.1 (LGPLv2.1)
+		http://www.opensource.org/licenses/lgpl-3.0|GNU Library or 'Lesser' General Public License version 3.0 (LGPLv3)
+		http://www.opensource.org/licenses/historical|Historical Permission Notice and Disclaimer
+		http://www.opensource.org/licenses/ibmpl|IBM Public License
+		http://www.opensource.org/licenses/ipafont|IPA Font License
+		http://www.opensource.org/licenses/isc-license|ISC License
+		http://www.opensource.org/licenses/lppl|LaTeX Project Public License (LPPL)
+		http://www.opensource.org/licenses/lucent1.02|Lucent Public License Version 1.02
+		http://www.opensource.org/licenses/miros|MirOS Licence
+		http://www.opensource.org/licenses/ms-pl|Microsoft Public License (Ms-PL)
+		http://www.opensource.org/licenses/ms-rl|Microsoft Reciprocal License (Ms-RL)
+		http://www.opensource.org/licenses/mit-license|MIT license
+		http://www.opensource.org/licenses/motosoto|Motosoto License
+		http://www.opensource.org/licenses/mozilla1.1|Mozilla Public License 1.1 (MPL)
+		http://www.opensource.org/licenses/multics|Multics License
+		http://www.opensource.org/licenses/nasa1.3|NASA Open Source Agreement 1.3
+		http://www.opensource.org/licenses/ntp-license|NTP License
+		http://www.opensource.org/licenses/naumen|Naumen Public License
+		http://www.opensource.org/licenses/nethack|Nethack General Public License
+		http://www.opensource.org/licenses/nokia|Nokia Open Source License
+		http://www.opensource.org/licenses/NOSL3.0|Non-Profit Open Software License 3.0 (Non-Profit OSL 3.0)
+		http://www.opensource.org/licenses/oclc2|OCLC Research Public License 2.0
+		http://www.opensource.org/licenses/openfont|Open Font License 1.1 (OFL 1.1)
+		http://www.opensource.org/licenses/opengroup|Open Group Test Suite License
+		http://www.opensource.org/licenses/osl-3.0|Open Software License 3.0 (OSL 3.0)
+		http://www.opensource.org/licenses/php|PHP License
+		http://www.opensource.org/licenses/postgresql|The PostgreSQL License
+		http://www.opensource.org/licenses/pythonpl|Python license (CNRI Python License)
+		http://www.opensource.org/licenses/PythonSoftFoundation|Python Software Foundation License
+		http://www.opensource.org/licenses/qtpl|Qt Public License (QPL)
+		http://www.opensource.org/licenses/real|RealNetworks Public Source License V1.0
+		http://www.opensource.org/licenses/rpl1.5|Reciprocal Public License 1.5 (RPL1.5)
+		http://www.opensource.org/licenses/ricohpl|Ricoh Source Code Public License
+		http://www.opensource.org/licenses/simpl-2.0|Simple Public License 2.0
+		http://www.opensource.org/licenses/sleepycat|Sleepycat License
+		http://www.opensource.org/licenses/sunpublic|Sun Public License
+		http://www.opensource.org/licenses/sybase|Sybase Open Watcom Public License 1.0
+		http://www.opensource.org/licenses/UoI-NCSA|University of Illinois/NCSA Open Source License
+		http://www.opensource.org/licenses/vovidapl|Vovida Software License v. 1.0
+		http://www.opensource.org/licenses/W3C|W3C License
+		http://www.opensource.org/licenses/wxwindows|wxWindows Library License
+		http://www.opensource.org/licenses/xnet|X.Net License
+		http://www.opensource.org/licenses/zpl|Zope Public License
+		http://www.opensource.org/licenses/zlib-license|zlib/libpng license
+				-->
+				<postString name="license" value="@{extension.license}" />
+				<postString name="supportURL" value="@{extension.support}" />
+				<!--
+				<postFile name="image1" file="" />
+				<postFile name="image2" file="" />
+				<postFile name="image3" file="" />
+				<postFile name="image4" file="" />
+				<postFile name="image5" file="" />
+				<postFile name="video" file="" />
+				-->
+				<postString name="notes" value="" />
+
+				<postString name="tac" value="on" />
+				<postString name="submit" value="Submit" />
+				<postString name="gadgetID" value="@{extension.id}" />
+			</httpmpost>
+			<antcontrib:var unset="true" name="extension.submit.result"/>
+			<antcontrib:var unset="true" name="extension.submit.error"/>
+			<loadfile property="extension.submit.result" srcfile="${temp.dir}/submitlog.html">
+				<filterchain>         
+					<containsregex pattern=".*GADGETID_FOR_SDK:([^\s]+)?.*" replace="\1"/>
+					<striplinebreaks/>
+				</filterchain>
+			</loadfile>
+			<loadfile property="extension.submit.error" srcfile="${temp.dir}/submitlog.html">
+				 <filterchain><tailfilter lines="7" /><trim/></filterchain>
+			</loadfile>
+			<fail unless="extension.submit.result" message="Error submitting extension! See ${temp.dir}/submitlog.html ${extension.submit.error}" />
+			<echo message="Extension submitted: ID:${extension.submit.result}"/>
+			<antcontrib:if description="save ID if new">
+				<equals arg1="@{extension.id}" arg2="" />
+				<then>
+					<propertyfile file="@{extension.properties.file}">
+						<entry key="extension.id" value="${extension.submit.result}"/>
+					</propertyfile>
+				</then>
+			</antcontrib:if>
+			<!-- UPLOAD THE IMAGE NOT SURE WHY DOESN'T WORK WITH ABOVE -->
+			<httpmpost url="@{railo.store.url}?gfa=saveGadget" sslAcceptUntrusted="true" retryAttempts="1" logFile="${temp.dir}/submitlog.html">
+				<!--NewFile: Icon (JPG or PNG format)"  -->
+				<postFile name="NewFile" file="@{extension.image}" />
+				<postString name="price" value="@{extension.price}" />
+				<postString name="paypalaccount" value="@{extension.paypal}" />
+				<postString name="gadgetDisplay" value="@{extension.display}" />
+				<postString name="installType" value="@{extension.type}" />
+				<postString name="title" value="@{extension.name}" />
+				<postString name="summary" value="@{extension.summary}" />
+				<postString name="body" value="@{extension.description}" />
+				<postString name="tags" value="" />
+				<postString name="extCheck" value="@{extension.check}" />
+				<postString name="versionNumber" value="@{extension.version}" />
+				<postString name="releaseNotes" value="@{extension.releasenotes}" />
+				<postString name="developerComments" value="@{extension.developercomments}" />
+				<postString name="license" value="@{extension.license}" />
+				<postString name="supportURL" value="@{extension.support}" />
+				<postString name="notes" value="" />
+				<postString name="tac" value="on" />
+				<postString name="submit" value="Submit" />
+				<postString name="gadgetID" value="@{extension.id}" />
+			</httpmpost>		
+		</sequential>
+	</macrodef>
 
 	<macrodef name="railo-extension-install">
 		<attribute name="extension-zip" />

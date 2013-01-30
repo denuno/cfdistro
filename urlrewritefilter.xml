@@ -1,6 +1,7 @@
 <project name="urlrewritefilter" default="urlrewritefilter.update"
 	basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
+	<property name="urlrewritefilter.version" value="4.0.3" />
 	<property name="urlrewritefilter.version" value="3.2.0" />
 
 	<target name="urlrewritefilter.servlet.install" depends="exists.urlrewrite.xml">
