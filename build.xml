@@ -1512,7 +1512,7 @@ cfdistro is freaking insane
 		</copy>
 		<zipdir destfile="${dist.dir}/cfdistro.zip" sourcedir="${dist.dir}/cfdistro" />
 		<mkdir dir="${cfdistro.repo.local.path}/artifacts/cfdistro/latest" />
-		<copy file="${dist.dir}/cfdistro.zip" todir="${cfdistro.repo.local.path}/artifacts/cfdistro/latest" overwrite="true" />
+		<copy file="${dist.dir}/cfdistro.zip" todir="${cfdistro.repo.local.path}/cfdistro/latest" overwrite="true" />
 		<mvn-put artifact="${dist.dir}/cfdistro.zip" packaging="zip" repoId="cfdistro.repo.local"
 		 groupId="cfdistro" artifactId="core" version="${cfdistro.version}"/>
 		
