@@ -229,8 +229,9 @@
 		<attribute name="sourcedir" />
 		<attribute name="compresslevel" default="9" />
 		<sequential>
+			<property name="zip.cmd" default="zip" />
 			<echo>Building zip: @{destfile}</echo>
-			<exec executable="zip" dir="@{sourcedir}">
+			<exec executable="${zip.cmd}" dir="@{sourcedir}">
 				<arg value="-qR@{compresslevel}" />
 				<arg value="@{destfile}" />
 				<arg value="*" />
