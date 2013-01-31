@@ -1299,15 +1299,10 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 
 <target name="cfdistro.update">
 	<property name="source-root" value="${cfdistro.basedir}" />
+	<property name="cfdistro.update.url" value="http://cfmlprojects.org/artifacts/cfdistro/latest/cfdistro.zip" />
 	<mkdir dir="${cfdistro.basedir}/temp-cfd-update" />
-	<required-resource
-		src="http://cfmlprojects.org/artifacts/cfdistro/latest/cfdistro.zip"
-		dest="${cfdistro.basedir}/temp-cfd-update" />
-	<copy todir="${source-root}/../" failonerror="false">
-		<fileset dir="${cfdistro.basedir}/temp-cfd-update">
-			<include name="**" />
-		</fileset>
-	</copy>
+	<get src="${cfdistro.update.url}" dest="${cfdistro.basedir}/temp-cfd-update" />
+	<unzip dest="${source-root}/../" src="${cfdistro.basedir}/temp-cfd-update/cfdistro.zip" />
 	<delete dir="${cfdistro.basedir}/temp-cfd-update" />
 </target>
 
