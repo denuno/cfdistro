@@ -1298,12 +1298,13 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 </target>
 
 <target name="cfdistro.update">
-	<property name="source-root" value="${cfdistro.basedir}" />
+	<property name="cfdistro.update.basedir" value="${cfdistro.basedir}" />
 	<property name="cfdistro.update.url" value="http://cfmlprojects.org/artifacts/cfdistro/latest/cfdistro.zip" />
-	<mkdir dir="${cfdistro.basedir}/temp-cfd-update" />
-	<get src="${cfdistro.update.url}" dest="${cfdistro.basedir}/temp-cfd-update" />
-	<unzip dest="${source-root}/../" src="${cfdistro.basedir}/temp-cfd-update/cfdistro.zip" />
-	<delete dir="${cfdistro.basedir}/temp-cfd-update" />
+	<property name="cfdistro.update.tempdir" value="${cfdistro.basedir}/temp-cfd-update" />
+	<mkdir dir="${cfdistro.update.tempdir}" />
+	<get src="${cfdistro.update.url}" dest="${cfdistro.update.tempdir}" />
+	<unzip dest="${cfdistro.update.basedir}" src="${cfdistro.update.tempdir}/cfdistro.zip" />
+	<delete dir="${cfdistro.update.tempdir}" />
 </target>
 
 <target name="echoproperties" description="lists set properties">
