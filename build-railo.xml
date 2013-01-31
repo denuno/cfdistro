@@ -963,8 +963,8 @@
 				<propertyref prefix="extension." />
 			</propertyset>
 		</echoproperties>
-
-		<antcontrib:var name="extension.archive" value="${extension.name}-${extension.version}-extension.zip"/>
+		<antcontrib:var name="extension.majorminor" value="${extension.build.version.major}.${extension.build.version.minor}"/>
+		<antcontrib:var name="extension.archive" value="${extension.name}-${extension.majorminor}-extension.zip"/>
 		<delete file="${extension.dist}/${extension.archive}" />
 		<antcontrib:if>
 			<available file="${extension.src}/config.xml"/>
@@ -1022,8 +1022,8 @@
 		</zip>
 <!--
 		<delete dir="${extension.temp.dir}" />
--->
 		<delete file="${extension.lib}/${extension.java.jar}"/>
+-->
 		<delete>
 			<fileset dir="." includes="content.zip,libs.zip,tag.zip,plugin.zip,function.zip" />
 		</delete>

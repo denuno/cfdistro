@@ -1298,27 +1298,19 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 </target>
 
 <target name="cfdistro.update">
-<property name="source-root" value="${cfdistro.basedir}" />
-<property name="repository.URL" value="http://subversion.assembla.com/svn/cfdistro" />
-
-<mkdir dir="${cfdistro.basedir}/temp-cfd-update" />
-<java classname="org.tmatesoft.svn.cli.SVN" dir="${cfdistro.basedir}/temp-cfd-update" fork="true">
-	<arg value="export" />
-	<arg value="--force" />
-	<arg value="${repository.URL}/trunk/cfdistro/src/cfdistro" />
-	<classpath>
-		<pathelement location="${cfdistro.basedir}/lib/ganymed.jar" />
-		<pathelement location="${cfdistro.basedir}/lib/svnkit.jar" />
-		<pathelement location="${cfdistro.basedir}/lib/svnkit-cli.jar" />
-	</classpath>
-</java>
-<copy todir="${source-root}/../" failonerror="false">
-	<fileset dir="${cfdistro.basedir}/temp-cfd-update">
-		<include name="**" />
-	</fileset>
-</copy>
-<delete dir="${cfdistro.basedir}/temp-cfd-update" />
+	<property name="source-root" value="${cfdistro.basedir}" />
+	<mkdir dir="${cfdistro.basedir}/temp-cfd-update" />
+	<required-resource
+		src="http://cfmlprojects.org/artifacts/cfdistro/latest/cfdistro.zip"
+		dest="${cfdistro.basedir}/temp-cfd-update" />
+	<copy todir="${source-root}/../" failonerror="false">
+		<fileset dir="${cfdistro.basedir}/temp-cfd-update">
+			<include name="**" />
+		</fileset>
+	</copy>
+	<delete dir="${cfdistro.basedir}/temp-cfd-update" />
 </target>
+
 <target name="echoproperties" description="lists set properties">
 	<echoproperties />
 </target>
