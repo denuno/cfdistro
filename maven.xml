@@ -177,9 +177,9 @@
 
 
     <target name="mvn.deploy.jre" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
-    	<antcontrib:var name="mvn.jre.version" value="1.7.0_09" />
+    	<antcontrib:var name="mvn.jre.version" value="1.7.0_15" />
 		<!--
-		<antcontrib:var name="mvn.jre.version" value="1.6.0_37" />
+		<antcontrib:var name="mvn.jre.version" value="1.6.0_41" />
     	-->
 		<property name="mvn.jre.dir" value="${basedir}/../jre" />
 		<pom-and-deploy pomid="jre.pom" packaging="pom" buildtype="${mvn.type}"
@@ -198,9 +198,9 @@
     <target name="pack2zip.jre" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="convert packed bins to zip">
 		<!-- only used to fill repo initially - put exploded JREs in arch subdirs -->
 		<property name="mvn.jre.tmp" location="${temp.dir}/jre" />
-    	<antcontrib:var name="mvn.jre.version" value="1.7.0_09" />
+		<antcontrib:var name="mvn.jre.version" value="1.6.0_41" />
 		<!--
-		<antcontrib:var name="mvn.jre.version" value="1.6.0_37" />
+    	<antcontrib:var name="mvn.jre.version" value="1.7.0_15" />
     	-->
 		<property name="mvn.jre.dir" location="${basedir}/../jre" />
     	<delete dir="${temp.dir}" />
@@ -241,7 +241,6 @@
 				</exec>
 			</sequential>
     	</antcontrib:for>
-    	<fail/>
 		<echo message="*** UNPACKING AND REPACKING WINDOWS PACKS ***" />    	
     	<antcontrib:for param="file">
 			<path><fileset dir="${mvn.jre.dir}" includes="*.exe" /></path>

@@ -178,7 +178,7 @@
 a tiny 2m jar but getPageContext() throws errors!!
 	<property name="jetty-runner.jar" value="jetty-runner-8.0.4.v20111024.jar" />
 -->
-	<property name="jetty-runner.version" value="8.1.5.v20120716" />
+	<property name="jetty-runner.version" value="8.1.8.v20121106" />
 	<property name="jetty-runner.jar" value="jetty-runner-${jetty-runner.version}.jar" />
 
 	<property name="ext.uri" value="http://subversion.assembla.com/svn/cfdistro/trunk/cfdistro/ext" />
