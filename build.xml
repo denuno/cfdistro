@@ -1,7 +1,8 @@
 <project name="cfdistro" default="help" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:classloader="antlib:net.jtools.classloadertask">
 
 	<dirname property="cfdistro.basedir" file="${ant.file.cfdistro}" />
-	<property file="${user.home}/.cfdistrorc" />
+	<property name="user.cfdistrorc" location="${user.home}/.cfdistrorc" />
+	<property file="${user.cfdistrorc}" />
 	<property name="dist.root.dir" location="../" />
 	<property file="${cfdistro.basedir}/i18n/en_us.properties" prefix="i18n" />
 	<property file="${cfdistro.basedir}/cfdistro.properties" />
@@ -182,7 +183,7 @@ a tiny 2m jar but getPageContext() throws errors!!
 	<property name="jetty-runner.jar" value="jetty-runner-${jetty-runner.version}.jar" />
 
 	<property name="ext.uri" value="http://subversion.assembla.com/svn/cfdistro/trunk/cfdistro/ext" />
-	<property name="creds.token.file" value="${basedir}/creds.txt" />
+	<property name="creds.token.file" value="${user.cfdistrorc}" />
 
 	<property name="dist.zip.file" value="${dist.dir}/${distro.name}.zip" />
 	<property name="jps.executable" value="${java.home}/bin/jps" />
@@ -648,28 +649,35 @@ a tiny 2m jar but getPageContext() throws errors!!
 		<sequential>
 			<antcontrib:var name="some.mapping.exists" unset="true" />
 			<antcontrib:var name="mapping.exists" unset="true" />
-			<xmltask source="${mappings.file}" dest="${mappings.file}">
-				<xmlcatalog refId="commonDTDs" />
-				<copy path="/mappings/text()" property="some.mapping.exists" />
-				<!-- if no mappings at all, just insert -->
-				<insert path="/mappings" position="under" unless="some.mapping.exists">
-					<![CDATA[
-  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
-  					]]>
-				</insert>
-				<!-- if some mappings exist we can update and add -->
-				<copy path="/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
-				<replace path="/mappings/mapping[@virtual=@{virtual}]/text()" if="mapping.exists">
-					<![CDATA[
-  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
-  					]]>
-  					</replace>
-				<insert path="/mappings" position="under" unless="mapping.exists">
-					<![CDATA[
-  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
-  					]]>
-				</insert>
-			</xmltask>
+			<antcontrib:if>
+				<available file="${mappings.file}" />
+				<then>
+					<xmltask source="${mappings.file}" dest="${mappings.file}">
+						<xmlcatalog refId="commonDTDs" />
+						<copy path="/mappings/text()" property="some.mapping.exists" />
+						<!-- if no mappings at all, just insert -->
+						<insert path="/mappings" position="under" unless="some.mapping.exists">
+							<![CDATA[
+		  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
+		  					]]>
+						</insert>
+						<!-- if some mappings exist we can update and add -->
+						<copy path="/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
+						<replace path="/mappings/mapping[@virtual=@{virtual}]/text()" if="mapping.exists">
+							<![CDATA[
+		  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
+		  					]]>
+		  					</replace>
+						<insert path="/mappings" position="under" unless="mapping.exists">
+							<![CDATA[
+		  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
+		  					]]>
+						</insert>
+					</xmltask>
+				</then>
+				<else><echo message="No mapping file (${mappings.file}), mapping will be set for war only"/></else>
+			</antcontrib:if>
+
 			<antcontrib:switch value="${mapping.exists}">
 				<case value="@{virtual}">
 					<echo message="mappings.xml [updated] - @{virtual}	[@{physicalxml}] (@{physical})" />

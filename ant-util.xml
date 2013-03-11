@@ -176,7 +176,7 @@
 		<attribute name="target" default="@{compliance}" />
 		<attribute name="source" default="@{compliance}" />
 		<attribute name="encoding" default="UTF-8" />
-		<attribute name="maxmemory" default="128" />
+		<attribute name="maxmemory" default="128M" />
 		<attribute name="fork" default="true" />
 		<sequential>
 			<mkdir dir="${temp.dir}" />
