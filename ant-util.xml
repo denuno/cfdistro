@@ -582,68 +582,74 @@
 		<attribute name="name"/>
 		<attribute name="jps" default="${java.home}/bin/jps" />
 		<sequential>
-			<!-- Execute the jps and check for any Java process with the provided @{name} attribute -->
-			<exec executable="@{jps}" output="pid.out.file" />
-			<!-- Load in the name / pid file and strip all information except the PID -->
-			<loadfile srcfile="pid.out.file" property="pid.out">
-				<filterchain>
-					<linecontains>
-						<contains value="@{name}"/>
-					</linecontains>
-					<tokenfilter>
-						<deletecharacters chars="@{name}"/>
-					</tokenfilter>
-					<striplinebreaks/>
-				</filterchain>
-			</loadfile>
-			<antcontrib:propertyregex property="pid.out"
-			              input="${pid.out}"
-			              regexp="[\s]?(\d+)?.*"
-			              select="\1" override="true"
-			              casesensitive="false"
-			 />
 			<antcontrib:if>
-				<or>
-					<equals arg1="${pid.out}" arg2="" />
-					<equals arg1="${pid.out}" arg2="$${pid.out}" />
-				</or>
+				<available file="@{jps}" />
+				<else><echo message="no @{jps} found, cannot find and kill process"/></else>
 				<then>
-					<echo message="No process named @{name} found to kill."/>
+					<!-- Execute the jps and check for any Java process with the provided @{name} attribute -->
+					<exec executable="@{jps}" output="pid.out.file" />
+					<!-- Load in the name / pid file and strip all information except the PID -->
+					<loadfile srcfile="pid.out.file" property="pid.out">
+						<filterchain>
+							<linecontains>
+								<contains value="@{name}"/>
+							</linecontains>
+							<tokenfilter>
+								<deletecharacters chars="@{name}"/>
+							</tokenfilter>
+							<striplinebreaks/>
+						</filterchain>
+					</loadfile>
+					<antcontrib:propertyregex property="pid.out"
+					              input="${pid.out}"
+					              regexp="[\s]?(\d+)?.*"
+					              select="\1" override="true"
+					              casesensitive="false"
+					 />
+					<antcontrib:if>
+						<or>
+							<equals arg1="${pid.out}" arg2="" />
+							<equals arg1="${pid.out}" arg2="$${pid.out}" />
+						</or>
+						<then>
+							<echo message="No process named @{name} found to kill."/>
+						</then>
+						<else>
+							<echo message="Killing java process with pid ${pid.out} (@{name})"/>
+							<antcontrib:switch value="${os.name}">
+								<case value="Mac OS X">
+									<exec spawn="true" executable="kill">
+										<arg line="-9" />
+										<arg line="${pid.out}" />
+									</exec>
+								</case>
+								<case value="Linux">
+									<exec spawn="true" executable="kill">
+										<arg line="-9" />
+										<arg line="${pid.out}" />
+									</exec>
+								</case>
+								<case value="Windows">
+									<exec spawn="true" executable="taskkill">
+										<arg line="/PID ${pid.out}" />
+										<arg line="/F" />
+									</exec>
+								</case>
+								<case value="Windows 7">
+									<exec spawn="true" executable="taskkill">
+										<arg line="/PID ${pid.out}" />
+										<arg line="/F" />
+									</exec>
+								</case>
+								<default>
+									<fail message="Um, the os '${os.name}' is unknown to me, esse!" />
+								</default>
+							</antcontrib:switch>
+						</else>
+					</antcontrib:if>
+			  		<delete file="pid.out.file" />
 				</then>
-				<else>
-					<echo message="Killing java process with pid ${pid.out} (@{name})"/>
-					<antcontrib:switch value="${os.name}">
-						<case value="Mac OS X">
-							<exec spawn="true" executable="kill">
-								<arg line="-9" />
-								<arg line="${pid.out}" />
-							</exec>
-						</case>
-						<case value="Linux">
-							<exec spawn="true" executable="kill">
-								<arg line="-9" />
-								<arg line="${pid.out}" />
-							</exec>
-						</case>
-						<case value="Windows">
-							<exec spawn="true" executable="taskkill">
-								<arg line="/PID ${pid.out}" />
-								<arg line="/F" />
-							</exec>
-						</case>
-						<case value="Windows 7">
-							<exec spawn="true" executable="taskkill">
-								<arg line="/PID ${pid.out}" />
-								<arg line="/F" />
-							</exec>
-						</case>
-						<default>
-							<fail message="Um, the os '${os.name}' is unknown to me, esse!" />
-						</default>
-					</antcontrib:switch>
-				</else>
 			</antcontrib:if>
-	  		<delete file="pid.out.file" />
 		</sequential>
 	</macrodef>	
 
