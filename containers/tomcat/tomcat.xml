@@ -10,7 +10,7 @@
 	<property name="server.sharedlibs" value="false"/>
 
 	<property name="ext.tomcat.version" value="7" />
-	<property name="ext.tomcat.version.minor" value="0.29" />
+	<property name="ext.tomcat.version.minor" value="0.39" />
 	<property name="tomcat.host" value="${server.host}"/>
 	<property name="tomcat.host.aliases" value=""/>
 	<property name="ext.tomcat.dir" location="${ext.dir}/tomcat/${ext.tomcat.version}" />
