@@ -121,9 +121,9 @@
 					<stuff />
 				</try>
 				<catch>
-					<echo message="something erred esse! ${_erredesse}"/>
-					<antcontrib:runtarget target="server.log.tail" />
 					<property name="server-run.failed" value="true"/>
+					<echo message="something erred esse! ${_erredesse}"/>
+					<server-log-tail />
 				</catch>
 			</antcontrib:trycatch>
 			<antcontrib:runtarget target="server.stop" />
@@ -131,20 +131,36 @@
 		</sequential>
 	</macrodef>
 
+	<macrodef name="server-log-tail">
+		<attribute name="dir" default="${server.log.dir}" />
+		<attribute name="lines" default="30" />
+		<sequential>
+			<antcontrib:if>
+				<available file="@{dir}"/>
+				<then>
+					<antcontrib:for param="file">
+						<fileset dir="@{dir}" includes="*.log"/>
+						<sequential>
+							<echo message="*** last @{lines} lines from @{file} ***" />
+							<antcontrib:var name="logfile.tail" unset="true" />
+							<loadfile srcfile="@{file}" property="logfile.tail">
+								<filterchain>
+									<tailfilter lines="@{lines}"/>
+								</filterchain>
+							</loadfile>
+							<echo message="${logfile.tail}"/>
+						</sequential>
+					</antcontrib:for>
+				</then>
+				<else>
+					<echo message="server.log.dir does not exist: @{dir}" />
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+
 	<target name="server.log.tail" depends="get.server.log.dir">
-		<antcontrib:for param="file">
-			<fileset dir="${server.log.dir}" includes="*.log"/>
-			<sequential>
-				<echo message="*** last 25 lines from @{file} ***" />
-				<antcontrib:var name="logfile.tail" unset="true" />
-				<loadfile srcfile="@{file}" property="logfile.tail">
-					<filterchain>
-						<tailfilter lines="25"/>
-					</filterchain>
-				</loadfile>
-				<echo message="${logfile.tail}"/>
-			</sequential>
-		</antcontrib:for>
+		<server-log-tail />
 	</target>
 
 	<target name="server.install" description="installs ${server.type} server">

@@ -153,6 +153,7 @@
 	<property name="tests.dir" location="../tests" />
 	<property name="conf.dir" location="../conf" />
 	<property name="temp.dir" location="./temp" />
+	<property name="temp.dir.absolute" location="${temp.dir}" />
 	<property name="temp.file" location="${temp.dir}/sometempfile.txt" />
 	<property name="mappings.path.rel.to.war" value="true" />
 
@@ -168,8 +169,6 @@
 	<property name="ext.mappings.dir" location="${ext.dir}/mappings" />
 	<property name="ext.acf.dir" location="${ext.dir}/acf" />
 	<property name="ext.acf.war" location="${ext.acf.dir}/9/cfusion.war" />
-	<property name="temp.dir" location="./temp" />
-	<property name="temp.dir.absolute" location="${temp.dir}" />
 
 	<property name="mappings.file" value="${basedir}/mappings.xml" />
 	<property name="mappings.relative" value="true" />

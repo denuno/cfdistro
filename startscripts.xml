@@ -178,7 +178,7 @@ if [ ! -d "$ANT_HOME" ]; then
     echo "Downloading cfdistro now..."
     CFDISTRO_DIR=`dirname "$CFDISTRO_ZIP"`
     mkdir -p "$CFDISTRO_DIR"
-    CFDISTRO_URL="https://github.com/denuno/cfdistro/zipball/master"
+    CFDISTRO_URL="http://cfmlprojects.org/artifacts/cfdistro/latest/cfdistro.zip"
     $HTTP_CLIENT "$CFDISTRO_ZIP" "$CFDISTRO_URL"
     if [ $? != 0 ]; then
         echo "Failed to download $CFDISTRO_URL"
