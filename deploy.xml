@@ -59,10 +59,6 @@
 		</sequential>
 	</macrodef>
 	
-	<target name="get.server.log.dir">
-		<antcontrib:runtarget target="${server.type}.server.log.dir" />
-	</target>
-
 	<target name="remote.sshexec.test">
 		<sequential>
 			<echoproperties prefix="deploy" />

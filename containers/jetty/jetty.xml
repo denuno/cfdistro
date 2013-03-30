@@ -194,6 +194,66 @@
 		</copy>
 	</target>	
 
+	<target name="cfdistro.jetty.mvn">
+        <!--  create no asm jetty runner -->
+		<delete dir="${temp.dir}/jetty" />
+		<mkdir dir="${temp.dir}/jetty" />
+	    <unzip dest="${temp.dir}/jetty">
+			<!-- <fileset file="${railo.lib.dir}/javax.servlet.jar"/> --> 
+			<fileset dir="${cfdistro.basedir}/lib/" includes="${jetty-runner.jar}" /> 
+	    </unzip>
+	    <delete dir="${temp.dir}/jetty/org/objectweb/" />
+		<zip destfile="${temp.dir}/${jetty-runner.jar}" level="9">
+			<fileset dir="${temp.dir}/jetty" /> 
+		</zip>
+		<pom-and-deploy pomid="jerry-runner-noasm.pom" packaging="jar" artifact="${temp.dir}/${jetty-runner.jar}" buildtype="release"
+		 groupId="org.eclipse.jetty" artifactId="jetty-runner-noasm" version="${jetty-runner.version}" name="jetty-runner-noasm"/>
+		
+		<mkdir dir="${temp.dir}/jetty/simpleserver/"/>
+		<echo file="${temp.dir}/jetty/simpleserver/Main.java">import org.eclipse.jetty.server.Server;
+			import org.eclipse.jetty.webapp.WebAppContext;
+			public class Main {
+			    public static void main(String[] args) throws Exception{
+			        String webappDirLocation = System.getenv("war");
+			        String webPort = System.getenv("PORT");
+			        if(webPort == null || webPort.isEmpty()) {
+			            webPort = "8080";
+			        }
+			        if(webappDirLocation == null) {
+						webappDirLocation = System.getProperty("war");
+			        }
+			        if(webappDirLocation == null) {
+						webappDirLocation = args[0];
+			        }
+					System.out.println("Starting on port: " + webPort + " with war: " + webappDirLocation);
+			        Server server = new Server(Integer.valueOf(webPort));
+			        WebAppContext root = new WebAppContext();
+			        root.setContextPath("/");
+			        root.setDescriptor(webappDirLocation+"/WEB-INF/web.xml");
+			        root.setResourceBase(webappDirLocation);
+			        //Parent loader priority is a class loader setting that Jetty accepts.
+			        //By default Jetty will behave like most web containers in that it will
+			        //allow your application to replace non-server libraries that are part of the
+			        //container. Setting parent loader priority to true changes this behavior.
+			        //Read more here: http://wiki.eclipse.org/Jetty/Reference/Jetty_Classloading
+			        root.setParentLoaderPriority(true);
+			        server.setHandler(root);
+			        server.start();
+			        server.join();   
+			    }
+			}</echo>
+		<javac-ecj srcdir="${temp.dir}/jetty/simpleserver/" destdir="${temp.dir}/jetty/simpleserver/"
+			classpath="${toString:runwar.lib.path}"/>
+		<jar destfile="${temp.dir}/simpleserver.jar"
+	         basedir="${temp.dir}/jetty/simpleserver/" 
+	         includes="**/*.class" filesetmanifest="mergewithoutmain">
+			<manifest><attribute name="Main-Class" value="Main" /></manifest>
+		</jar>
+		<pom-and-deploy pomid="simpleserver.pom" packaging="jar" artifact="${temp.dir}/simpleserver.jar" buildtype="release"
+		 groupId="org.eclipse.jetty" artifactId="simpleserver" version="1.0.0.0" name="simpleserver"/>
+		<delete dir="${temp.dir}/jetty" />
+	</target>	
+
     <!-- uses settings from deploy.xml stuff -->
     <target name="jetty.war.deploy" description="Install application to servlet container">
 		<requires-ext resource="/ext/containers/jetty/" />

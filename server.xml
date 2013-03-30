@@ -1,7 +1,13 @@
 <project name="server" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
 	<target name="get.server.log.dir">
-		<antcontrib:runtarget target="${server.type}.server.log.dir" />
+		<antcontrib:trycatch>
+			<try>
+				<antcontrib:runtarget target="${server.type}.server.log.dir" />
+			</try>
+			<catch>
+			</catch>
+		</antcontrib:trycatch>
 	</target>
 
 	<property name="server.deploy.dir" location="${war.target.dir}/../"/>
@@ -116,6 +122,7 @@
 				</try>
 				<catch>
 					<echo message="something erred esse! ${_erredesse}"/>
+					<antcontrib:runtarget target="server.log.tail" />
 					<property name="server-run.failed" value="true"/>
 				</catch>
 			</antcontrib:trycatch>

@@ -42,7 +42,6 @@
 			</fileset>
 			<report format="frames" todir="${mxunit.tests.results.dir}/html" styledir="${mxunit.basedir}" />
 		</junitreport>
-		<delete dir="${output.dir}" />
 		<antcontrib:if>
 			<equals arg1="${mxunit.failonerror}" arg2="true" />
 			<then>

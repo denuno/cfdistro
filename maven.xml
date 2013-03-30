@@ -277,6 +277,66 @@
     	<delete dir="${temp.dir}" />
 	</target>	
 		
+    <target name="jre.7.update" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="convert packed bins to zip">
+        <property name="mvn.repo.id" value="cfdistro.repo.local" />
+		<property name="mvn.jre.tmp" location="${temp.dir}/jre" />
+		<property name="mvn.jre.dir" location="${basedir}/../jre" />
+		<property name="jre.prefix" value="jre-7u17" />
+		<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
+			input="${jre.prefix}" regexp="jre-(\d)u(\d+)" replace="1.\1.0_\2"/>
+    	<input message="Do you agree to the ${jre.version} license?" addproperty="jre.lic.agree" />
+    	<delete dir="${temp.dir}" />
+    	<mkdir dir="${temp.dir}" />
+    	<mkdir dir="${mvn.jre.tmp}" />
+		<echo message="*** GETTING JRE ${jre.version} ***" />    	
+    	<antcontrib:for list="linux-i586,linux-x64,macosx-x64,windows-i586,windows-x64" param="file">
+			<sequential>
+				<echo message="*** GETTING JRE : ${jre.version} ${jre.prefix}-@{file} ***" />    	
+				<exec executable="wget">
+					<arg value="--no-check-certificate"/>
+				    <arg line='--header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F"'/>
+				    <arg value="-O"/>
+				    <arg value="${mvn.jre.tmp}/${jre.prefix}-@{file}.tar.gz"/>
+				    <arg value="http://download.oracle.com/otn-pub/java/jdk/7u17-b02/${jre.prefix}-@{file}.tar.gz"/>
+				</exec>
+				<gunzip src="${mvn.jre.tmp}/${jre.prefix}-@{file}.tar.gz" dest="${mvn.jre.tmp}/${jre.prefix}-@{file}.tar"/>
+				<untar src="${mvn.jre.tmp}/${jre.prefix}-@{file}.tar" dest="${mvn.jre.tmp}/@{file}"/>
+				<antcontrib:if>
+		    		<available file="${mvn.jre.tmp}/@{file}/jre${jre.version}.jre/Contents/Home/" />
+		    		<then><!-- OS X -->
+						<move todir="${mvn.jre.tmp}/@{file}/jre${jre.version}">
+						  <fileset dir="${mvn.jre.tmp}/@{file}/jre${jre.version}.jre/Contents">
+						    <include name="*/**"/>
+						    <exclude name="*"/>
+						  </fileset>
+						  <regexpmapper from="^[^/]*/(.*)$$" to="\1" handledirsep="true"/>
+						</move>
+		    	    	<delete dir="${mvn.jre.tmp}/@{file}/jre${jre.version}.jre" />
+		    		</then>
+		    	</antcontrib:if>
+		    	<antcontrib:if>
+		    		<available file="${mvn.jre.tmp}/@{file}/jre${jre.version}/bin" />
+		    		<then>
+						<chmod dir="${mvn.jre.tmp}/@{file}/jre${jre.version}/bin" perm="+x" includes="*"/>
+		    		</then>
+		    	</antcontrib:if>
+	    		<zipdir destfile="${mvn.jre.tmp}/jre${jre.version}-@{file}.zip" sourcedir="${mvn.jre.tmp}/@{file}/jre${jre.version}/" />
+			</sequential>
+    	</antcontrib:for>
+    	<echo message="*** POMN ***" />    	
+		<pom-and-deploy pomid="jre.pom" packaging="pom" buildtype="${mvn.type}"
+		 groupId="oracle" artifactId="jre" version="${jre.version}" name="oracle.jre">
+			<attachments>
+        		<attach file="${mvn.jre.tmp}/jre${jre.version}-linux-i586.zip" type="zip" classifier="linux32"/>
+        		<attach file="${mvn.jre.tmp}/jre${jre.version}-linux-x64.zip" type="zip" classifier="linux64"/>
+        		<attach file="${mvn.jre.tmp}/jre${jre.version}-macosx-x64.zip" type="zip" classifier="darwin64"/>
+        		<attach file="${mvn.jre.tmp}/jre${jre.version}-windows-i586.zip" type="zip" classifier="win32"/>
+        		<attach file="${mvn.jre.tmp}/jre${jre.version}-windows-x64.zip" type="zip" classifier="win64"/>
+			</attachments>
+		</pom-and-deploy>
+    	<delete dir="${temp.dir}" />
+	</target>	
+		
 	
 	<macrodef name="mvn-repo">
 		<attribute name="id" />
@@ -298,13 +358,14 @@
 		<attribute name="groupId" />
 		<attribute name="artifactId"/>
 		<attribute name="version"/>
+		<attribute name="classifier" default=""/>
 		<attribute name="type" default="zip"/>
 		<attribute name="toFile" default=""/>
 		<sequential>
 	        <path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
 	        <typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="urn:maven-artifact-ant" classpathref="maven.ant.tasks.classpath" />
 	        <artifact:dependencies>
-	            <dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}"/>
+	            <dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" classifier="@{classifier}" type="@{type}"/>
 	            <localRepository path="${cfdistro.repo.local.path}" />
 	            <remoteRepository refid="cfdistro.repo.local" />
 	            <remoteRepository refid="cfdistro.repo.remote" />
@@ -363,6 +424,7 @@
 		<attribute name="groupId" />
 		<attribute name="artifactId"/>
 		<attribute name="version"/>
+		<attribute name="classifier" default=""/>
 		<attribute name="type" default="zip"/>
 		<attribute name="mapping" default=""/>
 		<attribute name="dest" default=""/>
@@ -376,26 +438,20 @@
 			global="true" override="yes" 
 			regexp="\." 
 			replace="/" />
-			<antcontrib:var name="_dep.loc" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/"/>
-			<antcontrib:var name="_dep.file" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/@{artifactId}-@{version}.@{type}"/>
-			<mvn-get groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" />
 			<antcontrib:if>
-				<equals arg1="@{mapping}" arg2="" />
-				<then/>
+				<equals arg1="@{classifier}" arg2="" />
+				<then>
+					<antcontrib:var name="_dep.classifier" value=""/>
+				</then>
 				<else>
-					<antcontrib:var name="ext.mapping.dir" value="${ext.mappings.dir}/@{groupId}/@{artifactId}/@{version}" />
-					<antcontrib:if>
-						<available file="${ext.mapping.dir}"/><then/>
-						<else>
-							<unzip src="${_dep.file}" dest="${ext.mapping.dir}"/>
-						</else>
-					</antcontrib:if>
-					<!-- physicalxml is what goes in the mappings.xml file. a token vs. the fixed path. -->
-					<mapping physical="${ext.mapping.dir}@{mapping}" physicalxml="@ext.mappings.dir@/@{groupId}/@{artifactId}/@{version}@{mapping}" virtual="@{mapping}"/>
+					<antcontrib:var name="_dep.classifier" value="-@{classifier}"/>
 				</else>
 			</antcontrib:if>
+			<antcontrib:var name="_dep.loc" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/"/>
+			<antcontrib:var name="_dep.file" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/@{artifactId}-@{version}${_dep.classifier}.@{type}"/>
+			<mvn-get groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" classifier="@{classifier}" />
 			<antcontrib:if>
-				<equals arg1="${dest}" arg2="" /><then/>
+				<equals arg1="@{dest}" arg2="" /><then/>
 				<else>
 					<antcontrib:if>
 						<equals arg1="true" arg2="@{unzip}" />
@@ -406,6 +462,31 @@
 							<copy file="${_dep.file}" todir="@{dest}"/>
 						</else>
 					</antcontrib:if>
+				</else>
+			</antcontrib:if>
+			<antcontrib:if>
+				<equals arg1="@{mapping}" arg2="" />
+				<then/>
+				<else>
+					<antcontrib:if>
+						<equals arg1="@{dest}" arg2="" />
+						<then>
+							<antcontrib:var name="ext.mapping.dir" value="${ext.mappings.dir}/@{groupId}/@{artifactId}/@{version}" />
+							<antcontrib:var name="physicalxml" value="@ext.mappings.dir@/@{groupId}/@{artifactId}/@{version}@{mapping}" />
+						</then>
+						<else>
+							<antcontrib:var name="ext.mapping.dir" value="@{dest}" />
+							<antcontrib:var name="physicalxml" value="@{dest}" />
+						</else>
+					</antcontrib:if>
+					<antcontrib:if>
+						<available file="${ext.mapping.dir}"/><then/>
+						<else>
+							<unzip src="${_dep.file}" dest="${ext.mapping.dir}"/>
+						</else>
+					</antcontrib:if>
+					<!-- physicalxml is what goes in the mappings.xml file. a token vs. the fixed path. -->
+					<mapping physical="${ext.mapping.dir}@{mapping}" physicalxml="${physicalxml}" virtual="@{mapping}"/>
 				</else>
 			</antcontrib:if>
 			<antcontrib:if>
@@ -426,7 +507,14 @@
 		<attribute name="repoId" default="${mvn.repo.id}" />
 		<sequential>
 		<property name="mvn.type" value="release"/>
-		<artifact:install-provider artifactId="wagon-ssh" version="1.0-beta-2"/>
+		<antcontrib:if>
+			<isset property="wagon-ssh.installed" />
+			<then/>
+			<else>
+				<artifact:install-provider artifactId="wagon-ssh" version="1.0-beta-2"/>
+				<property name="wagon-ssh.installed" value="true"/>
+			</else>
+		</antcontrib:if>
 		<pom-and-deploy pomid="cfdistro.put.pom" artifact="@{artifact}" packaging="@{packaging}" buildtype="${mvn.type}"
 		 groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" repoId="@{repoId}"/>
 		</sequential>

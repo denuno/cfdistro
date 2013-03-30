@@ -30,7 +30,7 @@
 					</antcontrib:trycatch>
 				</then>
 				<else>
-					<echo message="JGit - command: @{command}" /><!-- <echoxml><elem /></echoxml> -->
+					<echo message="JGit - command: @{command} (@{dir})" /><!-- <echoxml><elem /></echoxml> -->
 		            <java classname="org.eclipse.jgit.pgm.Main" classpathref="build.lib.path" fork="true" dir="@{dir}" outputproperty="git.results" failonerror="false">
 						<arg value="@{command}" />
 						<args />
@@ -295,7 +295,7 @@
 								<equals arg1="@{branch}" arg2="NONE" />
 								<then/>
 								<else>
-									<git-checkout repository="@{dest}" branch="@{branch}"/>
+									<git-checkout repository="@{dest}" branch="@{remote}/@{branch}"/>
 								</else>
 							</antcontrib:if>
 						</then>
@@ -309,8 +309,8 @@
 							<mkdir dir="${tmpgitdir}"/>
 							<echo message="${tmpgitdir}"/>
 							<replace file="@{dest}/.git/config" token="[core]" value='[core]${line.separator}	worktree = ${tmpgitdir}'/>
-							<echo message='"origin/@{branch}"'/>
-							<git-checkout repository="@{dest}" branch="@{remote}/@{branch}"/>
+							<echo message='Branch: "@{remote}/@{branch}" to: @{dest}'/>
+							<git-checkout repository="@{dest}" branch="@{remote}/@{branch}" />
 							<move todir="@{dest}">
 							    <fileset dir="${tmpgitdir}"/>
 							</move>

@@ -644,6 +644,7 @@ a tiny 2m jar but getPageContext() throws errors!!
 	<macrodef name="mapping">
 		<attribute name="physical" default="" />
 		<attribute name="physicalxml" default="@{physical}" />
+		<attribute name="archive" default="" />
 		<attribute name="virtual" />
 		<element name="args" optional="true" />
 		<sequential>
@@ -692,7 +693,7 @@ a tiny 2m jar but getPageContext() throws errors!!
 					<replace-attributes string="@{physical}" propertyname="mapping.physical" />
 					<antcontrib:switch value="${default.cfengine}">
 						<case value="railo">
-							<railo-mapping physical="${mapping.physical}" virtual="@{virtual}" />
+							<railo-mapping archive="@{archive}" physical="${mapping.physical}" virtual="@{virtual}" />
 						</case>
 						<case value="acf">
 							<acf-mapping physical="${mapping.physical}" virtual="@{virtual}" />
@@ -977,6 +978,13 @@ a tiny 2m jar but getPageContext() throws errors!!
 		<echoproperties destfile="${temp.file}"/>
 		<loadfile property="mappings.xml" srcFile="${mappings.file}">
 			<filterchain>
+				<replacetokens>
+					<token key="src.dir" value="${src.dir}" />
+					<token key="dist.dir" value="${dist.dir}" />
+					<token key="user.home" value="${user.home}" />
+					<token key="distro.name" value="${distro.name}" />
+					<token key="war.target.dir" value="${war.target.dir}" />
+				</replacetokens>
 				<filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
 					<param type="propertiesfile" value="${temp.file}" />
 				</filterreader>
@@ -1021,6 +1029,7 @@ a tiny 2m jar but getPageContext() throws errors!!
 	<equals arg1="${exists.datasources.xml}" arg2="true" />
 		<then>
 			<echo message="datasources settings file exists : ${datasources.file} " />
+			<echoproperties destfile="${temp.file}"/>
 			<loadfile property="datasources.xml" srcFile="${datasources.file}">
 				<filterchain>
 					<replacetokens>
@@ -1030,8 +1039,9 @@ a tiny 2m jar but getPageContext() throws errors!!
 						<token key="distro.name" value="${distro.name}" />
 						<token key="war.target.dir" value="${war.target.dir}" />
 					</replacetokens>
+					<expandproperties />
 					<filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
-						<param type="propertiesfile" value="${creds.token.file}" />
+						<param type="propertiesfile" value="${temp.file}" />
 					</filterreader>
 				</filterchain>
 			</loadfile>

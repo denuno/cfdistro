@@ -506,8 +506,16 @@
 		<attribute name="propertyname" />
 		<sequential>
 			<antcontrib:var name="@{propertyname}" value="@{string}" />
-			<antcontrib:propertyregex property="@{propertyname}" override="true" input="@{string}" regexp="@src.dir@(.*)" replace="${src.dir}\1" casesensitive="false" />
-		</sequential>
+			<antcontrib:propertyselector property="__dirs" match="(.*\.dir)" select="\1"/>
+			<antcontrib:for list="${__dirs}" param="dir">
+				<sequential>
+					<antcontrib:var name="__dir" value="@{dir}" />
+					<antcontrib:propertyregex property="@{propertyname}" override="true" input="@{string}" regexp="@${__dir}@(.*)" replace="${@{dir}}\1" casesensitive="false" />
+				</sequential>
+			</antcontrib:for>
+			<antcontrib:var name="__dirs" unset="true" />
+			<antcontrib:var name="__dir" unset="true" />
+	</sequential>
 	</macrodef>
 
 	<macrodef name="add-system-path">

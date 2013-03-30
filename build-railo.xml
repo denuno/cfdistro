@@ -145,6 +145,8 @@
 			<attr path="/railo-configuration/charset" attr="template-charset" value="${railo.charset.template}" />
 			<attr path="/railo-configuration/charset" attr="web-charset" value="${railo.charset.web}" />
 		</xmltask>
+		<railo-scope setting="session-type" value="${cfml.session.type}" configfile="${railo.server.config.file}" />
+		<railo-scope setting="session-type" value="${cfml.session.type}"/>
 		<antcontrib:runtarget target="railo.ra.install" />
 	</target>
 
@@ -624,6 +626,7 @@
 	<macrodef name="railo-mapping">
 		<attribute name="physical" />
 		<attribute name="virtual" />
+		<attribute name="archive" default=""/>
 		<attribute name="readonly" default="true"/>
 		<attribute name="trusted" default="false"/>
 		<sequential>
@@ -654,7 +657,7 @@
 								trusted="@{trusted}"
 								virtual="@{virtual}"
 								physical="${___physical}"
-								archive=""
+								archive="@{archive}"
 								primary="physical"
 							/>
 							]]>
@@ -666,7 +669,7 @@
 								trusted="@{trusted}"
 								virtual="@{virtual}"
 								physical="${___physical}"
-								archive=""
+								archive="@{archive}"
 								primary="physical"
 							/>
 							]]>
@@ -1547,6 +1550,95 @@
 		</sequential>
 	</macrodef>	
 
+	<macrodef name="railo-scope">
+		<attribute name="configfile" default="${railo.config.file}" />
+		<attribute name="setting" description='applicationtimeout="1,0,0,0" session-type="j2ee" cascade-to-resultset="yes" cascading="standard" client-directory-max-size="10mb" client-max-age="90" clientmanagement="no" merge-url-form="no" requesttimeout="0,0,0,50" requesttimeout-log="{railo-config}/logs/requesttimeout.log" sessionmanagement="yes" sessiontimeout="0,0,30,0" setclientcookies="yes" setdomaincookies="no"' />
+		<attribute name="value" />
+		<sequential>
+			<echo message="scope setting @{setting} = @{value}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/railo-configuration/scope" attr="@{setting}" value="@{value}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="railo-applicationlistener" description="define where the Application.cfc/Application.cfm will be searched">
+		<attribute name="configfile" default="${railo.config.file}" />
+		<attribute name="listener-type" default="mixed" description='none:no application listener handling, classic:search only for Application.cfm, modern:search only for Application.cfc, mixed:search for Application.cfc and Application.cfm' />
+		<attribute name="listener-mode" default="curr2root" description="root:search only in webroot, current:search only in current directory, curr2root:search the App... from current directory up to root." />
+		<sequential>
+			<echo message="applicationlistener listener-mode:@{listener-mode} listener-type:@{listener-type}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/railo-configuration/application" attr="listener-mode" value="@{listener-mode}" />
+				<attr path="/railo-configuration/application" attr="listener-type" value="@{listener-type}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="railo-flex" description="define where the Application.cfc/Application.cfm will be searched">
+		<attribute name="configfile" default="${railo.config.file}" />
+		<attribute name="configuration" default="xml" description='xml:deploy default configuration for the MessageBrokerServlet as xml to th WEB-INF directory, manual:the configuration is up to the user, railo does nothing' />
+		<attribute name="caster-class" default="classic" description="classic (default): Build in AMFCaster follows the implementation of other engines., modern: Build in AMFCaster based on classic AMFCaster improved in functionality,{class-name} full class path of class implemeting interface AMFCaster (http://www.getrailo.org/javadoc/railo/runtime/net/amf/AMFCaster.html)" />
+		<attribute name="caster-class-arguments" default="" description="init arguments provided to the AMFCaster init method, use 'CSS' syntax." />
+		<sequential>
+			<echo message="flex configuration:@{configuration} caster-class:@{caster-class} caster-class-arguments:@{caster-class-arguments}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/railo-configuration/flex" attr="configuration" value="@{configuration}" />
+				<attr path="/railo-configuration/flex" attr="caster-class" value="@{caster-class}" />
+				<attr path="/railo-configuration/flex" attr="caster-class-arguments" value="@{caster-class-arguments}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="railo-security" description="configure railo security">
+		<attribute name="configfile" default="${railo.config.file}" />
+		<attribute name="setting" description='access_read="protected" access_write="protected" cache="yes" cfx_setting="yes" cfx_usage="yes" custom_tag="yes" datasource="yes" debugging="yes" direct_java_access="yes" file="yes" gateway="yes" mail="yes" mapping="yes" remote="yes" scheduled_task="yes" search="yes" setting="yes" tag_execute="yes" tag_import="yes" tag_object="yes" tag_registry="yes"' />
+		<attribute name="value" />
+		<sequential>
+			<echo message="security setting @{setting} = @{value}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/railo-configuration/security" attr="@{setting}" value="@{value}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="railo-regional" description="configure railo regional settings">
+		<attribute name="configfile" default="${railo.config.file}" />
+		<attribute name="setting" description='locale: default[system locale], timezone: default[maschine configuration] the ID for a TimeZone either an abbreviation such as "PST" a full name such as "America/Los_Angeles" or a custom ID such as "GMT-8:00",timeserver: [example: swisstime.ethz.ch] default:local time dns of a ntp time server' />
+		<attribute name="value" />
+		<sequential>
+			<echo message="regional setting @{setting} = @{value}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/railo-configuration/regional" attr="@{setting}" value="@{value}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="railo-file-system" description="configure railo tag, function, etc., locations">
+		<attribute name="configfile" default="${railo.config.file}" />
+		<attribute name="setting" description='fld-directory="{railo-config}/library/fld/" function-directory="{railo-config}/library/function/" tag-directory="{railo-config}/library/tag/" temp-directory="{railo-config}/temp/" tld-directory="{railo-config}/library/tld/"' />
+		<attribute name="value" />
+		<sequential>
+			<echo message="file-system setting @{setting} = @{value}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/railo-configuration/file-system" attr="@{setting}" value="@{value}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="railo-systemoutput" description="configure railo system output">
+		<attribute name="configfile" default="${railo.config.file}" />
+		<attribute name="out" default="null" description='default (write out to default output stream), null (write no output), class:{class} (class that implements java.io.PrintWriter), file:{file} (file to write in)' />
+		<attribute name="err" default="default" />
+		<sequential>
+			<echo message="file-system setting @{setting} = @{value}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/railo-configuration/system" attr="out" value="@{out}" />
+				<attr path="/railo-configuration/system" attr="err" value="@{err}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
 	<!-- these are overridden prior -->
 	<target name="clean">
 		<antcontrib:runtarget target="cfdistro.clean" />
