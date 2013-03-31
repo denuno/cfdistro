@@ -25,23 +25,22 @@
 		<mkdir dir="${mxunit.tests.results.dir}" />
 		<property name="mxunit.failonerror" value="true" />
 		<abspath property="mxunit.tests.dir.abs" path="${mxunit.tests.dir}" />
-		<mxunittask server="${server.host}" port="${server.port.http}"
-			defaultrunner="${mxunit.runner}" outputdir="${mxunit.tests.results.dir}"
-			failureproperty="tests.fail" haltonerror="false" 
-			testResultsSummary="testresults.properties" verbose="true">
-			<!-- <testcase name="mxunit.tests.framework.AssertTest" packageName="mxunit.asserttests" /> -->
-			<directory runner="${mxunit.runner}"
-				remoteMethod="run" path="${mxunit.tests.dir.abs}" componentPath="${mxunit.componentpath}"
-				packageName="${mxunit.packageName}" recurse="${mxunit.recurse}" />
-		</mxunittask>
-
-		<mkdir dir="${mxunit.tests.results.dir}/html" />
-		<junitreport todir="${mxunit.tests.results.dir}/html">
-			<fileset dir="${mxunit.tests.results.dir}">
-				<include name="*.xml" />
-			</fileset>
-			<report format="frames" todir="${mxunit.tests.results.dir}/html" styledir="${mxunit.basedir}" />
-		</junitreport>
+		<antcontrib:trycatch>
+			<try>
+				<mxunittask server="${server.host}" port="${server.port.http}"
+					defaultrunner="${mxunit.runner}" outputdir="${mxunit.tests.results.dir}"
+					failureproperty="tests.fail" haltonerror="false" 
+					testResultsSummary="testresults.properties" verbose="true">
+					<!-- <testcase name="mxunit.tests.framework.AssertTest" packageName="mxunit.asserttests" /> -->
+					<directory runner="${mxunit.runner}"
+						remoteMethod="run" path="${mxunit.tests.dir.abs}" componentPath="${mxunit.componentpath}"
+						packageName="${mxunit.packageName}" recurse="${mxunit.recurse}" />
+				</mxunittask>
+			</try>
+			<catch>
+				<antcontrib:var name="tests.fail" value="true" />
+			</catch>
+		</antcontrib:trycatch>
 		<antcontrib:if>
 			<equals arg1="${mxunit.failonerror}" arg2="true" />
 			<then>
