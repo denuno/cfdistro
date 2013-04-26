@@ -281,46 +281,52 @@
         <property name="mvn.repo.id" value="cfdistro.repo.local" />
 		<property name="mvn.jre.tmp" location="${temp.dir}/jre" />
 		<property name="mvn.jre.dir" location="${basedir}/../jre" />
-		<property name="jre.prefix" value="jre-7u17" />
-		<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
+		<property name="jre.prefix" value="jre-7u21" />
+		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u21" />
+
+    	<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
 			input="${jre.prefix}" regexp="jre-(\d)u(\d+)" replace="1.\1.0_\2"/>
     	<input message="Do you agree to the ${jre.version} license?" addproperty="jre.lic.agree" />
     	<delete dir="${temp.dir}" />
     	<mkdir dir="${temp.dir}" />
     	<mkdir dir="${mvn.jre.tmp}" />
 		<echo message="*** GETTING JRE ${jre.version} ***" />    	
-    	<antcontrib:for list="linux-i586,linux-x64,macosx-x64,windows-i586,windows-x64" param="file">
+    	<antcontrib:for list="linux-i586:b11,linux-x64:b11,macosx-x64:b12,windows-i586:b11,windows-x64:b11" param="file">
 			<sequential>
-				<echo message="*** GETTING JRE : ${jre.version} ${jre.prefix}-@{file} ***" />    	
-				<exec executable="wget">
+				<antcontrib:propertyregex property="jre.os" override="yes" 
+					input="@{file}" regexp="([^:]*)" select="\1"/>
+				<antcontrib:propertyregex property="jre.b.version" override="yes" 
+					input="@{file}" regexp=".*:(.*)" select="\1"/>
+				<echo message="*** GETTING JRE : ${jre.version} ${jre.prefix}-${jre.os} ${jre.b.version}***" />
+				<exec executable="wget" failonerror="true">
 					<arg value="--no-check-certificate"/>
 				    <arg line='--header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F"'/>
 				    <arg value="-O"/>
-				    <arg value="${mvn.jre.tmp}/${jre.prefix}-@{file}.tar.gz"/>
-				    <arg value="http://download.oracle.com/otn-pub/java/jdk/7u17-b02/${jre.prefix}-@{file}.tar.gz"/>
+				    <arg value="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar.gz"/>
+				    <arg value="${jre.baseurl}-${jre.b.version}/${jre.prefix}-${jre.os}.tar.gz"/>
 				</exec>
-				<gunzip src="${mvn.jre.tmp}/${jre.prefix}-@{file}.tar.gz" dest="${mvn.jre.tmp}/${jre.prefix}-@{file}.tar"/>
-				<untar src="${mvn.jre.tmp}/${jre.prefix}-@{file}.tar" dest="${mvn.jre.tmp}/@{file}"/>
+				<gunzip src="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar.gz" dest="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar"/>
+				<untar src="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar" dest="${mvn.jre.tmp}/${jre.os}"/>
 				<antcontrib:if>
-		    		<available file="${mvn.jre.tmp}/@{file}/jre${jre.version}.jre/Contents/Home/" />
+		    		<available file="${mvn.jre.tmp}/${jre.os}/jre${jre.version}.jre/Contents/Home/" />
 		    		<then><!-- OS X -->
-						<move todir="${mvn.jre.tmp}/@{file}/jre${jre.version}">
-						  <fileset dir="${mvn.jre.tmp}/@{file}/jre${jre.version}.jre/Contents">
+						<move todir="${mvn.jre.tmp}/${jre.os}/jre${jre.version}">
+						  <fileset dir="${mvn.jre.tmp}/${jre.os}/jre${jre.version}.jre/Contents">
 						    <include name="*/**"/>
 						    <exclude name="*"/>
 						  </fileset>
 						  <regexpmapper from="^[^/]*/(.*)$$" to="\1" handledirsep="true"/>
 						</move>
-		    	    	<delete dir="${mvn.jre.tmp}/@{file}/jre${jre.version}.jre" />
+		    	    	<delete dir="${mvn.jre.tmp}/${jre.os}/jre${jre.version}.jre" />
 		    		</then>
 		    	</antcontrib:if>
 		    	<antcontrib:if>
-		    		<available file="${mvn.jre.tmp}/@{file}/jre${jre.version}/bin" />
+		    		<available file="${mvn.jre.tmp}/${jre.os}/jre${jre.version}/bin" />
 		    		<then>
-						<chmod dir="${mvn.jre.tmp}/@{file}/jre${jre.version}/bin" perm="+x" includes="*"/>
+						<chmod dir="${mvn.jre.tmp}/${jre.os}/jre${jre.version}/bin" perm="+x" includes="*"/>
 		    		</then>
 		    	</antcontrib:if>
-	    		<zipdir destfile="${mvn.jre.tmp}/jre${jre.version}-@{file}.zip" sourcedir="${mvn.jre.tmp}/@{file}/jre${jre.version}/" />
+	    		<zipdir destfile="${mvn.jre.tmp}/jre${jre.version}-${jre.os}.zip" sourcedir="${mvn.jre.tmp}/${jre.os}/jre${jre.version}/" />
 			</sequential>
     	</antcontrib:for>
     	<echo message="*** POMN ***" />    	
@@ -362,6 +368,7 @@
 		<attribute name="type" default="zip"/>
 		<attribute name="toFile" default=""/>
 		<sequential>
+			<echo message="@{groupId}:@{artifactId}:@{version}:@{classifier}:@{type}"/>
 	        <path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
 	        <typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="urn:maven-artifact-ant" classpathref="maven.ant.tasks.classpath" />
 	        <artifact:dependencies>

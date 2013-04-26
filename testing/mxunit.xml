@@ -1,5 +1,6 @@
 <project name="mxunit" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
+	<dirname property="mxunit.basedir" file="${ant.file.mxunit}" />
 	<property name="mxunit.tests.dir" location="${tests.dir}" />
 	<property name="mxunit.runner" value="/mxunit/runner/HttpAntRunner.cfc" />
 	<property name="mxunit.componentpath" value="tests" />
@@ -47,7 +48,6 @@
 				<fail if="tests.fail" message="mxunit.failonerror is true and mxunit tests failed!"/>
 			</then>
 		</antcontrib:if>
-
 	</target>
 
 	<target name="mxunit.tests.run">
@@ -86,6 +86,42 @@
 			</antcontrib:if>
 		</sequential>
 	</target>
+
+	<target name="blar">
+		<trim-results dir="/workspace/mxunit-releng/dist/localdev/testresults/" />
+		<result2text dir="/workspace/mxunit-releng/dist/localdev/testresults/" />
+	</target>
+
+	 <macrodef name="trim-results">
+	   <attribute name="dir" />
+	   <sequential>
+    	<antcontrib:for param="file">
+			<path><fileset dir="@{dir}" includes="*.xml" /></path>
+			<sequential>
+				<echo message="file:@{file}" />
+				<replaceregexp 
+				        file="@{file}" 
+				        match="([^\S])*" 
+				        replace=""
+				        byline="false" 
+				/>
+			</sequential>
+		</antcontrib:for>
+	   </sequential>
+	 </macrodef>	
+	
+	<macrodef name="result2text">
+		<attribute name="dir"/>
+		<sequential>
+			<delete dir="${temp.dir}/plaintext"/>
+			<xslt basedir="@{dir}" includes="*.xml" destdir="${temp.dir}/plaintext" 
+			   extension=".txt" style="${mxunit.basedir}/results2text.xsl" />
+			<concat>
+				<fileset dir="${temp.dir}/plaintext" includes="*.txt"/>
+			</concat>
+
+		</sequential>
+	</macrodef>
 
 
 </project>

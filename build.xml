@@ -230,6 +230,7 @@ a tiny 2m jar but getPageContext() throws errors!!
 	<import file="maven.xml" />
 	<import file="rpm.xml" />
 	<import file="ci.xml" />
+	<import file="docgen.xml" />
 
 <!--
  	<delete dir="${temp.dir}" />
