@@ -416,29 +416,27 @@
 	<macrodef name="xml-to-property">
 		<attribute name="property" default="false" />
 		<attribute name="namespacePolicy" default="ignore" />
-		<element name="xml" implicit="true" />
+		<element name="xml" implicit="true" optional="true" />
 		<sequential>
 			<antcontrib:var unset="true" name="@{property}" />
 			<tempfile property="__xml_file.temp" />
-			<echoxml file="${__xml_file.temp}" namespacePolicy="@{namespacePolicy}"><xml___holder><xml/></xml___holder></echoxml>
-			<replace file="${__xml_file.temp}">
-			<replacefilter>
-			  <replacetoken><![CDATA[<?xml version="1.0" encoding="UTF-8"?>]]></replacetoken>
-			  <replacevalue></replacevalue>
-			</replacefilter>
-			<replacefilter>
-			  <replacetoken><![CDATA[<xml___holder>]]></replacetoken>
-			  <replacevalue></replacevalue>
-			</replacefilter>
-			<replacefilter>
-			  <replacetoken><![CDATA[</xml___holder>]]></replacetoken>
-			  <replacevalue></replacevalue>
-			</replacefilter>
-			</replace>
-			<loadfile srcFile="${__xml_file.temp}" property="@{property}" />
+			<echoxml file="${__xml_file.temp}" namespacePolicy="@{namespacePolicy}">
+				<placeholderbrah>
+				<xml />
+				</placeholderbrah>
+			</echoxml>
+			<loadfile property="@{property}" srcFile="${__xml_file.temp}">
+				<filterchain>
+					<LineContainsRegexp negate="yes">
+						<regexp pattern=".xml version=.1.0. encoding=.UTF-8..." />
+					</LineContainsRegexp>
+					<LineContainsRegexp negate="yes">
+						<regexp pattern="..?placeholderbrah." />
+					</LineContainsRegexp>
+				</filterchain>
+			</loadfile>
 			<antcontrib:propertyregex property="@{property}" override="true" input="${@{property}}" 
 				regexp="^[\s]+|[\s]+$" replace="" casesensitive="false" />
-
 		</sequential>
 	</macrodef>
 
@@ -718,6 +716,22 @@
 			</antcontrib:for>
 		    <antcontrib:var name="@{property}" value="${__proplist}" />
 		    <antcontrib:var name="allprops.list" unset="true" />
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="ant-set-log-level">
+ 		<attribute name="level" />
+		<sequential>
+			<property name="___antloglevel" value="@{level}"/>
+			<script language="javascript">
+			    var logger = project.getBuildListeners().firstElement();
+			    var verboseMode = project.getProperty( "___antloglevel" );
+				try {
+		        	logger.setMessageOutputLevel( verboseMode );
+				} catch (e) {
+				}
+			</script>
+			<antcontrib:var name="___antloglevel" unset="true"/>
 		</sequential>
 	</macrodef>
 	
