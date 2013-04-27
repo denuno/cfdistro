@@ -1,5 +1,6 @@
 <project name="scm-git" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
+	<include file="ant-util.xml" />
 	<property name="use.jgit" value="true" />
 	<macrodef name="git">
 		<attribute name="command" />
@@ -30,11 +31,21 @@
 					</antcontrib:trycatch>
 				</then>
 				<else>
-					<echo message="JGit - command: @{command} (@{dir})" /><!-- <echoxml><elem /></echoxml> -->
-		            <java classname="org.eclipse.jgit.pgm.Main" classpathref="build.lib.path" fork="true" dir="@{dir}" outputproperty="git.results" failonerror="false">
-						<arg value="@{command}" />
-						<args />
-		            </java>
+					<args2property property="gitcmdline"><args /></args2property>
+					<echo message="JGit - command: @{command} ${gitcmdline} (@{dir})" /><!-- <echoxml><elem /></echoxml> -->
+					<antcontrib:trycatch property="foo" reference="bar">
+						<try>
+						<java classname="org.eclipse.jgit.pgm.Main" classpathref="build.lib.path" fork="true" dir="@{dir}" outputproperty="git.results" failonerror="true">
+							<arg value="@{command}" />
+							<args />
+			            </java>
+						</try>
+						<catch>
+							<property name="baz" refid="bar" />
+							<fail message="error occurred : ${git.results}" />
+						</catch>
+					</antcontrib:trycatch>
+
 					<antcontrib:propertyregex override="yes" property="jgit.exception" input="${git.results}" 
 						regexp=".*?(org.eclipse.jgit.api.errors.JGitInternalException)+.*?" select="\1" />
 					<antcontrib:if>
@@ -202,13 +213,101 @@
 		</sequential>
 	</macrodef>
 
-	<macrodef name="git-commit-hash">
+	
+	<target name="test.commithash">
+		<git-reset-hard repository="/workspace/cfdistro/src/cfdistro/testing/temp/testproject/src" />
+	</target>
+	
+	<scriptdef name="git-commit-hash" language="javascript">
+		<attribute name="repository" />
+		<attribute name="property" />
+		<attribute name="remote"/>
+		<attribute name="branch" />
+	    <![CDATA[
+		importClass(org.eclipse.jgit.api.Git);
+		importClass(org.eclipse.jgit.storage.file.FileRepositoryBuilder);
+		importClass(java.io.File);
+	    var gitdir = new File(attributes.get( "repository" ));
+	    var remote = attributes.get( "remote" ) ? attributes.get( "remote" ) : "origin";
+	    var branch = attributes.get( "branch" ) ? attributes.get( "branch" ) : "master";
+	    var property = attributes.get( "property" );
+        var repository = new FileRepositoryBuilder().findGitDir(gitdir).build();
+        var git = new Git(repository);
+        var log = git.log();
+		if(remote != "") {
+			var ref = repository.getRefDatabase().getRef("refs/remotes/" + remote + "/" + branch);
+		} else {
+			var ref = repository.getRefDatabase().getRef("refs/heads/" + branch);
+		}
+		log.add(ref.getObjectId());
+		log.setMaxCount(1);
+		var commit = log.call().next();
+        if (commit != null) {
+			project.setProperty(property, commit.getName());
+			println(commit.getName() + " ("+ remote + "/" + branch + ")");
+        }
+		repository.close();
+	    ]]> 
+	</scriptdef>
+	
+	<scriptdef name="git-reset-hard" language="javascript">
+		<attribute name="repository" />
+		<attribute name="remote"/>
+		<attribute name="branch" />
+	    <![CDATA[
+		importClass(org.eclipse.jgit.api.Git);
+		importClass(org.eclipse.jgit.storage.file.FileRepositoryBuilder);
+		importClass(org.eclipse.jgit.api.ResetCommand);
+		importClass(org.eclipse.jgit.api.ResetCommand.ResetType);
+		importClass(org.eclipse.jgit.lib.Constants);
+		importClass(java.io.File);
+	    var gitdir = new File(attributes.get( "repository" ));
+	    var remote = attributes.get( "remote" ) ? attributes.get( "remote" ) : "origin";
+	    var branch = attributes.get( "branch" ) ? attributes.get( "branch" ) : "master";
+	    var property = attributes.get( "property" );
+        var repository = new FileRepositoryBuilder().findGitDir(gitdir).build();
+        var git = new Git(repository);
+		var reset = git.reset();
+		if(remote != "") {
+			var ref = repository.getRefDatabase().getRef("refs/remotes/" + remote + "/" + branch);
+		} else {
+			var ref = repository.getRefDatabase().getRef("refs/heads/" + branch);
+		}
+		var hardClazz = new FileRepositoryBuilder().getClass().getClassLoader().loadClass("org.eclipse.jgit.api.ResetCommand$ResetType");
+		var hard = hardClazz.getDeclaredField("HARD").get(hardClazz);
+		reset.setMode(hard);
+		reset.setRef(org.eclipse.jgit.lib.Constants.HEAD);
+		//reset.setRef(ref);
+		reset.call();
+		println("reset " + gitdir + " hard");
+/*
+		log.add(ref.getObjectId());
+		log.setMaxCount(1);
+		var commit = log.call().next();
+        if (commit != null) {
+			project.setProperty(property, commit.getName());
+			println(commit.getName() + " ("+ remote + "/" + branch + ")");
+        }
+*/		
+		repository.close();
+	    ]]> 
+	</scriptdef>
+	
+	<macrodef name="git-commit-hash2">
 		<attribute name="repository" />
 		<attribute name="property" />
 		<attribute name="remote" default="origin" />
 		<attribute name="branch" default="master" />
 		<sequential>
-			<git command="log" dir="@{repository}"><args><arg value="-n"/><arg value="1"/><arg value="@{remote}/@{branch}"/></args></git>
+			<java jar="/Users/valliant/cfdistro/lib/jgit-cli.jar" classpathref="build.lib.path" fork="true" dir="@{repository}" 
+				failonerror="true" clonevm="true">
+				<arg value="--git-dir" /> 
+				<arg value="@{repository}" /> 
+				<arg line="log origin/master HEAD^..HEAD " />
+            </java>
+			<!--
+			<git command="log" dir="@{repository}"><args><arg value="@{remote}/@{branch}"/><arg value="HEAD^..HEAD"/></args></git>
+            -->
 			<antcontrib:propertyregex override="yes" property="@{property}" input="${git.results}" regexp=".*commit\s(.\w+).*" select="\1" />
 		</sequential>
 	</macrodef>
@@ -292,36 +391,69 @@
 							<echo message="@{dest}.git not there (or $${project.overwrite} is true), let us try to get one- you may want to go get some coffee..." />
 							<git-clone repository="@{uri}" dest="@{dest}" />
 							<antcontrib:if>
+								<or>
+								<equals arg1="@{branch}" arg2="master" />
 								<equals arg1="@{branch}" arg2="NONE" />
+								</or>
 								<then/>
 								<else>
-									<git-checkout repository="@{dest}" branch="@{remote}/@{branch}"/>
+									<git command="branch" dir="@{dest}">
+										<args>
+											<arg value="@{branch}" />
+											<arg value="@{remote}/@{branch}" />
+										</args>
+									</git>
 								</else>
 							</antcontrib:if>
 						</then>
 						<else>
 							<echo message="updating src: @{dest}" />
-							<git command="fetch" dir="@{dest}"/>
-							<!-- do funky stuff to get around jgit conflict error stuff -->
-							<antcontrib:var name="tmpgitdir" unset="true" />
-							<property name="tmpgitdir" location="${temp.dir}/tmpgit"/>
-							<delete dir="${tmpgitdir}"/>
-							<mkdir dir="${tmpgitdir}"/>
-							<echo message="${tmpgitdir}"/>
-							<replace file="@{dest}/.git/config" token="[core]" value='[core]${line.separator}	worktree = ${tmpgitdir}'/>
-							<echo message='Branch: "@{remote}/@{branch}" to: @{dest}'/>
-							<git-checkout repository="@{dest}" branch="@{remote}/@{branch}" />
-							<move todir="@{dest}">
-							    <fileset dir="${tmpgitdir}"/>
-							</move>
-							<delete dir="${tmpgitdir}"/>
-							<replace file="@{dest}/.git/config" token="worktree = ${tmpgitdir}${line.separator}" value=""/>
-<!--
-							<git-checkout repository="@{dest}" branch="@{remote}/@{branch}"/>
-							<git command="checkout" dir="@{dest}">
-								<args><arg value="-b localchanges" /></args>
+							<git command="fetch" dir="@{dest}">
+								<args>
+									<arg value="@{remote}" />
+								</args>
 							</git>
--->
+							<git-has-modifications dir="@{dest}" remote="" property="git.hasmods" />
+							<antcontrib:if>
+								<equals arg1="${git.hasmods}" arg2="true"/>
+								<then>
+									<antcontrib:var name="NOW_BRANCH" unset="true" />
+									<tstamp><format property="NOW_BRANCH" pattern="yyyyMMdd_HHmmss"/></tstamp>
+									<echo message="Detected local modifications, stashing sources in autobranch${NOW_BRANCH}" />
+									<git command="checkout" dir="@{dest}">
+										<args>
+											<arg line="-b autobranch${NOW_BRANCH}" />
+										</args>
+									</git>
+									<git command="add" dir="@{dest}">
+										<args><arg line="." /></args>
+									</git>
+									<git command="commit" dir="@{dest}">
+										<args><arg line="-a -m 'autocommit'" /></args>
+									</git>
+									<git command="checkout" dir="@{dest}">
+										<args>
+											<arg value="-f" />
+											<arg value="@{branch}" />
+										</args>
+									</git>
+									<!--
+									<git-reset-hard repository="@{dest}" remote="origin" />
+									-->
+									<git command="merge" dir="@{dest}">
+										<args>
+											<arg line="@{remote}/@{branch}" />
+										</args>
+									</git>
+								</then>
+								<else>
+									<git command="merge" dir="@{dest}">
+										<args>
+											<arg line="@{remote}/@{branch}" />
+										</args>
+									</git>
+								</else>
+							</antcontrib:if>
 						</else>
 					</antcontrib:if>
 				</actions>
@@ -356,87 +488,7 @@
 		</xmltask>
 	</target>
 	
-	<target name="project.checkout.git">
-		<property name="temp.dir.absolute" location="${temp.dir}" />
-		<antcontrib:var name="temp.dir" unset="true" />
-		<property name="temp.dir" location="${temp.dir.absolute}" />				
-		<property name="project.update.force" value="false" />				
-		<xmltask sourcebuffer="src.buff">
-			<call path="src/project/src[@type='git']">
-				<param name="dest" path="@dest" default="NONE" />
-				<param name="type" path="@type" default="NONE" />
-				<param name="uri" path="@uri" default="NONE" />
-				<param name="branch" path="@branch" default="origin/master" />
-				<param name="localrepo" path="@localrepo" default="NONE" />
-				<param name="sshkey" path="@sshkey" default="NONE" />
-				<actions>
-					<abspath path="@{dest}" property="__destdir" />
-					<antcontrib:if>
-						<equals arg1="@{localrepo}" arg2="NONE" />
-						<then><abspath path="@{dest}" property="__localrepo" /></then>
-						<else><abspath path="@{localrepo}" property="__localrepo" /></else>
-					</antcontrib:if>
-
-					<antcontrib:if>
-						<or>
-							<not><available file="${__localrepo}/.git" type="dir"/></not>
-							<equals arg1="${project.overwrite}" arg2="true" />
-						</or>
-						<then>
-							<echo message="${__localrepo} not there (or $${project.overwrite} is true), let us try to get one- you may want to go get some coffee..." />
-							<mkdir dir="${__localrepo}"/>
-							<git command="init" dir="${__localrepo}"/>
-							<echo file="${__localrepo}/.git/config" append="true">	worktree = ${__destdir}
-[remote "origin"]
-        url = @{uri}
-        fetch = +refs/heads/*:refs/remotes/origin/*
-[branch "@{branch}"]
-        remote = origin
-        merge = refs/heads/@{branch}
-</echo>
-							<git command="fetch" dir="${__localrepo}"/>
-							<git command="checkout" dir="${__localrepo}">
-								<args>
-									<arg value="-f" />
-									<arg value="@{branch}" />
-								</args>
-							</git>
-						</then>
-						<else>
-							<echo message="updating src: @{dest} from ${__localrepo}" />
-							<!--
-							-->
-							<git command="fetch" dir="${__localrepo}"/>
-							<git-checkout repository="${__localrepo}" branch="@{branch}" force="${project.update.force}"/>
-						</else>
-					</antcontrib:if>
-<!--
-					<antcontrib:if>
-						<or>
-							<not><available file="@{dest}.git" type="dir"/></not>
-							<equals arg1="${project.overwrite}" arg2="true" />
-						</or>
-						<then>
-							<echo message="@{dest}.git not there (or $${project.overwrite} is true), let us try to get one- you may want to go get some coffee..." />
-							<git-clone repository="@{uri}" dest="@{dest}" />
-							<antcontrib:if>
-								<equals arg1="@{branch}" arg2="NONE" />
-								<then/>
-								<else>
-									<git-checkout repository="@{dest}" branch="@{branch}"/>
-								</else>
-							</antcontrib:if>
-						</then>
-						<else>
-							<echo message="updating src: @{dest}" />
-							<git command="fetch" dir="@{dest}"/>
-							<git-checkout repository="@{dest}" branch="@{branch}" force="${project.update.force}"/>
-						</else>
-					</antcontrib:if>
--->
-				</actions>
-			</call>
-		</xmltask>
+	<target name="project.checkout.git" depends="project.update.git">
 	</target>
 	
 	<target name="check.project.for.newrevision.git">
@@ -446,6 +498,7 @@
 				<param name="dest" path="@dest" default="NONE" />
 				<param name="type" path="@type" default="NONE" />
 				<param name="uri" path="@uri" default="NONE" />
+				<param name="remote" path="@remote" default="origin" />
 				<param name="branch" path="@branch" default="master" />
 				<actions>
 					<antcontrib:var name="revisions.are.same" value="true"/>
@@ -453,7 +506,7 @@
 					<antcontrib:var name="pre.fetch.commit.hash" unset="true"/>
 					<safestring value="@{dest}" property="desthash"/>
 					<echo message="DestHash: ${desthash}"/>
-					<git-commit-hash repository="@{dest}" property="pre.fetch.commit.hash" />
+					<git-commit-hash repository="@{dest}" remote="" property="pre.fetch.commit.hash" />
 					<propertyfile file="${basedir}/scm.cache" comment="source control management cache">
 						<entry key="${desthash}.last.commit.hash" default="${pre.fetch.commit.hash}" />
 						<entry key="${desthash}.current.commit.hash" value="${pre.fetch.commit.hash}" />
@@ -475,9 +528,9 @@
 					</antcontrib:if> 
 					<!-- check for remote commits (defaults to origin) -->
 					<git command="fetch" dir="@{dest}">
-						<args><arg value="origin" /></args>
+						<args><arg value="@{remote}" /></args>
 					</git>
-					<git-commit-hash repository="@{dest}" property="post.fetch.commit.hash" />
+					<git-commit-hash repository="@{dest}" remote="" property="post.fetch.commit.hash" />
 					<antcontrib:if>
 						<equals arg1="${pre.fetch.commit.hash}" arg2="${post.fetch.commit.hash}" />
 						<then>
@@ -500,6 +553,54 @@
 		<echoproperties prefix="revisions"/>
 	</target>
 
+	<macrodef name="args2property">
+		<attribute name="property" default="false" />
+		<attribute name="namespacePolicy" default="ignore" />
+		<element name="xml" implicit="true" optional="true" />
+		<sequential>
+			<antcontrib:var unset="true" name="@{property}" />
+			<tempfile property="__xml_file.temp" />
+			<echoxml file="${__xml_file.temp}" namespacePolicy="@{namespacePolicy}">
+				<placeholderbrah>
+				<xml />
+				</placeholderbrah>
+			</echoxml>
+			<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask"/>
+			<ant-set-log-level level="0"/>
+			<xmltask source="${__xml_file.temp}">
+				<copy path="placeholderbrah/arg/@value" attrValue="true" property="@{property}" append="true"/>
+			</xmltask>
+			<ant-set-log-level level="1"/>
+			<!-- default to nothing if no args -->
+			<property name="@{property}" value="" />
+		</sequential>
+	</macrodef>
+	
+	<macrodef name="git-has-modifications">
+		<attribute name="dir" />
+		<attribute name="property" />
+		<attribute name="remote" default="origin" />
+		<attribute name="branch" default="master" />
+		<sequential>
+			<git command="diff" dir="@{dir}/">
+				<args>
+					<arg value="--name-status" />
+					<arg value="origin/master" />
+				</args>
+			</git>
+			<antcontrib:propertyregex override="yes" property="git.hasmodifications" input="${git.results}" 
+				regexp="(^[M|A])\s+.*" select="\1" />
+			<antcontrib:if>
+				<or>
+				<equals arg1="${git.hasmodifications}" arg2="M" />
+				<equals arg1="${git.hasmodifications}" arg2="A" />
+				</or>
+				<then><antcontrib:var name="@{property}" value="true"/></then>
+				<else><antcontrib:var name="@{property}" value="false"/></else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+	
 	<macrodef name="diff-with-git">
 		<attribute name="source" />
 		<attribute name="temp-dir" default="${temp.dir}/git-diff-temp" />
@@ -527,23 +628,24 @@
     				<param name="type" path="@type" default="NONE" />
     				<param name="uri" path="@uri" default="NONE" />
     				<param name="branch" path="@branch" default="master" />
+    				<param name="remote" path="@remote" default="origin" />
     				<actions>
 						<!--  get branches -->
 						<git command="fetch" dir="@{dest}">
 							<args>
-								<arg value="origin" />
-								<arg value="+refs/heads/*:refs/remotes/origin/*" />
+								<arg value="@{remote}" />
+								<arg value="+refs/heads/*:refs/remotes/@{remote}/*" />
 							</args>
 						</git>
 						<!--  get tags -->
 						<git command="fetch" dir="@{dest}">
 							<args>
-								<arg value="origin" />
-								<arg value="+refs/tags/*:refs/remotes/origin/*" />
+								<arg value="@{remote}" />
+								<arg value="+refs/tags/*:refs/remotes/@{remote}/*" />
 							</args>
 						</git>
 						<git command="fetch" dir="@{dest}">
-							<args><arg value="origin" /></args>
+							<args><arg value="@{remote}" /></args>
 						</git>
 					</actions>
 				</call>

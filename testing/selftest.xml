@@ -1,9 +1,9 @@
-<project name="selftest" default="test.all" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+<project name="selftest" default="test.all" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:au="antlib:org.apache.ant.antunit">
 <!-- 
 to run:  ant -f selftest.xml -lib ../ant/lib
  -->
 	<property name="temp.dir" location="./temp" />
-	<property name="git.repo.dir" location="./temp/gitrepo" />
+	<property name="git.repo.dir" location="${temp.dir}/gitrepo" />
 	<property name="test.project.dir" location="${temp.dir}/testproject" />
 	<property name="test.src.dir" location="${test.project.dir}/src" />
 	<delete dir="${temp.dir}" />
@@ -75,7 +75,8 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 		<antcontrib:var value="${props} sc.myrepo.dest=@src.dir@/" name="props" />
 		<antcontrib:var value="${props} sc.myrepo.uri=${git.repo.dir}/.git" name="props" />
 		<antcontrib:var value="${props} sc.myrepo.branch='master'" name="props" />
-
+		
+		<!-- this will do a checkout as the project sources are not there yet -->
 		<cfdistro target="project.update" properties="${props}" />
 
 		<echo message="newcommit" file="${git.repo.dir}/fun.txt" />
@@ -90,9 +91,9 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 
 		<cfdistro target="project.update" properties="${props}" />
 
-		<fail message="test.check.newrevision failure!  Did not update. ${test.src.dir}/fun.txt">
-			<condition><not><available file="${test.src.dir}/fun.txt" /></not></condition>
-		</fail>
+	    <au:assertFileExists file="${test.src.dir}/fun.txt" 
+	    	message="test.check.newrevision failure!  Did not update. ${test.src.dir}/fun.txt"/>
+
 		<checksum file="${git.repo.dir}/fun.txt" property="${funMD5}" verifyProperty="isEqual"/>
 		<fail message="test.check.newrevision failure!  Did not update. ${test.src.dir}/fun.txt" unless="isEqual" />
 
@@ -106,10 +107,26 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 
 		<cfdistro target="project.update" properties="${props}" />
 
-		<fail message="test.check.newrevision failure!  Did not update. ${test.src.dir}/fun2.txt">
-			<condition><not><available file="${test.src.dir}/fun2.txt" /></not></condition>
-		</fail>
+	    <au:assertResourceDoesntExist resource="${test.src.dir}/fun2.txt" 
+	    	message="project.update failure!  Did not update. ${test.src.dir}/fun2.txt still exists" />
 
+		<!-- 
+		****** test incoming change with no local modifications (git pull) ****** 
+		-->
+		<echo message="newfile3" file="${git.repo.dir}/fun3.txt" />
+		<git command="add" dir="${git.repo.dir}">
+			<args><arg value="fun3.txt" /></args>
+		</git>
+		<git command="commit" dir="${git.repo.dir}">
+			<args><arg value="-a" /><arg value="-m" /><arg value="testing only remote change" /></args>
+		</git>
+		<cfdistro target="project.update" properties="${props}" />
+	    <au:assertFileExists file="${test.src.dir}/fun3.txt" 
+	    	message="project.update with no local modifications failure!" />
+		
+		<cfdistro target="project.update" properties="${props}" />
+		
+		<delete dir="${temp.dir}" />
 	</target>
 
 
