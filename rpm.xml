@@ -89,7 +89,7 @@ fi
 	<target name="build.cfdistro.rpm" depends="bootstrap_redline">
 		<property name="rpm.user" value="root" />
 		<property name="rpm.source.dir" value="${cfdistro.basedir}" />
-		<property name="rpm.source.excludes" value="ext/**,artifacts/**" />
+		<property name="rpm.source.excludes" value="ext/**,artifacts/**,**/.git/**,**/.svn/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/**" />
 		<property name="rpm.target.dir" value="/opt/cfdistro" />
 		<property name="rpm.packager" value="cfdistro" />
 		<property name="rpm.group" value="cfdistro" />
