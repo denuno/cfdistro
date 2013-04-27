@@ -1331,7 +1331,9 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 
 <target name="cfdistro.dist" depends="clean" description="creates a minimal build">
 <property name="dist.type" value="minimal" />
+<property name="cfdistro.dist.excludes" value="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/**" />
 <antcontrib:propertyregex property="creds.token.filename" input="${creds.token.file}" global="true" override="yes" regexp=".*[\\|/](.+)" select="\1" />
+<delete dir="${dist.dir}/${distro.name}/build/cfdistro/"/>
 <antcontrib:switch value="${dist.type}">
 	<case value="minimal">
 		<echo message="miminal dist, build and cfdistro only ${creds.token.file}" />
@@ -1353,14 +1355,13 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 			<fileset dir="${basedir}/">
 				<exclude name="**/.git/**" />
 				<exclude name="cfdistro/**" />
-				<exclude name="cfdistro/ext/**" />
 				<exclude name="${temp.dir}" />
 				<exclude name="${creds.token.filename}" />
 				<exclude name="*.key" />
 			</fileset>
 		</copy>
 		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
 		</copy>
 	</case>
 	<case value="src">
@@ -1384,7 +1385,7 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 			</fileset>
 		</copy>
 		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
 		</copy>
 	</case>
 	<case value="all">
@@ -1397,7 +1398,7 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 			</fileset>
 		</copy>
 		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
 		</copy>
 	</case>
 	<default>
@@ -1409,7 +1410,7 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 	</case>
 	<default>
 		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
 		</copy>
 		<chmod file="${dist.dir}/${distro.name}/build/cfdistro/ant/bin/ant" perm="ugo+rx" />
 		<!-- set the cfdistro file path to included cfdistro -->
@@ -1431,6 +1432,7 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 <chmod file="${dist.dir}/${distro.name}/${distro.name}" perm="ugo+rx" />
 <chmod file="${dist.dir}/${distro.name}/build/cfdistro.sh" perm="ugo+rx" />
 <!-- use our macrodef that uses OS zip executable so we retain file permissions -->
+<delete file="${dist.dir}/${distro.name}.zip" />
 <zipdir destfile="${dist.dir}/${distro.name}.zip" sourcedir="${dist.dir}/" />
 <length file="${dist.dir}/${distro.name}.zip" property="distro.length" />
 <formatfilesize kilobytes="${distro.length}" />
