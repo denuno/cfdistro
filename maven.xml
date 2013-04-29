@@ -439,6 +439,7 @@
 		<attribute name="isExtension" default="false"/>
 		<sequential>
 			<property name="ext.mappings.dir" value="${ext.dir}/mappings" />
+			<antcontrib:var name="dependency.location" value="@{groupId}"/>
 			<antcontrib:propertyregex 
 			property="dependency.location" 
 			input="@{groupId}" 
@@ -567,11 +568,12 @@
 					</artifact:pom>
 				</else>
 			</antcontrib:if>
-
 			<antcontrib:if>
 				<equals arg1="@{artifact}" arg2="" />
 				<then>
-					<artifact:deploy>
+					<delete file="${temp.dir}/tmppom.pom" />
+					<artifact:writepom pomrefid="@{pomid}" file="${temp.dir}/tmppom.pom" trim="true"/>
+					<artifact:deploy file="${temp.dir}/tmppom.pom">
 					  <remoteRepository refid="@{repoId}" />
 					  <!-- <localRepository path="${cfdistro.repo.local.path}" /> -->
 			          <attachments />
@@ -602,7 +604,7 @@
 		
 	<macrodef name="bug170workaround">
 		<attribute name="pomid" />
-		<attribute name="dir" default="/tmp" />
+		<attribute name="dir" default="${temp.dir}" />
 		<sequential>
 			<artifact:writepom pomrefid="@{pomid}_tmp" file="@{dir}/tmppom.xml" trim="true"/>
 			<artifact:pom id="@{pomid}" file="@{dir}/tmppom.xml" />
