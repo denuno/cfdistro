@@ -270,7 +270,7 @@
 			<antcontrib:propertyregex property="@{property}"
 				input="${@{property}}" regexp="http(.)?:/" replace="http\1://"
 				global="true" override="yes" />
-			<echo>${@{property}}</echo>
+			<!-- <echo message="fix-url-slashes: ${@{property}}"/>  -->
 		</sequential>
 	</macrodef>
 

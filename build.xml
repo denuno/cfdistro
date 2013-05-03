@@ -296,8 +296,9 @@ a tiny 2m jar but getPageContext() throws errors!!
 
 	<target name="cfdistro.copy" description="copies cfdistro files to ${basedir}/cfdistro">
 		<delete dir="${basedir}/cfdistro/" excludes="ant/**"/>
+		<property name="cfdistro.dist.excludes" value="ext/**,artifacts/**,**/.git/**,**/.svn/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/**" />
 		<copy todir="${basedir}/cfdistro" verbose="false" overwrite="true">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/** artifacts/** **/.svn/** .git/**" defaultexcludes="false" />
+			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" defaultexcludes="false" />
 		</copy>
 	</target>
 

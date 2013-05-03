@@ -366,12 +366,15 @@
 		<attribute name="version"/>
 		<attribute name="classifier" default=""/>
 		<attribute name="type" default="zip"/>
+		<attribute name="scope" default="runtime" />
 		<attribute name="toFile" default=""/>
+		<attribute name="toDir" default=""/>
 		<sequential>
-			<echo message="@{groupId}:@{artifactId}:@{version}:@{classifier}:@{type}"/>
+			<echo message="Dependency: @{groupId}:@{artifactId}:@{version}:@{classifier}:@{type}"/>
+	        <antcontrib:var unset="true" name="_dependency.fileset" />
 	        <path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
 	        <typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="urn:maven-artifact-ant" classpathref="maven.ant.tasks.classpath" />
-	        <artifact:dependencies>
+	        <artifact:dependencies filesetId="_dependency.fileset" useScope="@{scope}">
 	            <dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" classifier="@{classifier}" type="@{type}"/>
 	            <localRepository path="${cfdistro.repo.local.path}" />
 	            <remoteRepository refid="cfdistro.repo.local" />
@@ -389,6 +392,15 @@
 					<copy tofile="@{toFile}" file="${cfdistro.repo.local.path}/${dependency.location}/@{version}/@{artifactId}-@{version}.@{type}" />
 	        	</else>
 	        </antcontrib:if>
+			<antcontrib:if>
+				<equals arg1="@{toDir}" arg2="" /><then/>
+				<else>
+					<copy todir="@{toDir}">
+					  <fileset refid="_dependency.fileset" />
+					  <mapper type="flatten" />
+					</copy>
+				</else>
+			</antcontrib:if>
 		</sequential>
 	</macrodef>
 	
@@ -457,7 +469,7 @@
 			</antcontrib:if>
 			<antcontrib:var name="_dep.loc" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/"/>
 			<antcontrib:var name="_dep.file" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/@{artifactId}-@{version}${_dep.classifier}.@{type}"/>
-			<mvn-get groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" classifier="@{classifier}" />
+			<mvn-get groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" classifier="@{classifier}" toDir="@{dest}" />
 			<antcontrib:if>
 				<equals arg1="@{dest}" arg2="" /><then/>
 				<else>
