@@ -335,8 +335,9 @@ a tiny 2m jar but getPageContext() throws errors!!
 		-->
 		<property name="skeleton" value="default" />
 		<property name="skeleton.dir" value="${cfdistro.basedir}/skeleton/${skeleton}" />
+		<defaultexcludes remove="**/.gitignore"/>
 		<copy todir="${target.dir}" verbose="false">
-			<fileset dir="${skeleton.dir}" includes="**" />
+			<fileset dir="${skeleton.dir}"/>
 			<filterchain>
 				<replacetokens>
 					<token key="distro.name" value="${distro.name}" />
@@ -349,9 +350,9 @@ a tiny 2m jar but getPageContext() throws errors!!
 		<loadfile property="project.build.file" srcFile="${target.dir}/build/build.properties" />
 		<property name="dist.cfdistro.build.file" value="${ant.file.cfdistro}" />
 		<property name="dist.build.type" value="localdev" />
-		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)cfdistro.build.file=.*" replace="\1cfdistro.build.file=${dist.cfdistro.build.file}" />
 		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)build.type=.*" replace="\1build.type=${dist.build.type}" />
 <!--
+		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)cfdistro.build.file=.*" replace="\1cfdistro.build.file=${dist.cfdistro.build.file}" />
 		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)dist.dir=.*" replace="\1dist.dir=${dist.dir}" />
 		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)src.dir=.*" replace="\1src.dir=${src.dir}" />
 -->
