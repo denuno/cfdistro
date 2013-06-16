@@ -9,7 +9,7 @@
 	<property name="server.maxmemory" value="256M"/>
 
 	<property name="ext.resin.version" value="4" />
-	<property name="ext.resin.version.minor" value="0.10" />
+	<property name="ext.resin.version.minor" value="0.35" />
 	<property name="resin.host" value="${server.host}"/>
 	<property name="ext.resin.dir" location="${ext.dir}/resin/${ext.resin.version}" />
 	<property name="resin.version.long" value="${ext.resin.version}.${ext.resin.version.minor}" />
@@ -72,6 +72,9 @@
 	<target name="resin.configure">
 		<property name="war.target.dir.absolute" location="${war.target.dir}" />
 		<property name="resin.deploy.dir.absolute" location="${resin.deploy.dir}" />
+		<property name="src.dir.rel" value="${src.dir}" relative="yes" basedir="${war.target.dir}"/>
+		<property name="src.dir.abs" location="${src.dir}"/>
+
 		<antcontrib:var name="resin.host.exists" unset="true"/>
 		<xmltask source="${resin.dir}/conf/resin.xml" dest="${resin.dir}/conf/resin.xml">
 			<replace path="//:cluster/:server-default/:http[@port='8080']/@port" withText="${resin.port.http}"/>
@@ -90,7 +93,9 @@
 			<replace path="//:cluster/:host[@id='${resin.host}']" if="resin.host.exists">
 				<![CDATA[
 				<host id="${resin.host}" host-name="${resin.host}" root-directory="${resin.deploy.dir.absolute}" xmlns="http://caucho.com/ns/resin">
-					<web-app id="${war.contextpath}" root-directory="${war.name}.war"/>
+					<web-app id="${war.contextpath}" root-directory="${war.name}.war">
+						<path-mapping url-pattern="/*" real-path="${src.dir.abs}"/>
+					</web-app>
 					<web-app id="/resin-admin" root-directory="/${resin.root}/doc/admin">
 						<prologue>
 							<resin:set value="false" var="resin_admin_external" xmlns="http://caucho.com/ns/resin" xmlns:resin="urn:java:com.caucho.resin"/>
@@ -103,7 +108,9 @@
 			<insert path="//:cluster" position="under" unless="resin.host.exists">
 				<![CDATA[
 				<host id="${resin.host}" host-name="${resin.host}" root-directory="${resin.deploy.dir.absolute}" xmlns="http://caucho.com/ns/resin">
-					<web-app id="${war.contextpath}" root-directory="${war.name}.war"/>
+					<web-app id="${war.contextpath}" root-directory="${war.name}.war">
+						<path-mapping url-pattern="/*" real-path="${src.dir.abs}"/>
+					</web-app>
 					<web-app id="/resin-admin" root-directory="/${resin.root}/doc/admin">
 						<prologue>
 							<resin:set value="false" var="resin_admin_external" xmlns="http://caucho.com/ns/resin" xmlns:resin="urn:java:com.caucho.resin"/>
@@ -119,11 +126,10 @@
 			<replace path="//:cluster/:host/:web-app[@root-directory='webapps/ROOT']/@root-directory" withText="${war.target.dir.absolute}"/>
 -->
 		</xmltask>
-		<echo file="${resin.dir}/conf/admin-users.xml"><![CDATA[<resin:AdminAuthenticator xmlns="http://caucho.com/ns/resin"
-			                            xmlns:resin="urn:java:com.caucho.resin">
+		<echo file="${resin.dir}/conf/admin-users.xml"><![CDATA[<resin:AdminAuthenticator xmlns="http://caucho.com/ns/resin" xmlns:resin="urn:java:com.caucho.resin">
 			      <user name="test" password="a7gQtawiv9EJQnShKwT9uQ=="/>
 			  </resin:AdminAuthenticator>
-			]]>
+]]>
 		</echo>
 
 		<!--
@@ -203,15 +209,19 @@
 		<echo message="starting resin"/>
 		<property name="background" value="true"/>
 		<sequential>
+			<antcontrib:if>
+				<equals arg1="true" arg2="${background}" />
+				<then><property name="resin.jar.start.cmd" value="start" /></then>
+				<else><property name="resin.jar.start.cmd" value="start-with-foreground" /></else>
+			</antcontrib:if>
 			<!-- <echoproperties prefix="runwar"/> -->
 		    <java jar="${resin.dir}/lib/resin.jar" fork="true" spawn="${background}" maxmemory="${runwar.maxmemory}">
-		        <arg value="start"/>
+		        <arg value="${resin.jar.start.cmd}"/>
 		        <arg value="-log-directory"/>
 		        <arg value="${resin.server.log.dir}"/>
 		        <arg value="-verbose"/>
 		        <arg value="-watchdog-port"/>
 		        <arg value="${resin.watchdog.port}"/>
-		    	 
 		    </java>
 			<echo message="waiting for resin"/>
 			<sleep seconds="3" />
@@ -256,7 +266,6 @@
     <target name="resin.war.deploy" description="Install application to servlet container">
 		<requires-ext resource="/ext/containers/resin/" />
 	    <taskdef name="deploy" classname="org.apache.catalina.ant.DeployTask" classpathref="resin.ant.lib.path"/>
-
     </target>
 	
     <!-- uses settings from deploy.xml stuff -->

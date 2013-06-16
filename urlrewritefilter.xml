@@ -203,7 +203,10 @@
 		</antcontrib:if>
 		<echo message="Using urlrewrite-${urlrewritefilter.version}" />
 		<antcontrib:if>
-			<equals arg1="${exists.urlrewrite.xml}" arg2="true" />
+			<or>
+				<equals arg1="${exists.urlrewrite.xml}" arg2="true" />
+				<equals arg1="${urlrewrite.install}" arg2="true" />
+			</or>
 			<then>
 				<copy todir="${war.target.dir}/WEB-INF/" overwrite="true">
 					<fileset dir="${ext.dir}/urlrewritefilter/">
