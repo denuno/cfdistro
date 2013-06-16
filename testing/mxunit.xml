@@ -26,12 +26,13 @@
      	<taskdef name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" classpathref="build.lib.path"  />
 		<mkdir dir="${mxunit.tests.results.dir}" />
 		<property name="mxunit.failonerror" value="true" />
+		<antcontrib:var name="tests.fail" unset="true" />
 		<abspath property="mxunit.tests.dir.abs" path="${mxunit.tests.dir}" />
 		<antcontrib:trycatch>
 			<try>
 				<mxunittask server="${server.host}" port="${server.port.http}"
 					defaultrunner="${mxunit.runner}" outputdir="${mxunit.tests.results.dir}"
-					failureproperty="tests.fail" haltonerror="false" 
+					failureproperty="tests.fail" haltonerror="false"
 					testResultsSummary="testresults.properties" verbose="true">
 					<!-- <testcase name="mxunit.tests.framework.AssertTest" packageName="mxunit.asserttests" /> -->
 					<directory runner="${mxunit.runner}"
