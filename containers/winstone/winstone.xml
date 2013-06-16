@@ -1,0 +1,59 @@
+<project name="winstone" default="winstone.embed" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+    <target name="winstone.embed" description="builds embedded with winstone" depends="build">
+    	<property name="winstone.zip.file" value="${dist.dir}/${distro.name}-winstone.zip" />
+    	<property name="winstone.version" value="0.9.10" />
+    	<property name="winstone.jar" value="winstone-lite-${winstone.version}.jar" />
+    	<property name="winstone.jar.path" value="${ext.dir}/winstone/${winstone.jar}" />
+    	<property name="winstone.ext.dir" value="${ext.dir}/winstone/"/>
+    	<property name="winstone.work.dir" value="${dist.dir}/winstone"/>
+    	<mkdir dir="${winstone.ext.dir}"/>
+        <dependency groupId="net.sourceforge.winstone"
+          artifactId="winstone-lite" type="jar" unzip="false"
+          version="${winstone.version}" dest="${winstone.ext.dir}"/>
+		<delete dir="${winstone.work.dir}"/>
+		<copy todir="${winstone.work.dir}/webroot/">
+			<fileset dir="${src.dir}/" />
+			<fileset dir="${pub.dir}/" />
+			<fileset dir="${war.target.dir}/" />
+		</copy>
+		<!--
+		<mkdir dir="${winstone.work.dir}/webroot/WEB-INF/lib"/>
+		<property name="railo.lib.dir" value="${winstone.work.dir}/webroot/WEB-INF/lib" />
+		<property name="railo.version.major" value="4" />
+		<property name="railo.version.long" value="4.1.0.010" />
+		<dependency groupId="org.getrailo" artifactId="railo.dep" classifier="javax-servlet" version="${railo.version.major}.0" dest="${railo.lib.dir}" type="jar" unzip="false"/>
+		<dependency groupId="org.getrailo" artifactId="railo.libs" version="${railo.version.major}.0" dest="${railo.lib.dir}" unzip="true"/>
+		<dependency groupId="org.getrailo" artifactId="railo-jar" version="${railo.version.long}" dest="${railo.lib.dir}" unzip="false" type="jar" />
+		-->
+		<zip destfile="${temp.dir}/embedded.war" update="false">
+			<fileset dir="${winstone.work.dir}/webroot/"/>
+		</zip>
+		<copy file="${winstone.jar.path}" tofile="${winstone.work.dir}/${distro.name}-winstone.jar" />
+		<echo file="${winstone.work.dir}/embedded.properties" message="httpPort=8088"/>
+		<zip destfile="${winstone.work.dir}/${distro.name}-winstone.jar" update="true">
+			<fileset file="${temp.dir}/embedded.war"/>
+			<fileset file="${winstone.work.dir}/embedded.properties"/>
+		</zip>
+    	<echo file="${winstone.work.dir}/start"><![CDATA[#!/bin/sh
+if test -n "${JAVA_HOME}"; then
+if test -z "${JAVA_EXE}"; then
+JAVA_EXE=$JAVA_HOME/bin/java
+fi
+fi
+
+if test -z "${JAVA_EXE}"; then
+JAVA_EXE=java
+fi
+cd $(dirname $0)
+exec $JAVA_EXE -javaagent:webroot/WEB-INF/lib/railo-inst.jar -jar ${distro.name}-winstone.jar --httpPort=8888]]>
+</echo>
+		<chmod file="${winstone.work.dir}/start" perm="ugo+rx"/>
+		<echo file="${winstone.work.dir}/start.bat"><![CDATA[java -javaagent:webroot/WEB-INF/lib/railo-inst.jar -jar %CD%\${distro.name}-winstone.jar --httpPort=8888]]></echo>
+		<delete dir="${winstone.work.dir}/webroot/"/>
+		<zip destfile="${winstone.zip.file}" update="false">
+			<zipfileset dir="${winstone.work.dir}/" includes="start,stop" filemode="755" />
+			<zipfileset dir="${winstone.work.dir}/" excludes="start,stop"/>
+		</zip>
+    </target>
+</project>

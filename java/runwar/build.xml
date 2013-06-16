@@ -134,7 +134,13 @@
 	</target>
 
 	<target name="runembedded.jar" description="creates an jar with the WAR embedded">
+		<antcontrib:if>
+			<equals arg1="${build.type}" arg2="prod" />
+			<then/>
+			<else><input message="Maybe you should be using build.type=prod?  Mappings won't be copied into war..."/></else>
+		</antcontrib:if>
 		<property name="runembedded.jar.file" value="${dist.dir}/embedded/${war.name}.jar"/>
+		<delete dir="${dist.dir}/${war.name}.war"/>
 		<antcontrib:runtarget target="build" />
 		<antcontrib:runtarget target="jar.war" />
 		<delete dir="${dist.dir}/embedded"/>
@@ -145,10 +151,10 @@
 				<attribute name="Main-Class" value="runwar.RunEmbeddedWar" />
 				<attribute name="Class-Path" value="./${jetty-runner.jar}" />
 			</manifest>
-			<fileset dir="${cfdistro.basedir}/lib/" includes="${jetty-runner.jar}" />
-			<fileset dir="${dist.dir}/compressed/" />
+			<zipfileset src="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+			<fileset file="${dist.dir}/${war.name}.war" />
 			<fileset dir="${dist.dir}/embedded/" />
-			<fileset dir="${runwar.basedir}/bin/runwar" />
+			<zipfileset src="${cfdistro.basedir}/lib/runwar.jar" />
 		</jar>
 	</target>
 	

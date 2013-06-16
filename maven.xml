@@ -510,7 +510,7 @@
 				</else>
 			</antcontrib:if>
 			<antcontrib:if>
-				<equals arg1="${isExtension}" arg2="true" />
+				<equals arg1="@{isExtension}" arg2="true" />
 				<then>
 					<railo-extension-install extension-zip="${_dep.file}" />
 				</then>

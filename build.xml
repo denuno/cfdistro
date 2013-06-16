@@ -508,6 +508,22 @@ a tiny 2m jar but getPageContext() throws errors!!
 				<error-template path="/WEB-INF/lib/railo-server/context/library/tag/error.cfm" />
 			</then>
 		</antcontrib:if>
+		<antcontrib:switch value="${build.type}">
+			<case value="localdev"></case>
+			<case value="dev"></case>
+			<case value="qa">
+				<copy todir="${war.target.dir}" verbose="false">
+					<fileset dir="${pub.dir}" erroronmissingdir="false" />
+				</copy>
+			</case>
+			<case value="prod">
+				<copy todir="${war.target.dir}" verbose="false">
+					<fileset dir="${pub.dir}" erroronmissingdir="false" />
+				</copy>
+			</case>
+			<default>
+			</default>
+		</antcontrib:switch>
 	</target>
 
 	<target name="build.start.launch" depends="build" description="builds, starts a server, launches a browserwindow to ${server.url}">
@@ -1109,10 +1125,12 @@ a tiny 2m jar but getPageContext() throws errors!!
 		<property name="customtags.file" location="${basedir}/customtags.${build.type}.xml" />
 	</then>
 	<else>
+		<antcontrib:var name="exists.customtags.xml" unset="true" />
 		<antcontrib:if>
 			<available file="${basedir}/customtags.xml" type="file" property="exists.customtags.xml" />
 			<then>
 				<antcontrib:var name="customtags.file" unset="true" />
+				<antcontrib:var name="exists.customtags.xml" value="true" />
 				<property name="customtags.file" location="${basedir}/customtags.xml" />
 			</then>
 		</antcontrib:if>

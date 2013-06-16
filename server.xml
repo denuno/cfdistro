@@ -44,11 +44,11 @@
 	</antcontrib:if>
 
 	<import file="containers/tomcat/tomcat.xml" />
+	<import file="containers/winstone/winstone.xml" />
 	<import file="containers/jetty/jetty.xml" />
 	<import file="containers/resin/resin.xml" />
 	<import file="containers/glassfish/glassfish.xml" />
 	<import file="java/runwar/build.xml" />
-
 
 	<target name="server.etc.hosts">
 		<antcontrib:switch value="${os.name}">

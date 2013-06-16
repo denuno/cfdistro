@@ -57,11 +57,14 @@ public final class RunEmbeddedWar {
 		System.out.println("Starting...");
 
 		// File warFile = File.createTempFile(WAR_NAME + "-", WAR_POSTFIX);
-		File currentDir = new File(".");
+		File currentDir = new File(RunEmbeddedWar.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParentFile();
 		File warFile = new File(currentDir.getCanonicalPath() + "/" + WAR_FILENAME);
 		File warDir = new File(currentDir.getCanonicalPath() + "/" + WAR_NAME);
 
-		if (!warDir.exists()) {
+		if (warDir.exists()) {
+			System.out.println("Not extracting, as WAR directory already exists: " + warDir.getCanonicalPath());
+		} 
+		else {
 			warDir.mkdir();
 			URL resource = classLoader.getResource(WAR_FILENAME);
 			if (resource == null) {
