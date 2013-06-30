@@ -281,9 +281,8 @@
         <property name="mvn.repo.id" value="cfdistro.repo.local" />
 		<property name="mvn.jre.tmp" location="${temp.dir}/jre" />
 		<property name="mvn.jre.dir" location="${basedir}/../jre" />
-		<property name="jre.prefix" value="jre-7u21" />
-		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u21" />
-
+		<property name="jre.prefix" value="jre-7u25" />
+		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u25" />
     	<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
 			input="${jre.prefix}" regexp="jre-(\d)u(\d+)" replace="1.\1.0_\2"/>
     	<input message="Do you agree to the ${jre.version} license?" addproperty="jre.lic.agree" />
@@ -291,7 +290,7 @@
     	<mkdir dir="${temp.dir}" />
     	<mkdir dir="${mvn.jre.tmp}" />
 		<echo message="*** GETTING JRE ${jre.version} ***" />    	
-    	<antcontrib:for list="linux-i586:b11,linux-x64:b11,macosx-x64:b12,windows-i586:b11,windows-x64:b11" param="file">
+    	<antcontrib:for list="linux-i586:b15,linux-x64:b15,macosx-x64:b15,windows-i586:b16,windows-x64:b16" param="file">
 			<sequential>
 				<antcontrib:propertyregex property="jre.os" override="yes" 
 					input="@{file}" regexp="([^:]*)" select="\1"/>
@@ -477,6 +476,7 @@
 						<equals arg1="true" arg2="@{unzip}" />
 						<then>
 							<unzip src="${_dep.file}" dest="@{dest}"/>
+							<delete file="@{dest}/@{artifactId}-@{version}${_dep.classifier}.@{type}" verbose="false"/>
 						</then>
 						<else>
 							<copy file="${_dep.file}" todir="@{dest}"/>
