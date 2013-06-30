@@ -113,8 +113,14 @@
 	</macrodef>
 
 	<macrodef name="server-run">
+		<attribute name="port" default="0" description="only works for runwar ATM"/>
+		<attribute name="stop-port" default="0" description="only works for runwar ATM"/>
 		<element name="stuff" implicit="true"/>
 		<sequential>
+			<antcontrib:var name="runwar.port.orig" value="${runwar.port}" /> 
+			<antcontrib:var name="runwar.port" value="@{port}" />
+			<antcontrib:var name="runwar.stop.socket.orig" value="${runwar.stop.socket}" /> 
+			<antcontrib:var name="runwar.stop.socket" value="@{stop-port}" />
 			<antcontrib:runtarget target="server.start" />
 			<antcontrib:trycatch property="_erredesse">
 				<try>
@@ -127,6 +133,8 @@
 				</catch>
 			</antcontrib:trycatch>
 			<antcontrib:runtarget target="server.stop" />
+			<antcontrib:var name="runwar.port" value="${runwar.port.orig}" /> 
+			<antcontrib:var name="runwar.stop.socket" value="${runwar.stop.socket.orig}" /> 
 			<fail if="server-run.failed" message="something erred esse! ${_erredesse}" />
 		</sequential>
 	</macrodef>

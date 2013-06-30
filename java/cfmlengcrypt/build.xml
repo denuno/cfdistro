@@ -3,7 +3,10 @@
 	<dirname property="cfmlengcrypt.basedir" file="${ant.file.cfmlengcrypt}" />
 
 	<path id="cfmlengcrypt.lib.path">
-		<fileset dir="${cfmlengcrypt.basedir}/lib">
+		<fileset dir="${cfmlengcrypt.basedir}/lib" erroronmissingdir="false">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="${war.target.dir}/WEB-INF/lib" erroronmissingdir="false">
 			<include name="*.jar" />
 		</fileset>
 	</path>
@@ -61,7 +64,10 @@
 				<arg value="@{engine}" />
 				<arg value="@{plaintext}" />
 			</java>
+			<!--
 			<echo message="@{engine} encrypted: @{plaintext} = ${@{property}} > $${@{property}}"/>
+			-->
+			<echo message="@{engine} encrypted password in: $${@{property}}"/>
 		</sequential>
 	</macrodef>
 
