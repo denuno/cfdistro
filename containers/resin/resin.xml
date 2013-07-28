@@ -9,7 +9,7 @@
 	<property name="server.maxmemory" value="256M"/>
 
 	<property name="ext.resin.version" value="4" />
-	<property name="ext.resin.version.minor" value="0.35" />
+	<property name="ext.resin.version.minor" value="0.36" />
 	<property name="resin.host" value="${server.host}"/>
 	<property name="ext.resin.dir" location="${ext.dir}/resin/${ext.resin.version}" />
 	<property name="resin.version.long" value="${ext.resin.version}.${ext.resin.version.minor}" />
@@ -74,7 +74,16 @@
 		<property name="resin.deploy.dir.absolute" location="${resin.deploy.dir}" />
 		<property name="src.dir.rel" value="${src.dir}" relative="yes" basedir="${war.target.dir}"/>
 		<property name="src.dir.abs" location="${src.dir}"/>
+		<property name="resin.enablephp" value="false"/>
 
+		<replaceregexp file="${resin.dir}/conf/resin.properties"
+           match="web.http\s+?:(.*)" byline="true"
+           replace="web.http\ : ${resin.port.http}"
+        />
+		<replaceregexp file="${resin.dir}/conf/resin.properties"
+           match="app.http\s+?:(.*)" byline="true"
+           replace="app.http\ : ${resin.port.http}"
+        />
 		<antcontrib:var name="resin.host.exists" unset="true"/>
 		<xmltask source="${resin.dir}/conf/resin.xml" dest="${resin.dir}/conf/resin.xml">
 			<replace path="//:cluster/:server-default/:http[@port='8080']/@port" withText="${resin.port.http}"/>
@@ -132,6 +141,26 @@
 ]]>
 		</echo>
 
+	<antcontrib:if>
+		<equals arg1="${resin.enablephp}" arg2="true" />
+		<then>
+		<xmltask source="${war.target.dir}/WEB-INF/web.xml"
+			dest="${war.target.dir}/WEB-INF/web.xml">
+			<copy path="web-app/servlet-mapping[url-pattern='*.php']/text()" attrValue="true" property="rule.exists"/>
+			<insert path="web-app/servlet[last()]" position="after" unless="rule.exists"><![CDATA[
+  <servlet servlet-name="resin-php" servlet-class="com.caucho.quercus.servlet.QuercusServlet"/>
+  <servlet-mapping>
+    <servlet-name>resin-php</servlet-name>
+    <url-pattern>*.php</url-pattern>
+  </servlet-mapping>
+  ]]>
+			</insert>
+			<!--
+			<insert path="web-app/welcome-file-list" position="under"><![CDATA[<welcome-file>index.php</welcome-file>]]></insert>
+			-->
+		</xmltask>
+		</then>
+	</antcontrib:if>
 		<!--
 
 	<host id="cfmlprojects.local" host-name="cfmlprojects.local" root-directory="/workspace/cfdistro/build/dist/localdev">

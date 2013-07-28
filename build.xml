@@ -351,8 +351,8 @@ a tiny 2m jar but getPageContext() throws errors!!
 		<property name="dist.cfdistro.build.file" value="${ant.file.cfdistro}" />
 		<property name="dist.build.type" value="localdev" />
 		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)build.type=.*" replace="\1build.type=${dist.build.type}" />
+		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)cfdistro.build.file=.*" replace="\1cfdistro.build.file=$${user.home}/cfdistro/build.xml" />
 <!--
-		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)cfdistro.build.file=.*" replace="\1cfdistro.build.file=${dist.cfdistro.build.file}" />
 		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)dist.dir=.*" replace="\1dist.dir=${dist.dir}" />
 		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)src.dir=.*" replace="\1src.dir=${src.dir}" />
 -->

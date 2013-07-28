@@ -468,7 +468,13 @@
 			</antcontrib:if>
 			<antcontrib:var name="_dep.loc" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/"/>
 			<antcontrib:var name="_dep.file" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/@{artifactId}-@{version}${_dep.classifier}.@{type}"/>
-			<mvn-get groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" classifier="@{classifier}" toDir="@{dest}" />
+			<antcontrib:if>
+				<available file="${_dep.file}"/>
+				<then/>
+				<else>
+					<mvn-get groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" classifier="@{classifier}" toDir="@{dest}" />
+				</else>
+			</antcontrib:if>
 			<antcontrib:if>
 				<equals arg1="@{dest}" arg2="" /><then/>
 				<else>
