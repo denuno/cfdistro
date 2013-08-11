@@ -1,12 +1,11 @@
 <project name="rpm" default="rpm" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:redline="antlib:org.redline_rpm"  basedir=".">
 	
-    <property name="redline.ant.tasks.jar" value="${cfdistro.basedir}/lib/redline-1.1.10-SNAPSHOT.jar" />
-    <property name="redline.ant.tasks.bootstrap.location" value="http://cloud.github.com/downloads/craigwblake/redline/redline-1.1.9.jar" />
+    <property name="redline.ant.tasks.jar" value="${cfdistro.basedir}/lib/redline-1-1-10-SNAPSHOT.jar" />
     <available property="redline.ant.tasks.jar.exists" file="${redline.ant.tasks.jar}" />
 
     <!-- This will download the "latest version" of the maven-ant-tasks if needed -->
     <target name="bootstrap_redline" unless="redline.ant.tasks.jar.exists">
-        <get src="${redline.ant.tasks.bootstrap.location}" dest="${redline.ant.tasks.jar}" />
+		<dependency artifactId="redline-1-1-10-SNAPSHOT" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
     </target>
     
 	<target name="rpm" depends="bootstrap_redline">
