@@ -91,7 +91,7 @@ fi
     	<taskdef resource="org/redline_rpm/antlib.xml" uri="antlib:org.redline_rpm" classpathref="build.lib.path"/>
 		<property name="rpm.user" value="root" />
 		<property name="rpm.source.dir" value="${cfdistro.basedir}" />
-		<property name="rpm.source.excludes" value="ext/**,artifacts/**,dist/**,**/.git/**,**/.svn/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**" />
+		<property name="rpm.source.excludes" value="ext/**,artifacts/**,dist/**,**/.git/**,**/.svn/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**,lib/**" />
 		<property name="rpm.target.dir" value="/opt/cfdistro" />
 		<property name="rpm.packager" value="cfdistro" />
 		<property name="rpm.group" value="cfdistro" />
