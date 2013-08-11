@@ -219,7 +219,7 @@
 		<git-reset-hard repository="/workspace/cfdistro/src/cfdistro/testing/temp/testproject/src" />
 	</target>
 	
-	<scriptdef name="git-commit-hash" language="javascript">
+	<scriptdef name="git-commit-hash" language="javascript" classpathref="build.lib.path">
 		<attribute name="repository" />
 		<attribute name="property" />
 		<attribute name="remote"/>
@@ -251,7 +251,7 @@
 	    ]]> 
 	</scriptdef>
 	
-	<scriptdef name="git-reset-hard" language="javascript">
+	<scriptdef name="git-reset-hard" language="javascript" classpathref="build.lib.path">
 		<attribute name="repository" />
 		<attribute name="remote"/>
 		<attribute name="branch" />
