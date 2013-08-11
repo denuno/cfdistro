@@ -25,8 +25,7 @@ env.rport=22
 -->
 
 	<target name="deploy.ssh.scp.war.to.farm" depends="sshtunnel.jar" description="scp wrapped with ssh tunnel trasfer of ${env.local_file} to ${env.remote_host} ${env.remote_dir}">
-		<taskdef name="sshtunnel" classname="org.mike.Ant.SSHTunnel"
-			classpath="${sshtunnel.dir}/lib/ant-sshtunnel.jar" />
+		<taskdef-dependency name="sshtunnel" classname="org.mike.Ant.SSHTunnel" artifactId="ant-sshtunnel" groupId="cfdistro.lib" version="1.0.0.0" />
 
 		<sshtunnel host="${env.bastion_host}" username="${ssh.user.name}"
 			keyfile="${ssh.keyfile}" passphrase="${ssh.passphrase}" trust="true"
@@ -38,8 +37,7 @@ env.rport=22
 	</target>
 
 	<target name="deploy.ssh.scp.modified.to.server" depends="sshtunnel.jar" description="scp wrapped with ssh tunnel modified ${src.dir} and ${pub.dir} to ${env.remote_host} ${env.remote_dir}">
-		<taskdef name="sshtunnel" classname="org.mike.Ant.SSHTunnel"
-			classpath="${sshtunnel.dir}/lib/ant-sshtunnel.jar" />
+		<taskdef-dependency name="sshtunnel" classname="org.mike.Ant.SSHTunnel" artifactId="ant-sshtunnel" groupId="cfdistro.lib" version="1.0.0.0" />
 
 		<sshtunnel host="${env.bastion_host}" username="${ssh.user.name}"
 			keyfile="${ssh.keyfile}" passphrase="${ssh.passphrase}" trust="true"
@@ -66,8 +64,7 @@ env.rport=22
 	        </fileset>
 	    </path>
 
-		<taskdef name="sshtunnel" classname="org.mike.Ant.SSHTunnel"
-			classpathref ="libpath" />
+		<taskdef-dependency name="sshtunnel" classname="org.mike.Ant.SSHTunnel" artifactId="ant-sshtunnel" groupId="cfdistro.lib" version="1.0.0.0" />
 
 		<property file="${basedir}/sshtunnel.properties" />
 		<echo message="using keyfile: ${ssh.keyfile}" />

@@ -132,7 +132,7 @@ fi
 		<mkdir dir="${deb.repo}"/>
 	   	<echo message="Creating debian .deb file from: ${rpm.source.dir}"/>
 	   	<delete file="${dist.dir}/${rpm.name}-${rpm.version}-1_all.deb" />
-	    <taskdef name="deb" classname="com.googlecode.ant_deb_task.Deb" classpathref="build.lib.path"/>
+		<taskdef-dependency name="deb" classname="com.googlecode.ant_deb_task.Deb" artifactId="ant-deb-0-0-1" version="1.0.0.0" />
 	   	<deb
 	        todir="${deb.repo}"
 	        package="${rpm.name}"

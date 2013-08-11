@@ -1,5 +1,10 @@
 <project name="runwar" default="runwar.compile" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
+	<property name="jetty-runner.version" value="8-1-8-v20121106" />
+	<property name="jetty-runner.jar" value="jetty-runner-${jetty-runner.version}-1.0.0.0.jar" />
+	<property name="jetty-runner.jar.file" value="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+	<property name="runwar.jar" value="runwar-1.0.0.0.jar" />
+	<property name="runwar.jar.file" value="${cfdistro.basedir}/lib/${runwar.jar}" />
 	<dirname property="runwar.basedir" file="${ant.file.runwar}" />
 
 	<macrodef name="runwar.initprops">
@@ -34,6 +39,21 @@
 			<property name="open.url" value="${server.url}" />
 			<fix-url-slashes property="open.url" />
 			<property name="runner.temp.dir" value="${temp.dir}/runner" />
+			<!--
+			<dependency groupId="org.eclipse.jetty" artifactId="jetty-runner" version="9.0.4.v20130625" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+			<dependency groupId="org.mortbay.jetty" artifactId="jetty-runner" version="8.1.11.v20130520" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+			-->
+			<antcontrib:if>
+				<available file="${runwar.jar.file}" /><then/>
+				<else>
+					<dependency groupId="cfdistro.lib" artifactId="runwar" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+					<dependency groupId="cfdistro.lib" artifactId="jetty-runner-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+					<dependency groupId="cfdistro.lib" artifactId="jetty-ajp-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+					<dependency groupId="cfdistro.lib" artifactId="jetty-rewrite-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+					<dependency groupId="cfdistro.lib" artifactId="commons-cli-1-2" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+				</else>
+			</antcontrib:if>
+
 			<property name="runner.jar" value="${runner.temp.dir}/${war.name}.jar" />
 
 			<property name="distro.name" value="${distro.name}" />
@@ -99,7 +119,7 @@
 	        </fileset>
 	    </unzip>
 		<copy todir="${runwar.basedir}/bin/runwar/runwar/" file="${runwar.basedir}/src/runwar/icon.png" />
-		<jar destfile="${cfdistro.basedir}/lib/runwar.jar"
+		<jar destfile="${runwar.jar.file}"
          basedir="${runwar.basedir}/bin/runwar/" 
          includes="**/*.class, **/*.png" filesetmanifest="mergewithoutmain">
 			<manifest>
@@ -121,7 +141,7 @@
 	        </fileset>
 	    </unzip>
 		<copy todir="${runwar.basedir}/bin/runwar/runwar/" file="${runwar.basedir}/src/runwar/icon.png" />
-		<property name="runwar.jar.location" value="${cfdistro.basedir}/lib/runwar.jar" />
+		<property name="runwar.jar.location" value="${runwar.jar.file}" />
 		<jar destfile="${runwar.jar.location}"  filesetmanifest="mergewithoutmain"
          basedir="${runwar.basedir}/bin/runwar/" 
          includes="**/*.class, **/*.png">
@@ -151,10 +171,10 @@
 				<attribute name="Main-Class" value="runwar.RunEmbeddedWar" />
 				<attribute name="Class-Path" value="./${jetty-runner.jar}" />
 			</manifest>
-			<zipfileset src="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+			<zipfileset src="${jetty-runner.jar.file}" />
 			<fileset file="${dist.dir}/${war.name}.war" />
 			<fileset dir="${dist.dir}/embedded/" />
-			<zipfileset src="${cfdistro.basedir}/lib/runwar.jar" />
+			<zipfileset src="${runwar.jar.file}" />
 		</jar>
 	</target>
 	
@@ -171,8 +191,8 @@
 		<property name="runwar.dir" location="${war.target.dir}/WEB-INF/" />
 		<mkdir dir="${runwar.dir}" />
 		<copy todir="${runwar.dir}">
-			<fileset file="${cfdistro.basedir}/lib/${jetty-runner.jar}"/>
-			<fileset file="${cfdistro.basedir}/lib/runwar.jar"/>
+			<fileset file="${jetty-runner.jar.file}"/>
+			<fileset file="${runwar.jar.file}"/>
 		</copy>
 		<echo file="${dist.dir}/${distro.name}.sh"><![CDATA[#start script
 if test -n "${JAVA_HOME}"; then
@@ -185,7 +205,7 @@ if test -z "${JAVA_EXE}"; then
 JAVA_EXE=java
 fi
 cd $(dirname $0)
-exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar} -jar ${war.name}.war/WEB-INF/runwar.jar ${war.name}.war -war ${war.contextpath} -host ${runwar.host} -port ${runwar.port} -stop-port ${runwar.stop.socket} -logdir ${runwar.log.dir} -cfml-dirs ${runwar.cfml.dirlist} -background false]]>
+exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar} -jar ${war.name}.war/WEB-INF/${runwar.jar} ${war.name}.war -war ${war.contextpath} -host ${runwar.host} -port ${runwar.port} -stop-port ${runwar.stop.socket} -logdir ${runwar.log.dir} -cfml-dirs ${runwar.cfml.dirlist} -background false]]>
 </echo>
 		<chmod file="${dist.dir}/${distro.name}.sh" perm="ugo+rx"/>
 	</target>
@@ -215,7 +235,7 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 			    <os family="mac"/>
 			</condition>
 			
-  			<java jar="${cfdistro.basedir}/lib/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="false" resultproperty="runwarstatus">
+  			<java jar="${runwar.jar.file}" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="false" resultproperty="runwarstatus">
 				<jvmarg line="${server.jvm.args}"/>
   				<!--
   				<sysproperty key="java.library.path" path=""/>
@@ -312,7 +332,7 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 		<requires-ext resource="${ext.dir}/ant-lib" />
 		<requires-ext resource="${ext.dir}/launch4j" />
 		<requires-ext resource="${ext.dir}/izpack" />
-		<copy file="${cfdistro.basedir}/lib/${jetty-runner.jar}" tofile="${runner.jar}" overwrite="true" />
+		<copy file="${jetty-runner.jar.file}" tofile="${runner.jar}" overwrite="true" />
 		<copy file="${war.target.dir}" todir="${runner.temp.dir}" />
 		<!--
 		<copy todir="${runner.temp.dir}/${war.name}.war">

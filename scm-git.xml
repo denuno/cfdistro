@@ -31,6 +31,7 @@
 					</antcontrib:trycatch>
 				</then>
 				<else>
+					<dependency artifactId="jgit-cli" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
 					<args2property property="gitcmdline"><args /></args2property>
 					<echo message="JGit - command: @{command} ${gitcmdline} (@{dir})" /><!-- <echoxml><elem /></echoxml> -->
 					<antcontrib:trycatch property="foo" reference="bar">
@@ -565,7 +566,8 @@
 				<xml />
 				</placeholderbrah>
 			</echoxml>
-			<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask"/>
+
+			<taskdef-dependency name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" artifactId="xmltask-v1-16-1" groupId="cfdistro.lib" version="1.0.0.0" />
 			<ant-set-log-level level="0"/>
 			<xmltask source="${__xml_file.temp}">
 				<copy path="placeholderbrah/arg/@value" attrValue="true" property="@{property}" append="true"/>

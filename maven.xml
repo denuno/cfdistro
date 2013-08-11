@@ -8,9 +8,12 @@
     <property name="mvn.repo.id" value="mvn.repo.${mvn.repo.dest}" />
     <property name="maven.repo.local" location="${pub.dir}/maven2" />
    	-->
-    <property name="maven.ant.tasks.jar" value="${cfdistro.basedir}/lib/maven-ant-tasks-2.1.3.jar" />
+    <property name="maven.ant.tasks.jar" value="${cfdistro.basedir}/lib/maven-ant-tasks-2-1-3-1.0.0.0.jar" />
 	<path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
-    <available property="maven.ant.tasks.jar.exists" file="${maven.ant.tasks.jar}" />
+	<ant-set-log-level level="0"/>
+    <get src="http://cfmlprojects.org/artifacts/cfdistro/lib/maven-ant-tasks-2-1-3/1.0.0.0/maven-ant-tasks-2-1-3-1.0.0.0.jar" dest="${maven.ant.tasks.jar}" skipexisting="true" />
+	<ant-set-log-level level="1"/>
+    <taskdef resource="org/apache/maven/artifact/ant/antlib.xml" uri="antlib:org.apache.maven.artifact.ant" classpathref="maven.ant.tasks.classpath" />
 
 	<property name="nexus.version" value="2.0.6" />
 	<property name="ext.nexus.dir" location="${ext.dir}/nexus/${nexus.version}" />
@@ -25,9 +28,10 @@
     <!-- This will download the "latest version" of the maven-ant-tasks if needed
     <target name="bootstrap_maven" unless="maven.ant.tasks.jar.exists">
 	    <property name="maven.ant.tasks.bootstrap.location" value="https://builds.apache.org/job/maven-ant-tasks/org.apache.maven$maven-ant-tasks/lastSuccessfulBuild/artifact/org.apache.maven/maven-ant-tasks/2.1.4-SNAPSHOT/maven-ant-tasks-2.1.4-SNAPSHOT.jar" />
-        <get src="${maven.ant.tasks.bootstrap.location}" dest="${maven.ant.tasks.jar}" />
+	    <get src="${maven.ant.tasks.bootstrap.location}" dest="${maven.ant.tasks.jar}" skipexisting="true" />
     </target>
      -->
+
 	<property name="nexus.admin.user" value="${ci.admin.user}" />
 	<property name="nexus.admin.password" value="${ci.admin.password}" />
    	<property name="nexus.port" value="8081" />
@@ -162,8 +166,9 @@
 	
     <!-- This will initialize all the maven ant tasks and download the requested artifact and its dependencies -->
     <target name="get" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+    
+	<taskdef-dependency name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" artifactId="xmltask-v1-16-1" groupId="cfdistro.lib" version="1.0.0.0" />
         <path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
-        <typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="urn:maven-artifact-ant" classpathref="maven.ant.tasks.classpath" />
         <condition property="maven.repo.local" value="${maven.repo.local}" else="${user.home}/.m2/repository">
             <isset property="maven.repo.local" />
         </condition>
@@ -349,8 +354,6 @@
 		<element name="authentication" optional="true" />
 		<element name="enablement" optional="true" />
 		<sequential>
-			<typedef resource="org/apache/maven/artifact/ant/antlib.xml"
-				uri="antlib:org.apache.maven.artifact.ant" classpathref="maven.ant.tasks.classpath" />
 		    <artifact:remoteRepository id="@{id}" url="@{url}">
 		      	<authentication />
 		      	<enablement />
@@ -368,27 +371,36 @@
 		<attribute name="scope" default="runtime" />
 		<attribute name="toFile" default=""/>
 		<attribute name="toDir" default=""/>
+		<attribute name="repoId" default="cfdistro.repo.remote" />
+		<element name="additional" implicit="true" optional="true"/>
 		<sequential>
-			<echo message="Dependency: @{groupId}:@{artifactId}:@{version}:@{classifier}:@{type}"/>
+			<antcontrib:if>
+				<equals arg1="${dependencies.@{groupId}.@{artifactId}.@{version}.@{classifier}.@{type}}" arg2="@{groupId}:@{artifactId}:@{version}:@{classifier}:@{type}"/>
+			<then/><else>
+				<property name="dependencies.@{groupId}.@{artifactId}.@{version}.@{classifier}.@{type}" value="@{groupId}:@{artifactId}:@{version}:@{classifier}:@{type}" />
+				<echo message="Dependency: @{groupId}:@{artifactId}:@{version}:@{classifier}:@{type}"/>
+			</else>
+		</antcontrib:if>
 	        <antcontrib:var unset="true" name="_dependency.fileset" />
 	        <path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
-	        <typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="urn:maven-artifact-ant" classpathref="maven.ant.tasks.classpath" />
 	        <artifact:dependencies filesetId="_dependency.fileset" useScope="@{scope}">
-	            <dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" classifier="@{classifier}" type="@{type}"/>
+	            <dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" classifier="@{classifier}" type="@{type}">
+	            	<additional/>
+	            </dependency>
 	            <localRepository path="${cfdistro.repo.local.path}" />
 	            <remoteRepository refid="cfdistro.repo.local" />
-	            <remoteRepository refid="cfdistro.repo.remote" />
+	            <remoteRepository refid="@{repoId}" />
 	        </artifact:dependencies>
 	        <antcontrib:if>
 	        	<equals arg1="@{toFile}" arg2="" />
 	        	<then/><else>
 					<antcontrib:propertyregex 
 					property="dependency.location" 
-					input="@{groupId}/@{artifactId}" 
+					input="@{groupId}" 
 					global="true" override="yes" 
 					regexp="\." 
 					replace="/" />
-					<copy tofile="@{toFile}" file="${cfdistro.repo.local.path}/${dependency.location}/@{version}/@{artifactId}-@{version}.@{type}" />
+					<copy tofile="@{toFile}" file="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/@{artifactId}-@{version}.@{type}" />
 	        	</else>
 	        </antcontrib:if>
 			<antcontrib:if>
@@ -410,7 +422,6 @@
 		<element name="deps" implicit="true" optional="true"/>
 		<sequential>
 	        <path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
-	        <typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="urn:maven-artifact-ant" classpathref="maven.ant.tasks.classpath" />
 	        <antcontrib:var unset="true" name="_dependency.fileset" />
 			<antcontrib:if>
 				<equals arg1="@{pomfile}" arg2="" />
@@ -448,6 +459,8 @@
 		<attribute name="dest" default=""/>
 		<attribute name="unzip" default="true"/>
 		<attribute name="isExtension" default="false"/>
+		<attribute name="repoId" default="cfdistro.repo.remote" />
+		<element name="exclusions" implicit="false" optional="true"/>
 		<sequential>
 			<property name="ext.mappings.dir" value="${ext.dir}/mappings" />
 			<antcontrib:var name="dependency.location" value="@{groupId}"/>
@@ -468,13 +481,9 @@
 			</antcontrib:if>
 			<antcontrib:var name="_dep.loc" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/"/>
 			<antcontrib:var name="_dep.file" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/@{artifactId}-@{version}${_dep.classifier}.@{type}"/>
-			<antcontrib:if>
-				<available file="${_dep.file}"/>
-				<then/>
-				<else>
-					<mvn-get groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" classifier="@{classifier}" toDir="@{dest}" />
-				</else>
-			</antcontrib:if>
+			<mvn-get groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" classifier="@{classifier}" toDir="@{dest}" repoId="@{repoId}">
+				<exclusions />
+			</mvn-get>
 			<antcontrib:if>
 				<equals arg1="@{dest}" arg2="" /><then/>
 				<else>
@@ -561,8 +570,6 @@
 		<element name="attachments" optional="true" />
 		 <!-- <attach file="${basedir}/target/my-project-1.0-sources.jar" type="jar" classifier="sources"/> -->
 		<sequential>
-			<typedef resource="org/apache/maven/artifact/ant/antlib.xml"
-				uri="antlib:org.apache.maven.artifact.ant" classpathref="maven.ant.tasks.classpath" />
 			<!-- <artifact:install-provider artifactId="wagon-ssh" version="1.0-beta-2"/> -->
     		<echoproperties prefix="repository." />
 			<antcontrib:if>

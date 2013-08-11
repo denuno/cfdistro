@@ -9,20 +9,7 @@
 				<equals arg1="${railo.patch.version}" arg2="" />
 				<equals arg1="${railo.patch.version}" arg2="$${railo.patch.version}" />
 			</or>
-			<then>
-				<antcontrib:propertyregex override="yes" property="railo.patch.version" input="${railo.version}" 
-					regexp="\d+\.\d+\.\d+\.(\d+)+.*" select="\1" />
-					<antcontrib:if>
-						<not><or>
-							<equals arg1="${railo.patch.version}" arg2="" />
-							<equals arg1="${railo.patch.version}" arg2="000" />
-							<equals arg1="${railo.patch.version}" arg2="$${railo.patch.version}" />
-						</or></not>
-						<then>
-							<antcontrib:var name="railo.patch.version" value="${railo.version}" />
-						</then>
-					</antcontrib:if>
-			</then>
+			<then/>
 			<else>
 				<antcontrib:var name="railo.version" value="${railo.patch.version}" />
 			</else>
@@ -32,33 +19,18 @@
 
 		<echo message="Railo version: Major ${railo.version.major} Minor ${railo.version.minor} Build ${railo.version.build} Revision ${railo.version.revision}"/>
 
-		<property name="ext.railo.war.version" value="${railo.version.major}.${railo.version.minor}.${railo.version.build}.000" />
 		<property name="ext.railo.dir" value="${ext.dir}/railo/${railo.version.major}" />
-		<property name="ext.railo.war.uri" value="http://www.getrailo.org/railo/remote/download/${ext.railo.war.version}/custom/all/railo-${ext.railo.war.version}.war" />
-		<property name="ext.railo.war" value="${ext.railo.dir}/railo-${ext.railo.war.version}.war" />
+		<property name="ext.railo.war" value="${ext.railo.dir}/railo-${railo.version}.war" />
 		<antcontrib:var name="cfml.engine.war" value="${ext.railo.war}" />
-		<mkdir dir="${ext.railo.dir}"/>
-		<mkdir dir="${ext.railo.dir}/patches"/>
-
-		<required-resource
-			src="${ext.railo.war.uri}" 
-			dest="${ext.railo.war}" />
-		<!--
-		<requires-ext resource="${ext.railo.dir}/railo-server.xml"/>
-		-->
-		<!-- patches -->
 		<antcontrib:if>
-			<or>
-				<equals arg1="${railo.patch.version}" arg2="" />
-				<equals arg1="${railo.patch.version}" arg2="$${railo.patch.version}" />
-			</or>
-			<then><echo message="Not downloading any railo patches"/></then>
+			<available file="${ext.railo.war}" /><then/>
 			<else>
-				<echo message="installing patch: ${railo.patch.version}/${railo.patch.version}.rc" />
-				<required-resource
-					src="http://${railo.patch.buildtype}.getrailo.org/railo/remote/download/${railo.patch.version}/${railo.patch.version}.rc" 
-					dest="${ext.railo.dir}/patches/${railo.patch.version}.rc" />
-				<copy file="${ext.railo.dir}/patches/${railo.patch.version}.rc" todir="${war.target.dir}/WEB-INF/lib/railo-server/patches/" overwrite="true" />
+				<dependency groupId="org.getrailo" artifactId="railo" version="${railo.version}" type="jar" dest="${war.target.dir}/WEB-INF/lib" unzip="false" />
+				<dependency groupId="org.getrailo" artifactId="railo.optional" version="${railo.version}" type="pom" dest="${war.target.dir}/WEB-INF/lib" unzip="false" />
+				<mvn-get groupId="org.getrailo" artifactId="railo-web-xml" version="${railo.version}" type="xml" tofile="${war.target.dir}/WEB-INF/web.xml" />
+				<zip destfile="${ext.railo.war}" basedir="${war.target.dir}">
+					<fileset dir="${war.target.dir}" />
+				</zip>
 			</else>
 		</antcontrib:if>
 	</target>
@@ -72,7 +44,7 @@
 		<antcontrib:propertyregex override="yes" property="railo.web.mxl" input="${railo.web.mxl}" regexp="&lt;web-app[^&gt;]+&gt;" replace="&lt;web-app&gt;" global="true" />
 		<echo file="${war.target.dir}/WEB-INF/web.xml" message="${railo.web.mxl}" />
 
-		<unzip src="${war.target.dir}/WEB-INF/lib/railo.jar" dest="${extracted}">
+		<unzip src="${war.target.dir}/WEB-INF/lib/railo-${railo.version}.jar" dest="${extracted}">
 	        <patternset> 
 	            <include name="core/core.rc"/> 
 	        </patternset> 
@@ -1114,7 +1086,8 @@
 		<sequential>
 			<echo message="submitting " /> 
 			<echoproperties prefix="extension" /> 
-			<taskdef name="httpmpost" classname="net.sf.fikin.ant.httpclientanttask.AntMultipartPostMethod" classpathref="build.lib.path" />
+			<taskdef-dependency name="httpmpost" classname="net.sf.fikin.ant.httpclientanttask.AntMultipartPostMethod" artifactId="fikin-ant-1-7-3" version="1.0.0.0" />
+
 			<!--
 			<property name="railo.store.url" value="http://www.getrailo.org/index.cfm/extensions/for-developers/index.cfm" />
 			-->

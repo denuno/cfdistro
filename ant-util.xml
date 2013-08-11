@@ -179,6 +179,7 @@
 		<attribute name="maxmemory" default="128M" />
 		<attribute name="fork" default="true" />
 		<sequential>
+			<dependency artifactId="ecj-3-8" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
 			<mkdir dir="${temp.dir}" />
 			<delete file="${temp.dir}/ecjresult.txt" />
 			<antcontrib:trycatch property="foo" reference="bar">
@@ -192,7 +193,7 @@
 					<antcontrib:trycatch>
 					<try><record name="${temp.dir}/ecjresult.txt" action="start"/></try><catch></catch>
 					</antcontrib:trycatch>
-					<java jar="${cfdistro.basedir}/lib/ecj-3.8.jar" fork="true"
+					<java jar="${cfdistro.basedir}/lib/ecj-3-8-1.0.0.0.jar" fork="true"
 						classpathref="build.lib.path" maxmemory="@{maxmemory}" failonerror="true">
 						<arg value="-@{compliance}" />
 						<arg value="-warn:none" />
@@ -344,7 +345,7 @@
 				<equals arg1="@{silent}" arg2="false"/>
 				<then><echo message="Storing user supplied properties in usersuppliedprops.*" /></then>
 			</antcontrib:if>			
-			<script language="javascript">
+			<script language="javascript" classpathref="build.lib.path">
 	     	<![CDATA[
 			importClass(Packages.net.sf.antcontrib.property.Variable);
 			var echopre = project.getProperty("___echoprefix");

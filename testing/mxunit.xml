@@ -23,16 +23,17 @@
 	</target>
 
 	<target name="mxunit.tests">
-     	<taskdef name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" classpathref="build.lib.path"  />
+		<taskdef-dependency name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" artifactId="mxunit-ant" groupId="cfdistro.lib" version="1.0.0.0" />
 		<mkdir dir="${mxunit.tests.results.dir}" />
 		<property name="mxunit.failonerror" value="true" />
 		<antcontrib:var name="tests.fail" unset="true" />
 		<abspath property="mxunit.tests.dir.abs" path="${mxunit.tests.dir}" />
-		<antcontrib:trycatch>
+		<echo message="Running MXUnit - mxunit.failonerror:${mxunit.failonerror} outputdir:${mxunit.tests.results.dir}" />
+		<antcontrib:trycatch property="_erredbrah">
 			<try>
 				<mxunittask server="${server.host}" port="${server.port.http}"
 					defaultrunner="${mxunit.runner}" outputdir="${mxunit.tests.results.dir}"
-					failureproperty="tests.fail" haltonerror="false"
+					failureproperty="tests.fail" errorproperty="tests.error" haltonerror="false"
 					testResultsSummary="testresults.properties" verbose="true">
 					<!-- <testcase name="mxunit.tests.framework.AssertTest" packageName="mxunit.asserttests" /> -->
 					<directory runner="${mxunit.runner}"
@@ -41,6 +42,7 @@
 				</mxunittask>
 			</try>
 			<catch>
+				<echo message="MXUnit run failed: ${_erredbrah}"/>
 				<antcontrib:var name="tests.fail" value="true" />
 			</catch>
 		</antcontrib:trycatch>
@@ -52,6 +54,7 @@
 			<equals arg1="${mxunit.failonerror}" arg2="true" />
 			<then>
 				<fail if="tests.fail" message="mxunit.failonerror is true and mxunit tests failed!"/>
+				<fail if="tests.error" message="mxunit.failonerror is true and mxunit tests erred!"/>
 			</then>
 		</antcontrib:if>
 	</target>
@@ -116,16 +119,17 @@
 			</sequential>
 		</antcontrib:for>
 	   </sequential>
-	 </macrodef>	
+	 </macrodef>
 	
 	<macrodef name="result2text">
 		<attribute name="dir"/>
 		<sequential>
+			<echo message="converting xml results in @{dir} to text" />
 			<delete dir="${temp.dir}/plaintext"/>
 			<xslt basedir="@{dir}" includes="*.xml" destdir="${temp.dir}/plaintext" 
 			   extension=".txt" style="${mxunit.basedir}/results2text.xsl" />
 			<concat>
-				<fileset dir="${temp.dir}/plaintext" includes="*.txt"/>
+				<fileset dir="${temp.dir}/plaintext" includes="*.txt" erroronmissingdir="false"/>
 			</concat>
 
 		</sequential>

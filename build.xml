@@ -1,4 +1,4 @@
-<project name="cfdistro" default="help" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:classloader="antlib:net.jtools.classloadertask">
+<project name="cfdistro" default="help" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
 	<dirname property="cfdistro.basedir" file="${ant.file.cfdistro}" />
 	<property name="user.cfdistrorc" location="${user.home}/.cfdistrorc" />
@@ -19,6 +19,7 @@
 		</java>
 	</target>
 
+	<mkdir dir="${cfdistro.basedir}/lib" />
 	<path id="build.lib.path">
 		<fileset dir="${cfdistro.basedir}/lib">
 			<include name="*.jar" />
@@ -27,65 +28,37 @@
 			<include name="*.jar" />
 		</fileset>
 	</path>
-	<taskdef resource="net/sf/antcontrib/antlib.xml" uri="antlib:net.sf.antcontrib" classpath="${cfdistro.basedir}/ant/lib/ant-contrib.jar" />
-	<property name="build.sysclasspath" value="ignore"/>
-	<taskdef resource="net/jtools/classloadertask/antlib.xml" classpath="${cfdistro.basedir}/ant/lib/ant-classloadertask.jar" />
-	<antcontrib:trycatch>
-		<try>
-			<property name="cfdistro.classloader.type" value="project" /> 
-			<classloader loader="${cfdistro.classloader.type}">
-				<classpath>
-					<fileset dir="${cfdistro.basedir}/lib">
-						<include name="*.jar" />
-					</fileset>
-				</classpath>
-			</classloader>
-			<script language="javascript">
-				<![CDATA[importClass(Packages.net.sf.antcontrib.property.Variable);]]>
-			</script>
-		</try>
-		<catch>
-			<antcontrib:trycatch>
-			<try>
-			<classloader loader="system">
-				<classpath>
-					<fileset dir="${cfdistro.basedir}/lib">
-						<include name="*.jar" />
-					</fileset>
-				</classpath>
-			</classloader>
-			<script language="javascript">
-				<![CDATA[importClass(Packages.net.sf.antcontrib.property.Variable);]]>
-			</script>
-			</try>
-			<catch>
-				<classloader loader="project" parentloader="project">
-					<classpath>
-						<fileset dir="${cfdistro.basedir}/lib">
-							<include name="*.jar" />
-						</fileset>
-					</classpath>
-				</classloader>
-				<script language="javascript">
-					<![CDATA[importClass(Packages.net.sf.antcontrib.property.Variable);]]>
-				</script>
-			</catch>
-			</antcontrib:trycatch>
-		</catch>
-	</antcontrib:trycatch>
-	<!--
-	-->
-	<property name="dist.root.dir.abs" location="${dist.root.dir}" />
+    <get src="http://cfmlprojects.org/artifacts/cfdistro/lib/ant-contrib/1.0.0.0/ant-contrib-1.0.0.0.jar" dest="${cfdistro.basedir}/lib/ant-contrib-1.0.0.0.jar" skipexisting="true" verbose="false"/>
 
+    <taskdef resource="net/sf/antcontrib/antlib.xml" uri="antlib:net.sf.antcontrib" classpathref="build.lib.path"/>
+
+	<property name="build.sysclasspath" value="ignore"/>
+
+	<property name="dist.root.dir.abs" location="${dist.root.dir}" />
 	<antcontrib:var name="dist.root.dir" value="${dist.root.dir.abs}" />
 
-	<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" classpath="${cfdistro.basedir}/lib/xmltask-v1.16.1.jar" />
+	<import file="ant-util.xml" />
+	<import file="maven.xml" />
+
+    <property name="cfdistro.repo.local.path" location="${user.home}/cfdistro/artifacts" />
+    <mvn-repo id="cfdistro.repo.remote" url="http://cfmlprojects.org/artifacts/" />
+	<mvn-repo id="cfdistro.repo.local" url="file://${cfdistro.repo.local.path}/" />
+
+	<macrodef name="taskdef-dependency">
+		<attribute name="groupId" default="cfdistro.lib" />
+		<attribute name="artifactId" />
+		<attribute name="version" />
+		<attribute name="name" />
+		<attribute name="classname" />
+		<sequential>
+			<dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" dest="${cfdistro.basedir}/lib/" type="jar" unzip="false"/>
+			<taskdef name="@{name}" classname="@{classname}" classpath="${cfdistro.basedir}/lib/@{artifactId}-@{version}.jar" />
+		</sequential>
+	</macrodef>
+
+	<taskdef-dependency name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" artifactId="xmltask-v1-16-1" groupId="cfdistro.lib" version="1.0.0.0" />
 	<taskdef name="sshsession" classname="org.apache.tools.ant.taskdefs.optional.ssh.SSHSession" classpath="${cfdistro.basedir}/ant/lib/ant.jar" />
 	<taskdef name="sshexec" classname="org.apache.tools.ant.taskdefs.optional.ssh.SSHExec" classpathref="build.lib.path" />
-	<!--
-		<taskdef name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" classpath="lib/mxunit-ant.jar" />
-	-->
-	<import file="ant-util.xml" />
 
 	<!--
 	load the specified build properties
@@ -174,13 +147,6 @@
 	<property name="mappings.relative" value="true" />
 	<property name="customtags.file" value="${basedir}/customtags.xml" />
 
-<!--
-a tiny 2m jar but getPageContext() throws errors!!
-	<property name="jetty-runner.jar" value="jetty-runner-8.0.4.v20111024.jar" />
--->
-	<property name="jetty-runner.version" value="8.1.8.v20121106" />
-	<property name="jetty-runner.jar" value="jetty-runner-${jetty-runner.version}.jar" />
-
 	<property name="ext.uri" value="http://subversion.assembla.com/svn/cfdistro/trunk/cfdistro/ext" />
 	<property name="creds.token.file" value="${user.cfdistrorc}" />
 
@@ -227,7 +193,6 @@ a tiny 2m jar but getPageContext() throws errors!!
 	<import file="pkg.xml" />
 	<import file="vm/build.xml" />
 	<import file="air/build.xml" />
-	<import file="maven.xml" />
 	<import file="rpm.xml" />
 	<import file="ci.xml" />
 	<import file="docgen.xml" />
@@ -236,10 +201,6 @@ a tiny 2m jar but getPageContext() throws errors!!
  	<delete dir="${temp.dir}" />
  -->
  	<mkdir dir="${temp.dir}" />
-
-    <property name="cfdistro.repo.local.path" location="${user.home}/cfdistro/artifacts" />
-    <mvn-repo id="cfdistro.repo.remote" url="http://cfmlprojects.org/artifacts/" />
-	<mvn-repo id="cfdistro.repo.local" url="file://${cfdistro.repo.local.path}/" />
 
 	<!--
 	<import file="hibernate/hibernate.xml" />
@@ -1351,7 +1312,7 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 
 <target name="cfdistro.dist" depends="clean" description="creates a minimal build">
 <property name="dist.type" value="minimal" />
-<property name="cfdistro.dist.excludes" value="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/**" />
+<property name="cfdistro.dist.excludes" value="ext/**,lib/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**" />
 <antcontrib:propertyregex property="creds.token.filename" input="${creds.token.file}" global="true" override="yes" regexp=".*[\\|/](.+)" select="\1" />
 <delete dir="${dist.dir}/${distro.name}/build/cfdistro/"/>
 <antcontrib:switch value="${dist.type}">
@@ -1503,10 +1464,11 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 	
 	
  <target name="cfdistro.deb" description="builds a .deb file for debian-based systems">
-	<property name="distro.name" value="cfdistro" />
-	<property name="distro.version" value="3.33" />
-    <taskdef name="deb" classname="com.googlecode.ant_deb_task.Deb" classpathref="build.lib.path"/>
-   	<echo message="Creating debian .deb file from: ${dist.dir}"/>
+	<antcontrib:var name="distro.name" value="cfdistro" />
+	<property name="distro.version" value="${cfdistro.version}" />
+	<taskdef-dependency name="deb" classname="com.googlecode.ant_deb_task.Deb" artifactId="ant-deb-0-0-1" version="1.0.0.0" />
+
+   	<echo message="Creating debian ${distro.name}:${distro.version} .deb file from: ${dist.dir}"/>
    	<echo file="${temp.dir}/${distro.name}.sh"><![CDATA[set -e; echo "cd $(dirname $0); cd ${distro.name}; sh ./${distro.name}.sh $*" > /usr/local/bin/${distro.name}.sh;chmod +x /usr/local/bin/${distro.name}.sh]]></echo>
    	<delete file="${dist.dir}/${distro.name}_${distro.version}-1_all.deb" />
    	<!--
@@ -1517,7 +1479,7 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
         package="${distro.name}"
         section="web"
         postinst="postinst"
-        depends="sun-java6-jre | openjdk-6-jre">
+        depends="sun-java6-jre | openjdk-6-jre | sun-java7-jre | openjdk-7-jre">
         <version upstream="${distro.version}"/>
         <maintainer name="Denny Valliant" email="valliantster@gmail.com"/>
         <description synopsis="cfdistro does nifty cfml-ish stuff">
@@ -1543,15 +1505,31 @@ cfdistro is freaking insane
 		<copy file="${dist.dir}/cfdistro.zip" todir="${cfdistro.repo.local.path}/cfdistro/latest" overwrite="true" />
 		<mvn-put artifact="${dist.dir}/cfdistro.zip" packaging="zip" repoId="cfdistro.repo.local"
 		 groupId="cfdistro" artifactId="core" version="${cfdistro.version}"/>
-		
+	</target>
+	
+	<target name="cfdistro.lib.mvn.release">
+		<antcontrib:for param="file">
+			<path>
+				<fileset dir="${cfdistro.basedir}/lib" includes="*.jar" />
+			</path>
+			<sequential>
+				<antcontrib:var name="basename" unset="true" />
+				<basename file="@{file}" property="basename" suffix=".jar" />
+				<antcontrib:propertyregex property="basename" input="${basename}" 
+				 regexp="\." replace="-" global="true" override="yes"/>
+				<mvn-put artifact="@{file}" packaging="jar" repoId="cfdistro.repo.local"
+				 groupId="cfdistro.lib" artifactId="${basename}" version="1.0.0.0"/>
+			</sequential>
+		</antcontrib:for>
 	</target>
 
-<target name="cfdistro.install" description="installs cfdistro into user home and sets build.property cfdistro path">
-	<copy todir="${user.home}/cfdistro" verbose="false" overwrite="true">
-		<fileset dir="${cfdistro.basedir}/" excludes="ext/**" />
-	</copy>
-	<loadfile property="project.build.file" srcFile="build.properties" />
-	<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)cfdistro.build.file=.*" replace="\1cfdistro.build.file=${user.home}/cfdistro/build.xml" />
-	<echo file="build.properties" message="${project.build.file}" />
-</target>
+	<target name="cfdistro.install" description="installs cfdistro into user home and sets build.property cfdistro path">
+		<copy todir="${user.home}/cfdistro" verbose="false" overwrite="true">
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**" />
+		</copy>
+		<loadfile property="project.build.file" srcFile="build.properties" />
+		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)cfdistro.build.file=.*" replace="\1cfdistro.build.file=${user.home}/cfdistro/build.xml" />
+		<echo file="build.properties" message="${project.build.file}" />
+	</target>
+
 </project>

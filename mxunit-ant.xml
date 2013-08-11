@@ -1,10 +1,9 @@
    <target name="runtests" description="Make output directories and run the MXUnit task">
      <mkdir dir="${junit.out.dir.html}" />
      <mkdir dir="${output.dir}" />
-     
-     
-     <taskdef name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" classpath="${mxunit.jar}"   />
-       <mxunittask server="localhost" port="8500"
+	 <taskdef-dependency name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" artifactId="mxunit-ant" version="1.0.0.0" />
+
+     <mxunittask server="localhost" port="8500"
                    defaultrunner="/mxunit/runner/HttpAntRunner.cfc"
                    outputdir="${output.dir}"
                    verbose="true"
@@ -31,6 +30,5 @@
                      packageName="mxunit.plugintests"
                      recurse="false"  />
                      
-                    
       </mxunittask>
   </target>

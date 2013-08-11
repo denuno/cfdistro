@@ -440,7 +440,6 @@
 
 	<target name="do-if-resin-conf" if="resin.conf.present">
 		<echo message="resin.conf.exists" />
-		<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" />
 		<xmltask source="${resin.install.dir}/conf/resin.conf" dest="${resin.install.dir}/conf/resin.conf">
 			<attr path="//:host-deploy[@path]" attr="path" value="conf/vhosts" />
 			<insert path="//:host-deploy/:host-default" position="under">
@@ -535,8 +534,6 @@
 		<property name="install.generation.dir" value="${installBaseDir}/generated" />
 
 		<loadproperties srcFile="resin.properties" />
-		<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask"
-			classpath="${ext.dir}/ant-lib/xmltask-v1.15.1.jar" />
 		<antcall target="expandResinToTempDir" />
 		<antcall target="do-if-resin-conf" />
 

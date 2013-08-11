@@ -3,5 +3,6 @@
 /rpmbuild
 /artifacts
 /temp
+/lib
 cfdistro.zip
 .svn
