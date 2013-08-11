@@ -139,7 +139,7 @@
 				<param name="type" path="@type" default="NONE" />
 				<param name="uri" path="@uri" default="NONE" />
 				<param name="path" path="@path" default="" />
-				<param name="branch" path="@branch" default="" />
+				<param name="branch" path="@branch" default="master" />
 				<param name="tag" path="@tag" default="HEAD" />
 				<param name="user" path="@user" default="" />
 				<param name="password" path="@password" default="" />
