@@ -141,7 +141,10 @@
 				</args>
 			</git>
 			<antcontrib:if>
-				<equals arg1="@{tag}" arg2="HEAD" />
+				<or>
+					<equals arg1="@{tag}" arg2="HEAD" />
+					<equals arg1="@{tag}" arg2="" />
+				</or>
 				<then/>
 				<else>
 					<git-checkout repository="@{dest}" branch="@{tag}" use-jgit="@{use-jgit}" />
