@@ -9,6 +9,7 @@
     </target>
     
 	<target name="rpm" depends="bootstrap_redline">
+    	<taskdef resource="org/redline_rpm/antlib.xml" uri="antlib:org.redline_rpm" classpathref="build.lib.path"/>
 		<mkdir dir="rpms" />
 		<!--  make RC rpm -->
 		<property name="rpm.user" value="railo" />
@@ -63,6 +64,7 @@ fi
 	</target>
 	
 	<target name="cfdistro.rpm" depends="bootstrap_redline">
+    	<taskdef resource="org/redline_rpm/antlib.xml" uri="antlib:org.redline_rpm" classpathref="build.lib.path"/>
 		<property name="rpm.user" value="cfml" />
 		<property name="rpm.source.dir" value="${dist.dir}" />
 		<property name="rpm.target.dir" value="/opt/${distro.name}" />
@@ -86,6 +88,7 @@ fi
 	</target>
 	
 	<target name="build.cfdistro.rpm" depends="bootstrap_redline">
+    	<taskdef resource="org/redline_rpm/antlib.xml" uri="antlib:org.redline_rpm" classpathref="build.lib.path"/>
 		<property name="rpm.user" value="root" />
 		<property name="rpm.source.dir" value="${cfdistro.basedir}" />
 		<property name="rpm.source.excludes" value="ext/**,artifacts/**,dist/**,**/.git/**,**/.svn/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**" />
@@ -195,6 +198,7 @@ fi
 		<attribute name="rpm.url" default="http://cfmlprojects.org/cfdistro" />
 		<attribute name="rpm.repo" default="${basedir}/../RPMS/noarch" />
 		<sequential>
+    		<taskdef resource="org/redline_rpm/antlib.xml" uri="antlib:org.redline_rpm" classpathref="build.lib.path"/>
 			<mkdir dir="@{rpm.repo}" />
 			<!--  make RC rpm -->
 			<echo file="${temp.dir}/preinstall.sh">
