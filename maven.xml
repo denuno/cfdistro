@@ -507,7 +507,7 @@
 						<equals arg1="@{dest}" arg2="" />
 						<then>
 							<antcontrib:var name="ext.mapping.dir" value="${ext.mappings.dir}/@{groupId}/@{artifactId}/@{version}" />
-							<antcontrib:var name="physicalxml" value="@ext.mappings.dir@/@{groupId}/@{artifactId}/@{version}@{mapping}" />
+							<antcontrib:var name="physicalxml" value="@ext.mappings.dir@/@{groupId}/@{artifactId}/@{version}" />
 						</then>
 						<else>
 							<antcontrib:var name="ext.mapping.dir" value="@{dest}" />
@@ -521,7 +521,7 @@
 						</else>
 					</antcontrib:if>
 					<!-- physicalxml is what goes in the mappings.xml file. a token vs. the fixed path. -->
-					<mapping physical="${ext.mapping.dir}@{mapping}" physicalxml="${physicalxml}" virtual="@{mapping}"/>
+					<mapping physical="${ext.mapping.dir}" physicalxml="${physicalxml}" virtual="@{mapping}"/>
 				</else>
 			</antcontrib:if>
 			<antcontrib:if>
