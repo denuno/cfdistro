@@ -471,7 +471,7 @@
 				<addlibs from="${cfdistro.basedir}/cfeclipse" />
 				<copy file="${cfdistro.basedir}/cfeclipse/cfeclipsecall.cfm" todir="${war.target.dir}" />
 				<copy file="${cfdistro.basedir}/cfeclipse/Dump.cfc" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag/railo" />
-				<copy file="${cfdistro.basedir}/error.cfm" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag/" />
+				<copy file="${cfdistro.basedir}/cfeclipse/error.cfm" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag/" />
 				<error-template path="/WEB-INF/lib/railo-server/context/library/tag/error.cfm" />
 			</then>
 		</antcontrib:if>
