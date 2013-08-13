@@ -243,13 +243,16 @@
 		} else {
 			var ref = repository.getRefDatabase().getRef("refs/heads/" + branch);
 		}
-		log.add(ref.getObjectId());
-		log.setMaxCount(1);
-		var commit = log.call().next();
-        if (commit != null) {
-			project.setProperty(property, commit.getName());
-			println(commit.getName() + " ("+ remote + "/" + branch + ")");
-        }
+		if(ref != null) {
+			log.add(ref.getObjectId());
+			log.setMaxCount(1);
+			var commit = log.call().next();
+	        if (commit != null) {
+				project.setProperty(property, commit.getName());
+	        }
+		} else {
+			println("Could not find branch: " + branch);
+		}
 		repository.close();
 	    ]]> 
 	</scriptdef>
