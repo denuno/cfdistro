@@ -467,13 +467,11 @@
 		<antcontrib:if>
 			<equals arg1="${cfeclipsecall.install}" arg2="true" />
 			<then>
-				<requires-ext resource="${ext.railo.dir}/error.cfm" />
-				<requires-ext resource="${ext.dir}/cfeclipse" />
 				<property name="cfmlengine.inspect.templates" value="always" />
-				<addlibs from="${ext.dir}/cfeclipse" />
-				<copy file="${ext.dir}/cfeclipse/cfeclipsecall.cfm" todir="${war.target.dir}" />
-				<copy file="${ext.dir}/cfeclipse/Dump.cfc" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag/railo" />
-				<copy file="${ext.railo.dir}/error.cfm" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag/" />
+				<addlibs from="${cfdistro.basedir}/cfeclipse" />
+				<copy file="${cfdistro.basedir}/cfeclipse/cfeclipsecall.cfm" todir="${war.target.dir}" />
+				<copy file="${cfdistro.basedir}/cfeclipse/Dump.cfc" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag/railo" />
+				<copy file="${cfdistro.basedir}/error.cfm" todir="${war.target.dir}/WEB-INF/lib/railo-server/context/library/tag/" />
 				<error-template path="/WEB-INF/lib/railo-server/context/library/tag/error.cfm" />
 			</then>
 		</antcontrib:if>
@@ -1298,6 +1296,14 @@
     <echo message="unzipping ${cfdistro.update.tempdir}/cfdistro.zip to ${cfdistro.update.basedir}" />
 	<unzip dest="${cfdistro.update.basedir}" src="${cfdistro.update.tempdir}/cfdistro.zip" />
 	<delete dir="${cfdistro.update.tempdir}" />
+    <antcontrib:switch value="${os.family}">
+      <case value="windows">
+        <fixcrlf srcdir="${cfdistro.basedir}" includes="**/*.xml" excludes="" eol="crlf" />
+      </case>
+      <default>
+        <fixcrlf srcdir="${cfdistro.basedir}" includes="**/*.bat" eol="lf" />
+      </default>
+    </antcontrib:switch>
     <antcontrib:var file="${cfdistro.basedir}/cfdistro.properties" />
     <echo message="Updated cfdistro to version ${cfdistro.version}" />
 </target>
