@@ -4,26 +4,26 @@
 		<equals arg1="${default.cfengine}" arg2="acf" />
 		<then>
 			<path id="data.lib.path">
-				<fileset dir="${cfdistro.basedir}/ext/ddlutils/lib">
+				<fileset dir="${cfdistro.basedir}/ext/ddlutils/lib" erroronmissingdir="false">
 					<include name="*.jar" />
 				</fileset>
-				<fileset dir="${war.target.dir}/WEB-INF/cfusion/lib">
+				<fileset dir="${war.target.dir}/WEB-INF/cfusion/lib" erroronmissingdir="false">
 					<include name="*.jar" />
 				</fileset>
-				<fileset dir="${basedir}/../lib">
+				<fileset dir="${basedir}/../lib" erroronmissingdir="false">
 					<include name="*.jar" />
 				</fileset>
 			</path>
 		</then>
 		<else>
 			<path id="data.lib.path">
-				<fileset dir="${cfdistro.basedir}/ext/ddlutils/lib">
+				<fileset dir="${cfdistro.basedir}/ext/ddlutils/lib" erroronmissingdir="false">
 					<include name="*.jar" />
 				</fileset>
-				<fileset dir="${war.target.dir}/WEB-INF/lib">
+				<fileset dir="${war.target.dir}/WEB-INF/lib" erroronmissingdir="false">
 					<include name="*.jar" />
 				</fileset>
-				<fileset dir="${basedir}/../lib">
+				<fileset dir="${basedir}/../lib" erroronmissingdir="false">
 					<include name="*.jar" />
 				</fileset>
 			</path>

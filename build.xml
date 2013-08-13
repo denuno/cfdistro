@@ -37,6 +37,13 @@
 	<property name="dist.root.dir.abs" location="${dist.root.dir}" />
 	<antcontrib:var name="dist.root.dir" value="${dist.root.dir.abs}" />
 
+    <antcontrib:if>
+      <available file="${user.cfdistrorc}" /><then/>
+      <else>
+        <echo file="${user.cfdistrorc}" message="# cfdistro user properties loaded before every run ${line.separator}#do not commit this file.  ignore if possible! ${line.separator}#gmail.user=someuser${line.separator}#gmail.password=fournick8" />
+      </else>
+    </antcontrib:if>
+
 	<import file="ant-util.xml" />
 	<import file="maven.xml" />
 
@@ -1125,22 +1132,6 @@
 </antcontrib:if>
 </target>
 
-<!--
-THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc 
-<target name="check.creds">
-<antcontrib:if>
-	<available file="${creds.token.file}" />
-	<then>
-		<antcontrib:var file="${creds.token.file}" />
-	</then>
-	<else>
-		<echo file="${creds.token.file}" message="# credential tokens and values: replaces @tokens@ in src.xml, datasources.xml, mail.xml ${line.separator}#do not commit this file.  ignore if possible! ${line.separator}#gmail.user=someuser${line.separator}#gmail.password=fournick8" />
-	</else>
-</antcontrib:if>
-</target>
-
- -->
-
 <target name="exists.mail.xml">
 <available file="${basedir}/mail.${build.type}.xml" type="file" property="exists.mail.xml" />
 <antcontrib:if>
@@ -1280,30 +1271,34 @@ THIS WAS MOSTLY REPLACED WITH THE LOAD OF ~/.cfdistrorc
 </target>
 
 <target name="expandResinToTempDir">
-<unzip dest="${temp.dir}" src="${resin.install.zip}">
-	<patternset>
-		<exclude name="*MACOSX" />
-	</patternset>
-</unzip>
+	<unzip dest="${temp.dir}" src="${resin.install.zip}">
+		<patternset>
+			<exclude name="*MACOSX" />
+		</patternset>
+	</unzip>
 </target>
 
 <target name="copySources">
-<mkdir dir="${war.target.dir}/railotempdir" />
-<copy todir="${war.target.dir}">
-	<fileset dir="${src.dir}/">
-		<include name="**" />
-	</fileset>
-</copy>
+	<mkdir dir="${war.target.dir}/railotempdir" />
+	<copy todir="${war.target.dir}">
+		<fileset dir="${src.dir}/">
+			<include name="**" />
+		</fileset>
+	</copy>
 </target>
 
 <target name="cfdistro.update">
 	<property name="cfdistro.update.basedir" value="${cfdistro.basedir}" />
 	<property name="cfdistro.update.url" value="http://cfmlprojects.org/artifacts/cfdistro/latest/cfdistro.zip" />
 	<property name="cfdistro.update.tempdir" value="${cfdistro.basedir}/temp-cfd-update" />
+	<delete dir="${cfdistro.update.tempdir}" />
 	<mkdir dir="${cfdistro.update.tempdir}" />
-	<get src="${cfdistro.update.url}" dest="${cfdistro.update.tempdir}" />
+	<get src="${cfdistro.update.url}" dest="${cfdistro.update.tempdir}" skipexisting="false"/>
+    <echo message="unzipping ${cfdistro.update.tempdir}/cfdistro.zip to ${cfdistro.update.basedir}" />
 	<unzip dest="${cfdistro.update.basedir}" src="${cfdistro.update.tempdir}/cfdistro.zip" />
 	<delete dir="${cfdistro.update.tempdir}" />
+    <antcontrib:var file="${cfdistro.basedir}/cfdistro.properties" />
+    <echo message="Updated cfdistro to version ${cfdistro.version}" />
 </target>
 
 <target name="echoproperties" description="lists set properties">
@@ -1498,7 +1493,7 @@ cfdistro is freaking insane
 		<delete dir="${dist.dir}/cfdistro" />
 		<mkdir dir="${dist.dir}/cfdistro" />
 		<copy todir="${dist.dir}/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**,java/cfmlengcrypt/src/**" />
 		</copy>
 		<zipdir destfile="${dist.dir}/cfdistro.zip" sourcedir="${dist.dir}/cfdistro" />
 		<mkdir dir="${cfdistro.repo.local.path}/cfdistro/latest" />

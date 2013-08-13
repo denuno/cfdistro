@@ -6,13 +6,21 @@
 		</fileset>
 	</path>
 
+	<macrodef name="svn-init">
+		<sequential>
+			<dependency artifactId="svnkit-1-7-5" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+			<dependency artifactId="svnkit-cli-1-7-5" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+		</sequential>
+	</macrodef>
+
 	<macrodef name="svn-command">
 		<attribute name="command" />
 		<attribute name="dir" default="" />
 		<attribute name="user" default="" />
 		<attribute name="password" default="" />
 		<element name="args" optional="true" />
-		<sequential> 
+		<sequential>
+			<svn-init /> 
 			<echo message="SVN @{command}" />
 			<java classname="org.tmatesoft.svn.cli.SVN" fork="true" dir="@{dir}" classpathref="svn.lib.path" outputproperty="svn.results">
 				<jvmarg line="${proxy.jvmarg.line}"/>
@@ -37,6 +45,7 @@
 		<attribute name="password" default="" />
 		<attribute name="dirname" default="" />
 		<sequential>
+			<svn-init />
 			<echo message="importing src: @{dest} from @{uri}" />
 			<java classname="org.tmatesoft.svn.cli.SVN" fork="true" classpathref="svn.lib.path">
 				<jvmarg line="${proxy.jvmarg.line}"/>
@@ -59,6 +68,7 @@
 		<attribute name="user" default="" />
 		<attribute name="password" default="" />
 		<sequential>
+			<svn-init /> 
 			<echo message="checkout to: @{dest}" />
 			<java classname="org.tmatesoft.svn.cli.SVN" fork="true" classpathref="svn.lib.path">
 				<jvmarg line="${proxy.jvmarg.line}"/>
@@ -177,6 +187,7 @@
 	</target>
 
 	<target name="check.project.for.newrevision.svn">
+		<svn-init /> 
 		<xmltask sourcebuffer="src.buff">
 			<call path="src/project/src[@type='svn']">
 				<param name="dest" path="@dest" default="NONE" />
@@ -226,6 +237,7 @@
 
 	<target name="twitter-head-info">
 		<property name="repository.URL" value="http://svn.cfeclipse.org" />
+		<svn-init /> 
 		<java classname="org.tmatesoft.svn.cli.SVN" classpathref="build.lib.path" fork="true" outputproperty="last.revision.info">
 			<arg value="log" />
 			<arg value="-rHEAD" />
@@ -234,7 +246,5 @@
 		<propertyregex property="info.smaller" input="${last.revision.info}" regexp="(?s)-+.(r\d+ \| \w+)\s?\|\s?.+(\(.*?).\|\s\d+\slines?(.*?).-{3}" select=" #ColdFusion \2 \1 > \3" casesensitive="false" />
 		<twitter message="${info.smaller} ${buildtype}" username="${twitter.username}" password="${twitter.password}" bitlyUsername="bitly-username" bitlyApiKey="bitly-key" enableBitly="false" />
 	</target>
-
-
 
 </project>
