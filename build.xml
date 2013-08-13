@@ -126,6 +126,8 @@
 
 	<property name="cfdistro.debug" value="false" />
 	<property name="default.cfengine" value="railo" />
+	<property name="cfdistro.dist.excludes" value="ext/**,lib/**,dist/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**" />
+
 	<property name="src.dir" location="../src" />
 	<property name="dist.dir" location="./dist" />
 	<property name="pub.dir" location="../pub" />
@@ -264,7 +266,6 @@
 
 	<target name="cfdistro.copy" description="copies cfdistro files to ${basedir}/cfdistro">
 		<delete dir="${basedir}/cfdistro/" excludes="ant/**"/>
-		<property name="cfdistro.dist.excludes" value="ext/**,artifacts/**,**/.git/**,**/.svn/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**,java/cfmlengcrypt/src/**" />
 		<copy todir="${basedir}/cfdistro" verbose="false" overwrite="true">
 			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" defaultexcludes="false" />
 		</copy>
@@ -1307,7 +1308,6 @@
 
 <target name="cfdistro.dist" depends="clean" description="creates a minimal build">
 <property name="dist.type" value="minimal" />
-<property name="cfdistro.dist.excludes" value="ext/**,lib/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**" />
 <antcontrib:propertyregex property="creds.token.filename" input="${creds.token.file}" global="true" override="yes" regexp=".*[\\|/](.+)" select="\1" />
 <delete dir="${dist.dir}/${distro.name}/build/cfdistro/"/>
 <antcontrib:switch value="${dist.type}">
@@ -1434,7 +1434,7 @@
 	<property name="rpm.post" value="sh /home/cfml/${distro.name}/postinst.sh" />
 	
 	<tar destfile="${temp.dir}/rpmbuild/SOURCES/release.tar.gz" compression="gzip">
-		<tarfileset dir="${dist.dir}" excludes="ext/**, **/creds.txt" prefix="${distro.name}-${distro.version}" />
+		<tarfileset dir="${dist.dir}" excludes="${cfdistro.dist.excludes}" prefix="${distro.name}-${distro.version}" />
 	</tar>
 	<copy file="${cfdistro.basedir}/rpmbuild/cfdistro.spec" tofile="${temp.dir}/rpmbuild/SPECS/${distro.name}.spec" overwrite="true">
 		<filterchain>
@@ -1493,7 +1493,7 @@ cfdistro is freaking insane
 		<delete dir="${dist.dir}/cfdistro" />
 		<mkdir dir="${dist.dir}/cfdistro" />
 		<copy todir="${dist.dir}/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**,java/cfmlengcrypt/src/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
 		</copy>
 		<zipdir destfile="${dist.dir}/cfdistro.zip" sourcedir="${dist.dir}/cfdistro" />
 		<mkdir dir="${cfdistro.repo.local.path}/cfdistro/latest" />
@@ -1520,7 +1520,7 @@ cfdistro is freaking insane
 
 	<target name="cfdistro.install" description="installs cfdistro into user home and sets build.property cfdistro path">
 		<copy todir="${user.home}/cfdistro" verbose="false" overwrite="true">
-			<fileset dir="${cfdistro.basedir}/" excludes="ext/**" />
+			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
 		</copy>
 		<loadfile property="project.build.file" srcFile="build.properties" />
 		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)cfdistro.build.file=.*" replace="\1cfdistro.build.file=${user.home}/cfdistro/build.xml" />
