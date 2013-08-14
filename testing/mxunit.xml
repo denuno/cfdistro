@@ -12,6 +12,7 @@
 	<property name="mxunit.version" value="2.1.3" />
 	<property name="ext.mxunit.dir" location="${ext.dir}/mxunit/${mxunit.version}" />
 	<property name="mxunit.dir" location="${war.target.dir}/mxunit" />
+	<property name="mxunit.failonerror" value="true" />
 
 	<target name="mxunit.install">
 		<dependency groupId="org.mxunit" artifactId="core" version="${mxunit.version}" mapping="/mxunit" />
@@ -23,40 +24,11 @@
 	</target>
 
 	<target name="mxunit.tests">
-		<taskdef-dependency name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" artifactId="mxunit-ant" groupId="cfdistro.lib" version="1.0.0.0" />
-		<mkdir dir="${mxunit.tests.results.dir}" />
-		<property name="mxunit.failonerror" value="true" />
-		<antcontrib:var name="tests.fail" unset="true" />
-		<abspath property="mxunit.tests.dir.abs" path="${mxunit.tests.dir}" />
-		<echo message="Running MXUnit - mxunit.failonerror:${mxunit.failonerror} outputdir:${mxunit.tests.results.dir}" />
-		<antcontrib:trycatch property="_erredbrah">
-			<try>
-				<mxunittask server="${server.host}" port="${server.port.http}"
-					defaultrunner="${mxunit.runner}" outputdir="${mxunit.tests.results.dir}"
-					failureproperty="tests.fail" errorproperty="tests.error" haltonerror="false"
-					testResultsSummary="testresults.properties" verbose="true">
-					<!-- <testcase name="mxunit.tests.framework.AssertTest" packageName="mxunit.asserttests" /> -->
-					<directory runner="${mxunit.runner}"
-						remoteMethod="run" path="${mxunit.tests.dir.abs}" componentPath="${mxunit.componentpath}"
-						packageName="${mxunit.packageName}" recurse="${mxunit.recurse}" />
-				</mxunittask>
-			</try>
-			<catch>
-				<echo message="MXUnit run failed: ${_erredbrah}"/>
-				<antcontrib:var name="tests.fail" value="true" />
-			</catch>
-		</antcontrib:trycatch>
-		<antcontrib:if>
-			<equals arg1="${mxunit.verbose}" arg2="true" />
-			<then><antcontrib:runtarget target="tests.results.text" /></then>
-		</antcontrib:if>
-		<antcontrib:if>
-			<equals arg1="${mxunit.failonerror}" arg2="true" />
-			<then>
-				<fail if="tests.fail" message="mxunit.failonerror is true and mxunit tests failed!"/>
-				<fail if="tests.error" message="mxunit.failonerror is true and mxunit tests erred!"/>
-			</then>
-		</antcontrib:if>
+		<mxunit-call 
+			path="${mxunit.tests.dir.abs}" componentPath="${mxunit.componentpath}"
+			packageName="${mxunit.packageName}" recurse="${mxunit.recurse}"
+			outputdir="${mxunit.tests.results.dir}" failonerror="${mxunit.failonerror}" 
+		/>
 	</target>
 
 	<target name="mxunit.tests.run">
@@ -132,6 +104,51 @@
 				<fileset dir="${temp.dir}/plaintext" includes="*.txt" erroronmissingdir="false"/>
 			</concat>
 
+		</sequential>
+	</macrodef>
+
+	<macrodef name="mxunit-call">
+		<attribute name="path" default="${mxunit.tests.dir}"/>
+		<attribute name="componentPath" default="${mxunit.componentpath}"/>
+		<attribute name="packageName" default="@{componentPath}"/>
+		<attribute name="recurse" default="${mxunit.recurse}"/>
+		<attribute name="failonerror" default="${mxunit.failonerror}"/>
+		<attribute name="outputdir" default="${mxunit.tests.results.dir}"/>
+		<sequential>
+			<taskdef-dependency name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" artifactId="mxunit-ant" groupId="cfdistro.lib" version="1.0.0.0" />
+			<mkdir dir="@{outputdir}" />
+			<antcontrib:var unset="true" name="tests.fail"/>
+			<antcontrib:var unset="true" name="tests.error"/>
+			<abspath property="mxunit.tests.dir.abs" path="@{path}" />
+			<echo message="Running MXUnit - mxunit.failonerror:@{failonerror} outputdir:@{outputdir}" />
+			<antcontrib:trycatch property="_erredbrah">
+				<try>
+					<mxunittask server="${server.host}" port="${server.port.http}"
+						defaultrunner="${mxunit.runner}" outputdir="@{outputdir}"
+						failureproperty="tests.fail" errorproperty="tests.error" haltonerror="false"
+						testResultsSummary="testresults.properties" verbose="true">
+						<!-- <testcase name="mxunit.tests.framework.AssertTest" packageName="mxunit.asserttests" /> -->
+						<directory runner="${mxunit.runner}"
+							remoteMethod="run" path="${mxunit.tests.dir.abs}" componentPath="@{componentPath}"
+							packageName="@{packageName}" recurse="@{recurse}" />
+					</mxunittask>
+				</try>
+				<catch>
+					<echo message="MXUnit run failed: ${_erredbrah}"/>
+					<antcontrib:var name="tests.fail" value="true" />
+				</catch>
+			</antcontrib:trycatch>
+			<antcontrib:if>
+				<equals arg1="${mxunit.verbose}" arg2="true" />
+				<then><result2text dir="@{outputdir}" /></then>
+			</antcontrib:if>
+			<antcontrib:if>
+				<equals arg1="@{failonerror}" arg2="true" />
+				<then>
+					<fail if="tests.fail" message="mxunit.failonerror is true and mxunit tests failed!"/>
+					<fail if="tests.error" message="mxunit.failonerror is true and mxunit tests erred!"/>
+				</then>
+			</antcontrib:if>
 		</sequential>
 	</macrodef>
 
