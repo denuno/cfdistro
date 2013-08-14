@@ -25,7 +25,7 @@
 
 	<target name="mxunit.tests">
 		<mxunit-call 
-			path="${mxunit.tests.dir.abs}" componentPath="${mxunit.componentpath}"
+			path="${mxunit.tests.dir}" componentPath="${mxunit.componentpath}"
 			packageName="${mxunit.packageName}" recurse="${mxunit.recurse}"
 			outputdir="${mxunit.tests.results.dir}" failonerror="${mxunit.failonerror}" 
 		/>
@@ -103,7 +103,18 @@
 			<concat>
 				<fileset dir="${temp.dir}/plaintext" includes="*.txt" erroronmissingdir="false"/>
 			</concat>
-
+	    	<antcontrib:for param="file" description="sometimes errors will be in html files">
+				<path><fileset dir="@{dir}" includes="*.html" /></path>
+				<sequential>
+					<echo message="Extracting content of html file: @{file}" />
+					<antcontrib:var unset="true" name="_htmlfile" />
+					<loadfile srcFile="@{file}" property="_htmlfile" />
+					<antcontrib:propertyregex global="true" override="yes" 
+					 property="_htmlfile" input="${_htmlfile}" regexp="&lt;[^&gt;]*&gt;" replace=" "/>
+					 <echo message="${_htmlfile}" />
+				</sequential>
+			</antcontrib:for>
+			<antcontrib:var unset="true" name="_htmlfile" />
 		</sequential>
 	</macrodef>
 
