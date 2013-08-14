@@ -1175,6 +1175,7 @@
 				</xmltask>
 				<echo message="No build mail settings file to import : ${basedir}/mail.${build.type}.xml does not exist." />
 				<echo message="No mail settings file to import : ${basedir}/mail.xml does not exist." />
+				<echo message="Adding default 127.0.0.1:25 mail server" />
 			</else>
 		</antcontrib:if>
 	</else>
