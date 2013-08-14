@@ -116,6 +116,7 @@
 		<attribute name="outputdir" default="${mxunit.tests.results.dir}"/>
 		<sequential>
 			<taskdef-dependency name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" artifactId="mxunit-ant" groupId="cfdistro.lib" version="1.0.0.0" />
+			<delete dir="@{outputdir}" />
 			<mkdir dir="@{outputdir}" />
 			<antcontrib:var unset="true" name="tests.fail"/>
 			<antcontrib:var unset="true" name="tests.error"/>
