@@ -1169,6 +1169,10 @@
 				</xmltask>
 			</then>
 			<else>
+				<xmltask destbuffer="mail.buff">
+		 			<insert path="/" xml='&lt;mail&gt;&lt;settings log="./temp/logs/mail.log" spool-enable="yes" spool-interval="5" timeout="30" /&gt;&lt;servers&gt;&lt;server password="" port="25" smtp="127.0.0.1" ssl="false" tls="false" username="" /&gt;&lt;/servers&gt;&lt;/mail&gt;'
+        			position="under" />
+				</xmltask>
 				<echo message="No build mail settings file to import : ${basedir}/mail.${build.type}.xml does not exist." />
 				<echo message="No mail settings file to import : ${basedir}/mail.xml does not exist." />
 			</else>
