@@ -138,6 +138,7 @@
 		<sequential>
 			<echo message="runing tests in (@{basePath})" />
 			<abspath property="mxunit.tests.sub.dir.abs" path="@{basePath}" />
+			<delete dir="@{outputdir}" />
 			
 	    	<antcontrib:for param="dir">
 				<path><dirset dir="@{basePath}" includes="*"/></path>
@@ -148,7 +149,7 @@
 					<mxunit-call 
 						path="${mxunit.tests.sub.dir.abs}/${_dirname}" componentPath="@{baseComponentPath}.${_dirname}"
 						packageName="@{packageName}.${_dirname}" recurse="${mxunit.recurse}"
-						outputdir="@{outputdir}" failonerror="@{failonerror}"
+						outputdir="@{outputdir}/${_dirname}" failonerror="@{failonerror}"
 					/>
 				</sequential>
 			</antcontrib:for>
