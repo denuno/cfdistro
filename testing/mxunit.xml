@@ -31,6 +31,14 @@
 		/>
 	</target>
 
+	<target name="mxunit.tests.subdirectories">
+		<mxunit-rundirs 
+			basePath="${mxunit.tests.dir}" baseComponentPath="${mxunit.componentpath}"
+			packageName="${mxunit.packageName}"
+			outputdir="${mxunit.tests.results.dir}" failonerror="${mxunit.failonerror}" 
+		/>
+	</target>
+
 	<target name="mxunit.tests.run">
 		<server-run>
 			<antcontrib:runtarget target="mxunit.tests" />
@@ -99,7 +107,7 @@
 			<echo message="converting xml results in @{dir} to text" />
 			<delete dir="${temp.dir}/plaintext"/>
 			<xslt basedir="@{dir}" includes="*.xml" destdir="${temp.dir}/plaintext" 
-			   extension=".txt" style="${mxunit.basedir}/results2text.xsl" />
+			   extension=".txt" style="${mxunit.basedir}/results2text.xsl" failOnTransformationError="false"/>
 			<concat>
 				<fileset dir="${temp.dir}/plaintext" includes="*.txt" erroronmissingdir="false"/>
 			</concat>
@@ -107,14 +115,43 @@
 				<path><fileset dir="@{dir}" includes="*.html" /></path>
 				<sequential>
 					<echo message="Extracting content of html file: @{file}" />
+					<replaceregexp file="@{file}" match="function oc\(id\).*Railo" replace=" " byline="false" flags="g,s"/>
 					<antcontrib:var unset="true" name="_htmlfile" />
 					<loadfile srcFile="@{file}" property="_htmlfile" />
 					<antcontrib:propertyregex global="true" override="yes" 
 					 property="_htmlfile" input="${_htmlfile}" regexp="&lt;[^&gt;]*&gt;" replace=" "/>
+					<antcontrib:propertyregex global="true" override="yes" 
+					 property="_htmlfile" input="${_htmlfile}" regexp="[\r|\n][\s]?[\r|\n]" replace="${line.separator}"/>
 					 <echo message="${_htmlfile}" />
 				</sequential>
 			</antcontrib:for>
 			<antcontrib:var unset="true" name="_htmlfile" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="mxunit-rundirs">
+		<attribute name="basePath"/>
+		<attribute name="baseComponentPath" default="${mxunit.componentpath}"/>
+		<attribute name="packageName" default="@{baseComponentPath}"/>
+		<attribute name="failonerror" default="${mxunit.failonerror}"/>
+		<attribute name="outputdir" default="${mxunit.tests.results.dir}"/>
+		<sequential>
+			<echo message="runing tests in (@{basePath})" />
+			<abspath property="mxunit.tests.sub.dir.abs" path="@{basePath}" />
+			
+	    	<antcontrib:for param="dir">
+				<path><dirset dir="@{basePath}" includes="*"/></path>
+				<sequential>
+					<antcontrib:var unset="true" name="_dirname" />
+					<basename file="@{dir}" property="_dirname" />
+					<echo message="runing tests in @{dir} (${_dirname})" />
+					<mxunit-call 
+						path="${mxunit.tests.sub.dir.abs}/${_dirname}" componentPath="@{baseComponentPath}.${_dirname}"
+						packageName="@{packageName}.${_dirname}" recurse="${mxunit.recurse}"
+						outputdir="@{outputdir}" failonerror="@{failonerror}"
+					/>
+				</sequential>
+			</antcontrib:for>
 		</sequential>
 	</macrodef>
 
