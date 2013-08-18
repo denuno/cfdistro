@@ -329,6 +329,28 @@
 		<startscript script-path="${target.dir}/${distro.name}" />
 	</target>
 
+
+	<target name="cfdistro.completion">
+		<script language="javascript" classpathref="build.lib.path"><![CDATA[
+			println("hello, world")
+			var props = project.getProperties();
+			var targs = project.getTargets().elements();
+	        var comps = "complete -W '";
+	        while( targs.hasMoreElements() )
+	        {
+	            var targ = targs.nextElement();
+	            if(targ.getDescription() != null) {
+	                println(targ.getName());
+	                comps += targ.getName() + " ";
+	            }
+	        }
+	        project.setProperty("bash.completion.script", comps + "' cfdistro");
+	      ]]>
+		</script>
+		<echo file="${cfdistro.basedir}/bin/cfdistro_bash_completion" append="false" message="${bash.completion.script}"/>
+		<echo message="bash completion script generated: ${cfdistro.basedir}/bin/cfdistro_bash_completion"/>
+	</target>
+
 	<target name="war.init">
 		<!--
 		<load-buildtype-properties buildtype="${build.type}" />
