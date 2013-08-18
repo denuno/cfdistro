@@ -890,10 +890,10 @@
 					<!-- if some caches exist we can update and add -->
 					<antcontrib:switch value="${cache.exists}">
 						<case value="true">
-							<echo message="updated cache provider @{name}" />
+							<echo message="updated @{default-type} cache provider @{name} (@{class})" />
 						</case>
 						<default>
-							<echo message="added cache provider @{name}" />
+							<echo message="added @{default-type} cache provider @{name} (@{class})" />
 						</default>
 					</antcontrib:switch>
 					<antcontrib:var name="cache.exists" unset="true" />
