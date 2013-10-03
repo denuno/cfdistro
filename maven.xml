@@ -12,7 +12,7 @@
 	<path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
 	<ant-set-log-level level="0"/>
     <get src="http://cfmlprojects.org/artifacts/cfdistro/lib/maven-ant-tasks-2-1-3/1.0.0.0/maven-ant-tasks-2-1-3-1.0.0.0.jar" dest="${maven.ant.tasks.jar}" skipexisting="true" />
-	<ant-set-log-level level="1"/>
+	<ant-set-log-level level="2"/>
     <taskdef resource="org/apache/maven/artifact/ant/antlib.xml" uri="antlib:org.apache.maven.artifact.ant" classpathref="maven.ant.tasks.classpath" />
 
 	<property name="nexus.version" value="2.0.6" />
@@ -283,25 +283,26 @@
 	</target>	
 		
     <target name="jre.7.update" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="convert packed bins to zip">
-        <property name="mvn.repo.id" value="cfdistro.repo.local" />
-		<property name="mvn.jre.tmp" location="${temp.dir}/jre" />
-		<property name="mvn.jre.dir" location="${basedir}/../jre" />
-		<property name="jre.prefix" value="jre-7u25" />
-		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u25" />
+        <property name="jre.type" value="jre" />
+		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
+		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
+		<property name="mvn.jre.dir" location="${basedir}/../${jre.type}" />
+		<property name="jre.prefix" value="${jre.type}-7u40" />
+		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u40" />
     	<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
-			input="${jre.prefix}" regexp="jre-(\d)u(\d+)" replace="1.\1.0_\2"/>
+			input="${jre.prefix}" regexp="${jre.type}-(\d)u(\d+)" replace="1.\1.0_\2"/>
     	<input message="Do you agree to the ${jre.version} license?" addproperty="jre.lic.agree" />
     	<delete dir="${temp.dir}" />
     	<mkdir dir="${temp.dir}" />
     	<mkdir dir="${mvn.jre.tmp}" />
-		<echo message="*** GETTING JRE ${jre.version} ***" />    	
-    	<antcontrib:for list="linux-i586:b15,linux-x64:b15,macosx-x64:b15,windows-i586:b16,windows-x64:b16" param="file">
+		<echo message="*** GETTING ${jre.type} ${jre.version} ***" />    	
+    	<antcontrib:for list="linux-i586:b43,linux-x64:b43,macosx-x64:b43,windows-i586:b43,windows-x64:b43" param="file">
 			<sequential>
 				<antcontrib:propertyregex property="jre.os" override="yes" 
 					input="@{file}" regexp="([^:]*)" select="\1"/>
 				<antcontrib:propertyregex property="jre.b.version" override="yes" 
 					input="@{file}" regexp=".*:(.*)" select="\1"/>
-				<echo message="*** GETTING JRE : ${jre.version} ${jre.prefix}-${jre.os} ${jre.b.version}***" />
+				<echo message="*** GETTING ${jre.type} : ${jre.version} ${jre.prefix}-${jre.os} ${jre.b.version}***" />
 				<exec executable="wget" failonerror="true">
 					<arg value="--no-check-certificate"/>
 				    <arg line='--header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F"'/>
@@ -312,36 +313,36 @@
 				<gunzip src="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar.gz" dest="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar"/>
 				<untar src="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar" dest="${mvn.jre.tmp}/${jre.os}"/>
 				<antcontrib:if>
-		    		<available file="${mvn.jre.tmp}/${jre.os}/jre${jre.version}.jre/Contents/Home/" />
+		    		<available file="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}.jre/Contents/Home/" />
 		    		<then><!-- OS X -->
-						<move todir="${mvn.jre.tmp}/${jre.os}/jre${jre.version}">
-						  <fileset dir="${mvn.jre.tmp}/${jre.os}/jre${jre.version}.jre/Contents">
+						<move todir="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}">
+						  <fileset dir="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}.jre/Contents">
 						    <include name="*/**"/>
 						    <exclude name="*"/>
 						  </fileset>
 						  <regexpmapper from="^[^/]*/(.*)$$" to="\1" handledirsep="true"/>
 						</move>
-		    	    	<delete dir="${mvn.jre.tmp}/${jre.os}/jre${jre.version}.jre" />
+		    	    	<delete dir="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}.jre" />
 		    		</then>
 		    	</antcontrib:if>
 		    	<antcontrib:if>
-		    		<available file="${mvn.jre.tmp}/${jre.os}/jre${jre.version}/bin" />
+		    		<available file="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}/bin" />
 		    		<then>
-						<chmod dir="${mvn.jre.tmp}/${jre.os}/jre${jre.version}/bin" perm="+x" includes="*"/>
+						<chmod dir="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}/bin" perm="+x" includes="*"/>
 		    		</then>
 		    	</antcontrib:if>
-	    		<zipdir destfile="${mvn.jre.tmp}/jre${jre.version}-${jre.os}.zip" sourcedir="${mvn.jre.tmp}/${jre.os}/jre${jre.version}/" />
+	    		<zipdir destfile="${mvn.jre.tmp}/${jre.type}${jre.version}-${jre.os}.zip" sourcedir="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}/" />
 			</sequential>
     	</antcontrib:for>
     	<echo message="*** POMN ***" />    	
 		<pom-and-deploy pomid="jre.pom" packaging="pom" buildtype="${mvn.type}"
-		 groupId="oracle" artifactId="jre" version="${jre.version}" name="oracle.jre">
+		 groupId="oracle" artifactId="${jre.type}" version="${jre.version}" name="oracle.${jre.type}">
 			<attachments>
-        		<attach file="${mvn.jre.tmp}/jre${jre.version}-linux-i586.zip" type="zip" classifier="linux32"/>
-        		<attach file="${mvn.jre.tmp}/jre${jre.version}-linux-x64.zip" type="zip" classifier="linux64"/>
-        		<attach file="${mvn.jre.tmp}/jre${jre.version}-macosx-x64.zip" type="zip" classifier="darwin64"/>
-        		<attach file="${mvn.jre.tmp}/jre${jre.version}-windows-i586.zip" type="zip" classifier="win32"/>
-        		<attach file="${mvn.jre.tmp}/jre${jre.version}-windows-x64.zip" type="zip" classifier="win64"/>
+        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-linux-i586.zip" type="zip" classifier="linux32"/>
+        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-linux-x64.zip" type="zip" classifier="linux64"/>
+        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-macosx-x64.zip" type="zip" classifier="darwin64"/>
+        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-windows-i586.zip" type="zip" classifier="win32"/>
+        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-windows-x64.zip" type="zip" classifier="win64"/>
 			</attachments>
 		</pom-and-deploy>
     	<delete dir="${temp.dir}" />
