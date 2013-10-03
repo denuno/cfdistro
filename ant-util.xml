@@ -420,7 +420,7 @@
 		<element name="xml" implicit="true" optional="true" />
 		<sequential>
 			<antcontrib:var unset="true" name="@{property}" />
-			<tempfile property="__xml_file.temp" />
+			<tempfile property="__xml_file.temp" deleteonexit="true" prefix="xml-to-property" suffix=".xml"/>
 			<echoxml file="${__xml_file.temp}" namespacePolicy="@{namespacePolicy}">
 				<placeholderbrah>
 				<xml />
