@@ -144,6 +144,7 @@
 	<antcontrib:if>
 		<equals arg1="${resin.enablephp}" arg2="true" />
 		<then>
+		<echo message="enabling PHP" />
 		<xmltask source="${war.target.dir}/WEB-INF/web.xml"
 			dest="${war.target.dir}/WEB-INF/web.xml">
 			<copy path="web-app/servlet-mapping[url-pattern='*.php']/text()" attrValue="true" property="rule.exists"/>
@@ -229,8 +230,8 @@
 		</xmltask>
 		<fixcrlf srcdir="${resin.dir}/conf" includes="**/*.xml" eol="crlf" />
 		-->
-		<echo message="${resin.deploy.dir}"/>
-		<echo message="${server.deploy.dir}"/>
+		<echo message="resin.deploy.dir: ${resin.deploy.dir}"/>
+		<echo message="server.deploy.dir: ${server.deploy.dir}"/>
 	</target>
 
 	<target name="resin.start" depends="resin.install">
