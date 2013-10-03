@@ -666,9 +666,7 @@
 		<attribute name="virtual" />
 		<attribute name="default" default="true"/>
 		<sequential>
-			<!--
-			<servlet-mapping rest="true" virtual="@{virtual}" physical="@{physical}" />
-			-->
+			<servlet-mapping rest="true" virtual="@{virtual}/*" physical="@{physical}" />
 			<antcontrib:var name="___physical" value="@{physical}" />
 			<antcontrib:if>
 				<equals arg1="${mappings.relative}" arg2="true" />
