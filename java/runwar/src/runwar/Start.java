@@ -415,7 +415,7 @@ public class Start {
 				.withLongOpt( "host" )
 				.withDescription( "host.  (127.0.0.1)" )
 				.hasArg().withArgName("host")
-				.create("h") );
+				.create("o") );
 		
 		options.addOption( OptionBuilder
 				.withLongOpt( "port" )
