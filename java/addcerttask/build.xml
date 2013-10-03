@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+
+<project name="OwnTaskExample2" default="main" basedir=".">
+
+  <target name="build" >
+    <mkdir dir="bin"/>
+    <javac srcdir="src" destdir="bin" includeantruntime="true"/>
+  </target>
+
+  <target name="declare" depends="build">
+    <taskdef name="addcert"
+        classname="AddCertTask"
+        classpath="bin"/>
+  </target>
+
+  <target name="main" depends="declare">
+    <addcert host="indstudy.unm.edu" port="443">
+    	<fileset dir="/workspace/ce/dist/localdev/ce.war/WEB-INF/lib/railo-server/context/security" includes="cacerts" />
+    </addcert>
+  </target>
+</project>
