@@ -20,7 +20,7 @@
 	</target>
 
     <condition property="cfdistro.lib.dir" value="${cfdistro.basedir}/lib">
-            <isfileselected file="${cfdistro.lib.dir}"><writable/></isfileselected>
+            <isfileselected file="${cfdistro.basedir}"><writable/></isfileselected>
     </condition>
     <property name="cfdistro.lib.dir" value="${user.home}/cfdistro/lib"/>
 	<mkdir dir="${cfdistro.lib.dir}" />
@@ -139,7 +139,7 @@
 	<property name="tests.dir" location="../tests" />
 	<property name="conf.dir" location="../conf" />
     <condition property="temp.dir" value="${cfdistro.basedir}/temp">
-            <isfileselected file="${cfdistro.lib.dir}"><writable/></isfileselected>
+            <isfileselected file="${cfdistro.basedir}"><writable/></isfileselected>
     </condition>
     <property name="temp.dir" location="${user.home}/cfdistro/temp"/>
 	<property name="temp.dir.absolute" location="${temp.dir}" />
