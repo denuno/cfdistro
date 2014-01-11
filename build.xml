@@ -19,24 +19,22 @@
 		</java>
 	</target>
 
-    <condition property="cfdistro.lib.dir" value="${cfdistro.basedir}/libe">
-            <isfileselected file="${cfdistro.basedir}/libe"><writable/></isfileselected>
+    <condition property="cfdistro.lib.dir" value="${cfdistro.lib.dir}">
+            <isfileselected file="${cfdistro.lib.dir}"><writable/></isfileselected>
     </condition>
     <condition property="cfdistro.lib.dir" value="${user.home}/cfdistro/lib">
             <isfileselected file="${user.home}/cfdistro/lib"><writable/></isfileselected>
     </condition>
-	<echo message="${cfdistro.lib.dir}" />
-	<fail></fail>
-	<mkdir dir="${cfdistro.basedir}/lib" />
+	<mkdir dir="${cfdistro.lib.dir}" />
 	<path id="build.lib.path">
-		<fileset dir="${cfdistro.basedir}/lib">
+		<fileset dir="${cfdistro.lib.dir}">
 			<include name="*.jar" />
 		</fileset>
 		<fileset dir="${cfdistro.basedir}/ant/lib">
 			<include name="*.jar" />
 		</fileset>
 	</path>
-    <get src="http://cfmlprojects.org/artifacts/cfdistro/lib/ant-contrib/1.0.0.0/ant-contrib-1.0.0.0.jar" dest="${cfdistro.basedir}/lib/ant-contrib-1.0.0.0.jar" skipexisting="true" verbose="false"/>
+    <get src="http://cfmlprojects.org/artifacts/cfdistro/lib/ant-contrib/1.0.0.0/ant-contrib-1.0.0.0.jar" dest="${cfdistro.lib.dir}/ant-contrib-1.0.0.0.jar" skipexisting="true" verbose="false"/>
 
     <taskdef resource="net/sf/antcontrib/antlib.xml" uri="antlib:net.sf.antcontrib" classpathref="build.lib.path"/>
 
@@ -66,8 +64,8 @@
 		<attribute name="name" />
 		<attribute name="classname" />
 		<sequential>
-			<dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" dest="${cfdistro.basedir}/lib/" type="jar" unzip="false"/>
-			<taskdef name="@{name}" classname="@{classname}" classpath="${cfdistro.basedir}/lib/@{artifactId}-@{version}.jar" />
+			<dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" dest="${cfdistro.lib.dir}/" type="jar" unzip="false"/>
+			<taskdef name="@{name}" classname="@{classname}" classpath="${cfdistro.lib.dir}/@{artifactId}-@{version}.jar" />
 		</sequential>
 	</macrodef>
 
@@ -1553,7 +1551,7 @@ cfdistro is freaking insane
 	<target name="cfdistro.lib.mvn.release">
 		<antcontrib:for param="file">
 			<path>
-				<fileset dir="${cfdistro.basedir}/lib" includes="*.jar" />
+				<fileset dir="${cfdistro.lib.dir}" includes="*.jar" />
 			</path>
 			<sequential>
 				<antcontrib:var name="basename" unset="true" />
