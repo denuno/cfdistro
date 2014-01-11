@@ -19,7 +19,7 @@
 		</java>
 	</target>
 
-    <condition property="cfdistro.lib.dir" value="${cfdistro.lib.dir}">
+    <condition property="cfdistro.lib.dir" value="${cfdistro.basedir}/lib">
             <isfileselected file="${cfdistro.lib.dir}"><writable/></isfileselected>
     </condition>
     <property name="cfdistro.lib.dir" value="${user.home}/cfdistro/lib"/>
@@ -138,7 +138,10 @@
 	<property name="docs.dir" location="../docs" />
 	<property name="tests.dir" location="../tests" />
 	<property name="conf.dir" location="../conf" />
-	<property name="temp.dir" location="./temp" />
+    <condition property="temp.dir" value="${cfdistro.basedir}/temp">
+            <isfileselected file="${cfdistro.lib.dir}"><writable/></isfileselected>
+    </condition>
+    <property name="temp.dir" location="${user.home}/cfdistro/temp"/>
 	<property name="temp.dir.absolute" location="${temp.dir}" />
 	<property name="temp.file" location="${temp.dir}/sometempfile.txt" />
 	<property name="mappings.path.rel.to.war" value="true" />
