@@ -19,10 +19,10 @@
 	</target>
 
 	<target name="cfmlengcrypt.jar" depends="cfmlengcrypt.compile">
-		<manifestclasspath property="cfmlengcrypt.lib.list" jarfile="${cfdistro.basedir}/lib/cfmlengcrypt.jar">
+		<manifestclasspath property="cfmlengcrypt.lib.list" jarfile="${cfdistro.lib.dir}/cfmlengcrypt.jar">
 		    <classpath refid="cfmlengcrypt.lib.path"/>
 		</manifestclasspath>
-		<jar destfile="${cfdistro.basedir}/lib/cfmlengcrypt.jar" basedir="${cfmlengcrypt.basedir}/bin/" includes="**/*.class">
+		<jar destfile="${cfdistro.lib.dir}/cfmlengcrypt.jar" basedir="${cfmlengcrypt.basedir}/bin/" includes="**/*.class">
 			<manifest>
 				<attribute name="Main-Class" value="cfmlengcrypt.Main" />
 				<attribute name="Class-Path" value="${cfmlengcrypt.lib.list}" />
@@ -33,7 +33,7 @@
 
 	<target name="cfmlengcrypt.encrypt" depends="cfmlengcrypt.jar">
 		<antcontrib:var name="dsn.password.encrypted" unset="true" />		
-		<java jar="${cfdistro.basedir}/lib/cfmlengcrypt.jar" fork="true" classpathref="cfmlengcrypt.lib.path" outputproperty="dsn.password.encrypted">
+		<java jar="${cfdistro.lib.dir}/cfmlengcrypt.jar" fork="true" classpathref="cfmlengcrypt.lib.path" outputproperty="dsn.password.encrypted">
 			<arg value="acf" />
 			<arg value="${dsn.password.plaintext}" />
 		</java>
@@ -58,9 +58,9 @@
 		<attribute name="plaintext" />
 		<attribute name="property" />
 		<sequential>
-			<dependency groupId="cfdistro.lib" artifactId="cfmlengcrypt" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+			<dependency groupId="cfdistro.lib" artifactId="cfmlengcrypt" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
 			<antcontrib:var name="@{property}" unset="true" />
-			<java jar="${cfdistro.basedir}/lib/cfmlengcrypt-1.0.0.0.jar" failonerror="true" fork="true" classpathref="cfmlengcrypt.lib.path" outputproperty="@{property}">
+			<java jar="${cfdistro.lib.dir}/cfmlengcrypt-1.0.0.0.jar" failonerror="true" fork="true" classpathref="cfmlengcrypt.lib.path" outputproperty="@{property}">
 				<arg value="@{engine}" />
 				<arg value="@{plaintext}" />
 			</java>
@@ -75,9 +75,9 @@
 		<attribute name="plaintext" />
 		<attribute name="property" />
 		<sequential>
-			<dependency groupId="cfdistro.lib" artifactId="cfmlengcrypt" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+			<dependency groupId="cfdistro.lib" artifactId="cfmlengcrypt" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
 			<antcontrib:var name="@{property}" unset="true" />
-			<java jar="${cfdistro.basedir}/lib/cfmlengcrypt-1.0.0.0.jar" fork="true" classpathref="cfmlengcrypt.lib.path" outputproperty="@{property}">
+			<java jar="${cfdistro.lib.dir}/cfmlengcrypt-1.0.0.0.jar" fork="true" classpathref="cfmlengcrypt.lib.path" outputproperty="@{property}">
 				<arg value="sha" />
 				<arg value="@{plaintext}" />
 			</java>

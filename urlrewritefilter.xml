@@ -237,9 +237,9 @@
 			<arg value="--force" />
 			<arg value="${repository.URL}/trunk/" />
 			<classpath>
-				<pathelement location="${cfdistro.basedir}/lib/ganymed.jar" />
-				<pathelement location="${cfdistro.basedir}/lib/svnkit.jar" />
-				<pathelement location="${cfdistro.basedir}/lib/svnkit-cli.jar" />
+				<pathelement location="${cfdistro.lib.dir}/ganymed.jar" />
+				<pathelement location="${cfdistro.lib.dir}/svnkit.jar" />
+				<pathelement location="${cfdistro.lib.dir}/svnkit-cli.jar" />
 			</classpath>
 		</java>
 	</target>

@@ -35,7 +35,7 @@
 		</antcontrib:if>
 	</target>
 
-	<target name="railo.war.init" depends="clean,railo.requires">		
+	<target name="railo.war.init" depends="railo.requires">		
 		<unzip src="${ext.railo.war}" dest="${war.target.dir}"/>
 		<property name="extracted" location="${java.io.tmpdir}/extracted"/> 
 		<mkdir dir="${extracted}"/> 
@@ -677,7 +677,7 @@
 			</antcontrib:if>
 			<antcontrib:var name="mapping.exists" unset="true" />
 			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-				<copy path="/railo-configuration/rest" attrValue="false" property="mapping.exists" />
+				<copy path="/railo-configuration/rest/mapping/@virtual" attrValue="true" property="mapping.exists" />
 				<insert path="/railo-configuration" position="under" unless="mapping.exists">
 				<![CDATA[<rest></rest>]]>
 				</insert>
@@ -965,7 +965,7 @@
 				<fileset dir="${war.target.dir}/WEB-INF/lib/">
 					<include name="*.jar"/>
 				 </fileset>
-				<fileset dir="${cfdistro.basedir}/lib">
+				<fileset dir="${cfdistro.lib.dir}">
 					<include name="*.jar"/>
 				 </fileset>
 				<fileset dir="${extension.java.lib.dir}" erroronmissingdir="false">

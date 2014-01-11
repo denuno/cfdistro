@@ -1,15 +1,15 @@
 <project name="scm-svn" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
 	<path id="svn.lib.path">
-		<fileset dir="${cfdistro.basedir}/lib">
+		<fileset dir="${cfdistro.lib.dir}">
 			<include name="*.jar" />
 		</fileset>
 	</path>
 
 	<macrodef name="svn-init">
 		<sequential>
-			<dependency artifactId="svnkit-1-7-5" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
-			<dependency artifactId="svnkit-cli-1-7-5" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+			<dependency artifactId="svnkit-1-7-5" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+			<dependency artifactId="svnkit-cli-1-7-5" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
 		</sequential>
 	</macrodef>
 

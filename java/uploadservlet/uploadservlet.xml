@@ -4,7 +4,7 @@
 	<target name="uploadservlet.servlet.install">
 		<mkdir dir="${war.target.dir}/WEB-INF/classes"/>
 		<javac-ecj srcdir="${cfdistro.basedir}/java/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" 
-			classpath="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+			classpath="${cfdistro.lib.dir}/${jetty-runner.jar}" />
 
 		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
 			<insert path="web-app/servlet[1]" position="before">
@@ -38,7 +38,7 @@
 		<element name="args" optional="true" />
 		<sequential>
 			<mkdir dir="${war.target.dir}/WEB-INF/classes"/>
-			<javac-ecj srcdir="${cfdistro.basedir}/java/uploadservlet/src/" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.basedir}/lib/${jetty-runner.jar}"/>
+			<javac-ecj srcdir="${cfdistro.basedir}/java/uploadservlet/src/" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.lib.dir}/${jetty-runner.jar}"/>
 			
 			<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
 				<insert path="web-app/servlet[1]" position="before">

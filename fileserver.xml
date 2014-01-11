@@ -2,7 +2,7 @@
 	basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
 	<target name="fileserver.servlet.install">
-		<javac srcdir="${cfdistro.basedir}/java/fileserver/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+		<javac srcdir="${cfdistro.basedir}/java/fileserver/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.lib.dir}/${jetty-runner.jar}" />
 		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
 			<insert path="web-app/servlet[1]" position="before">
 				<![CDATA[

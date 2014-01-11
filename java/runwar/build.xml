@@ -2,9 +2,9 @@
 
 	<property name="jetty-runner.version" value="8-1-8-v20121106" />
 	<property name="jetty-runner.jar" value="jetty-runner-${jetty-runner.version}-1.0.0.0.jar" />
-	<property name="jetty-runner.jar.file" value="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+	<property name="jetty-runner.jar.file" value="${cfdistro.lib.dir}/${jetty-runner.jar}" />
 	<property name="runwar.jar" value="runwar-1.0.0.0.jar" />
-	<property name="runwar.jar.file" value="${cfdistro.basedir}/lib/${runwar.jar}" />
+	<property name="runwar.jar.file" value="${cfdistro.lib.dir}/${runwar.jar}" />
 	<dirname property="runwar.basedir" file="${ant.file.runwar}" />
 
 	<macrodef name="runwar.initprops">
@@ -40,17 +40,17 @@
 			<fix-url-slashes property="open.url" />
 			<property name="runner.temp.dir" value="${temp.dir}/runner" />
 			<!--
-			<dependency groupId="org.eclipse.jetty" artifactId="jetty-runner" version="9.0.4.v20130625" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
-			<dependency groupId="org.mortbay.jetty" artifactId="jetty-runner" version="8.1.11.v20130520" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+			<dependency groupId="org.eclipse.jetty" artifactId="jetty-runner" version="9.0.4.v20130625" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+			<dependency groupId="org.mortbay.jetty" artifactId="jetty-runner" version="8.1.11.v20130520" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
 			-->
 			<antcontrib:if>
 				<available file="${runwar.jar.file}" /><then/>
 				<else>
-					<dependency groupId="cfdistro.lib" artifactId="runwar" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
-					<dependency groupId="cfdistro.lib" artifactId="jetty-runner-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
-					<dependency groupId="cfdistro.lib" artifactId="jetty-ajp-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
-					<dependency groupId="cfdistro.lib" artifactId="jetty-rewrite-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
-					<dependency groupId="cfdistro.lib" artifactId="commons-cli-1-2" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+					<dependency groupId="cfdistro.lib" artifactId="runwar" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+					<dependency groupId="cfdistro.lib" artifactId="jetty-runner-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+					<dependency groupId="cfdistro.lib" artifactId="jetty-ajp-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+					<dependency groupId="cfdistro.lib" artifactId="jetty-rewrite-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+					<dependency groupId="cfdistro.lib" artifactId="commons-cli-1-2" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
 				</else>
 			</antcontrib:if>
 
@@ -66,7 +66,7 @@
 				<equals arg1="${default.cfengine}" arg2="acf" />
 				<then>
 					<path id="runwar.lib.path">
-						<fileset dir="${cfdistro.basedir}/lib">
+						<fileset dir="${cfdistro.lib.dir}">
 							<include name="*.jar" />
 						</fileset>
 						<!--  only needed for fancy file servlets
@@ -78,7 +78,7 @@
 				</then>
 				<else>
 					<path id="runwar.lib.path">
-						<fileset dir="${cfdistro.basedir}/lib">
+						<fileset dir="${cfdistro.lib.dir}">
 							<include name="*.jar" />
 						</fileset>
 						<!--  only needed for fancy file servlets
@@ -110,7 +110,7 @@
 	<target name="runwar.jar" depends="runwar.compile">
 		<runwar.initprops />
 	    <unzip dest="${runwar.basedir}/bin/runwar/">
-	        <fileset dir="${cfdistro.basedir}/lib">
+	        <fileset dir="${cfdistro.lib.dir}">
 		<!--  
 	            <include name="**/jetty-*.jar"/>
 		 -->
@@ -134,7 +134,7 @@
 	<target name="runwar.jetty.jar" depends="runwar.compile">
 		<runwar.initprops />
 	    <unzip dest="${runwar.basedir}/bin/runwar/">
-	        <fileset dir="${cfdistro.basedir}/lib">
+	        <fileset dir="${cfdistro.lib.dir}">
 	            <include name="**/jetty-*.jar"/>
 	            <include name="**/jetty-ajp*.jar"/>
 	            <include name="**/commons-cli-*.jar"/>
@@ -228,7 +228,7 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 		<echo message="starting jetty-runner (host: ${runwar.host} port: ${runwar.port} server.jvm.args : ${server.jvm.args})"/>
 		<sequential>
 			<path id="cfdistro.libs.path">
-				<fileset dir="${cfdistro.basedir}/lib">
+				<fileset dir="${cfdistro.lib.dir}">
 					<include name="*.jar" />
 				</fileset>
 			</path>

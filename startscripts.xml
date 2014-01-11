@@ -22,10 +22,10 @@ if test -z "${JAVA_EXE}"; then
 fi
 cd $(dirname $0)
 #exec $JAVA_EXE -jar ./lib/jetty-runner-7.0.0.RC5.jar $* > /dev/null 2>&1 &
-exec $JAVA_EXE -Xmx200m -jar ${cfdistro.basedir}/lib/${jetty-runner.jar} --port ${server.port.http} --path ${war.contextpath} $* ${war.target.dir}]]>
+exec $JAVA_EXE -Xmx200m -jar ${cfdistro.lib.dir}/${jetty-runner.jar} --port ${server.port.http} --path ${war.contextpath} $* ${war.target.dir}]]>
 			</echo>
 			<chmod file="${basedir}/start.sh" perm="ugo+rx"/>
-			<echo file="${basedir}/start.bat"><![CDATA[java -Xmx200m -jar "${cfdistro.basedir}/lib/${jetty-runner.jar}" --port ${server.port.http} --path ${war.contextpath} %1 "${war.target.dir}"]]></echo>
+			<echo file="${basedir}/start.bat"><![CDATA[java -Xmx200m -jar "${cfdistro.lib.dir}/${jetty-runner.jar}" --port ${server.port.http} --path ${war.contextpath} %1 "${war.target.dir}"]]></echo>
 			<property name="osxappbundle.dir" location="${dist.root.dir}/${distro.name}.app"/>
 
 			<startscript script-path="${dist.dir}/${distro.name}/${distro.name}" />

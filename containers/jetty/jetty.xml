@@ -200,7 +200,7 @@
 		<mkdir dir="${temp.dir}/jetty" />
 	    <unzip dest="${temp.dir}/jetty">
 			<!-- <fileset file="${railo.lib.dir}/javax.servlet.jar"/> --> 
-			<fileset dir="${cfdistro.basedir}/lib/" includes="${jetty-runner.jar}" /> 
+			<fileset dir="${cfdistro.lib.dir}/" includes="${jetty-runner.jar}" /> 
 	    </unzip>
 	    <delete dir="${temp.dir}/jetty/org/objectweb/" />
 		<zip destfile="${temp.dir}/${jetty-runner.jar}" level="9">

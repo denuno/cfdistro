@@ -1,9 +1,10 @@
 <project name="installer" default="buildAndLaunchJar" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
 	<dirname property="installer.basedir" file="${ant.file.installer}" />
+	<loadproperties srcFile="${installer.basedir}/install.properties" />
 
 	<path id="izpack.lib.path">
-		<fileset dir="${cfdistro.basedir}/ext/izpack/lib">
+		<fileset dir="${cfdistro.lib.dir}/izpack">
 			<include name="*.jar" />
 		</fileset>
 		<fileset dir="${cfdistro.basedir}/ext/launch4j/lib">
@@ -38,21 +39,13 @@
 
 
 	<target name="izpack-xml">
-		<loadproperties srcFile="${basedir}/installer/install.properties" />
-		<loadproperties srcFile="${installer.basedir}/install.properties" />
+		<loadproperties srcFile="${install.root.dir}/install.properties" />
 		<requires-ext resource="${ext.dir}/ant-lib" />
 		<requires-ext resource="${ext.dir}/launch4j" />
 		<requires-ext resource="${ext.dir}/izpack" />
+		<dependency artifactId="izpack-compiler" groupId="org.codehaus.izpack" version="5.0.0-beta11" dest="${cfdistro.lib.dir}/izpack" type="jar" unzip="false"/>
+		<dependency artifactId="izpack-ant" groupId="org.codehaus.izpack" version="5.0.0-beta11" dest="${cfdistro.lib.dir}/izpack" type="jar" unzip="false"/>
 
-		<!--
-		<taskdef resource="net/jtools/classloadertask/antlib.xml" classpath="${antLibs}/ant-classloadertask.jar" />
-		<classloader loader="project">
-			<classpath>
-				<fileset dir="${antLibs}" includes="*.jar" excludes="ant-classloadertask.jar,ant.jar,ant-launcher.jar" />
-			</classpath>
-		</classloader>
-		<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" classpathref="izpack.lib.path" />
--->
 		<taskdef name="izpack" classname="com.izforge.izpack.ant.IzPackTask" classpathref="izpack.lib.path" />
 		<taskdef name="launch4j"
 		    classname="net.sf.launch4j.ant.Launch4jTask"
@@ -199,20 +192,20 @@
 			dest.file="${parsedInstallXMLfile}" />
 	</target>
 
-	<target name="installer.template.cfdistro" description="build the install izpack jar">
+	<target name="installer.template.cfdistro">
 		<requires-ext resource="${ext.dir}/installer" />
-		<copy todir="${basedir}/installer" verbose="false">
+		<copy todir="${install.root.dir}" verbose="false">
 			<fileset dir="${ext.dir}/installer" />
 		</copy>
-		<move todir="${basedir}/installer/packs/${distro.name}">
-			<fileset dir="${basedir}/installer/packs/cfdistro" />
+		<move todir="${install.root.dir}/packs/${distro.name}">
+			<fileset dir="${install.root.dir}/packs/cfdistro" />
 		</move>
-		<move file="${basedir}/installer/packs/${distro.name}/cfdistro-pack.xml"
-			tofile="${basedir}/installer/packs/${distro.name}/${distro.name}-pack.xml"/>
-		<move file="${basedir}/installer/packs/${distro.name}/cfdistro.properties"
-			tofile="${basedir}/installer/packs/${distro.name}/${distro.name}.properties"/>
-		<move file="${basedir}/installer/packs/${distro.name}/img/cfdistro-logo.png"
-			tofile="${basedir}/installer/packs/${distro.name}/img/${distro.name}-logo.png"/>
+		<move file="${install.root.dir}/packs/${distro.name}/cfdistro-pack.xml"
+			tofile="${install.root.dir}/packs/${distro.name}/${distro.name}-pack.xml"/>
+		<move file="${install.root.dir}/packs/${distro.name}/cfdistro.properties"
+			tofile="${install.root.dir}/packs/${distro.name}/${distro.name}.properties"/>
+		<move file="${install.root.dir}/packs/${distro.name}/img/cfdistro-logo.png"
+			tofile="${install.root.dir}/packs/${distro.name}/img/${distro.name}-logo.png"/>
 	</target>
 
 	<target name="buildInstallJar" description="build the install izpack jar" depends="izpack-xml">
@@ -241,7 +234,7 @@
 		  <var>-Dappdir=&quot;&quot; </var>
 		  <jre 
 		  	path="./jre/"
-		  	minVersion="1.5.0"
+		  	minVersion="1.6.0"
 		  	maxVersion=""
 		  	jdkPreference="">
 		  </jre>
@@ -298,7 +291,9 @@ ${install.file.name}.exe</echo>
 	<target name="buildAndLaunchJar" depends="buildInstallJar" description="build the install and launch it">
 		<!--	Run the freaking install after the build	-->
 		<echo message="Launching jar install..." />
-		<java jar="${output.dir}/${install.file.name}.jar" fork="true" failonerror="true" maxmemory="64m" />
+		<java jar="${output.dir}/${install.file.name}.jar" fork="true" failonerror="true" maxmemory="64m">
+			<jvmarg value="-DTRACE=TRUE"/>
+		</java>
 		<echo message="Done." />
 	</target>
 
@@ -309,7 +304,9 @@ ${install.file.name}.exe</echo>
 		</xmltask>
 		<!--	Run the freaking install after the build	-->
 		<echo message="Launching jar install UI test..." />
-		<java jar="${output.dir}/${install.file.name}.jar" fork="true" failonerror="true" maxmemory="64m" />
+		<java jar="${output.dir}/${install.file.name}.jar" fork="true" failonerror="true" maxmemory="64m">
+			<jvmarg value="-DTRACE=TRUE"/>
+		</java>
 		<echo message="Done." />
 	</target>
 

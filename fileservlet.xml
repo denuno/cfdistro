@@ -5,7 +5,7 @@
 		<equals arg1="${default.cfengine}" arg2="acf" />
 		<then>
 			<path id="fileservlet.lib.path">
-				<fileset dir="${cfdistro.basedir}/lib">
+				<fileset dir="${cfdistro.lib.dir}">
 					<include name="*.jar" />
 				</fileset>
 				<fileset dir="${war.target.dir}/WEB-INF/cfusion/lib">
@@ -15,7 +15,7 @@
 		</then>
 		<else>
 			<path id="fileservlet.lib.path">
-				<fileset dir="${cfdistro.basedir}/lib">
+				<fileset dir="${cfdistro.lib.dir}">
 					<include name="*.jar" />
 				</fileset>
 				<fileset dir="${war.target.dir}/WEB-INF/lib">

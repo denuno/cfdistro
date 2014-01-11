@@ -16,7 +16,7 @@
 		    		<echo message="importing module: @{module} repo: @{uri} dest: ${src.dir}/../@{dirname}" />
 		        	<echo message="-d ${src.dir}/@{dirname}/"/>
 		        	<mkdir dir="${src.dir}/@{dirname}"/>
-		            <java jar="${cfdistro.basedir}/lib/org-netbeans-lib-cvsclient.jar" fork="true" dir="${src.dir}">
+		            <java jar="${cfdistro.lib.dir}/org-netbeans-lib-cvsclient.jar" fork="true" dir="${src.dir}">
 		            	<sysproperty key="cvs.root" value="@{uri}"/>
 			            <arg value="export" />
 			            <arg value="-D NOW" />

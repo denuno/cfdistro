@@ -3,7 +3,7 @@
 		<echo message="compiling web filter" />
 		<delete dir="${war.target.dir}/WEB-INF/classes"/>
 		<mkdir dir="${war.target.dir}/WEB-INF/classes"/>
-		<javac srcdir="${cfdistro.basedir}/java/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+		<javac srcdir="${cfdistro.basedir}/java/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.lib.dir}/${jetty-runner.jar}" />
 		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
 			<insert path="web-app/servlet[1]" position="before">
 				<![CDATA[
@@ -50,7 +50,7 @@
 			<echo message="compiling web filter" />
 			<delete dir="${war.target.dir}/WEB-INF/classes"/>
 			<mkdir dir="${war.target.dir}/WEB-INF/classes"/>
-			<javac srcdir="${cfdistro.basedir}/java/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.basedir}/lib/${jetty-runner.jar}" />
+			<javac srcdir="${cfdistro.basedir}/java/src/servlet" destdir="${war.target.dir}/WEB-INF/classes" classpath="${cfdistro.lib.dir}/${jetty-runner.jar}" />
 			<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
 				<xmlcatalog refId="commonDTDs"/>
 				<insert path="web-app/servlet[1]" position="before">

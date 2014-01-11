@@ -179,7 +179,7 @@
 		<attribute name="maxmemory" default="128M" />
 		<attribute name="fork" default="true" />
 		<sequential>
-			<dependency artifactId="ecj-3-8" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.basedir}/lib" type="jar" unzip="false"/>
+			<dependency artifactId="ecj-3-8" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
 			<mkdir dir="${temp.dir}" />
 			<delete file="${temp.dir}/ecjresult.txt" />
 			<antcontrib:trycatch property="foo" reference="bar">
@@ -193,7 +193,7 @@
 					<antcontrib:trycatch>
 					<try><record name="${temp.dir}/ecjresult.txt" action="start"/></try><catch></catch>
 					</antcontrib:trycatch>
-					<java jar="${cfdistro.basedir}/lib/ecj-3-8-1.0.0.0.jar" fork="true"
+					<java jar="${cfdistro.lib.dir}/ecj-3-8-1.0.0.0.jar" fork="true"
 						classpathref="build.lib.path" maxmemory="@{maxmemory}" failonerror="true">
 						<arg value="-@{compliance}" />
 						<arg value="-warn:none" />

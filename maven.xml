@@ -8,7 +8,7 @@
     <property name="mvn.repo.id" value="mvn.repo.${mvn.repo.dest}" />
     <property name="maven.repo.local" location="${pub.dir}/maven2" />
    	-->
-    <property name="maven.ant.tasks.jar" value="${cfdistro.basedir}/lib/maven-ant-tasks-2-1-3-1.0.0.0.jar" />
+    <property name="maven.ant.tasks.jar" value="${cfdistro.lib.dir}/maven-ant-tasks-2-1-3-1.0.0.0.jar" />
 	<path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
 	<ant-set-log-level level="0"/>
     <get src="http://cfmlprojects.org/artifacts/cfdistro/lib/maven-ant-tasks-2-1-3/1.0.0.0/maven-ant-tasks-2-1-3-1.0.0.0.jar" dest="${maven.ant.tasks.jar}" skipexisting="true" />
@@ -137,7 +137,7 @@
 	</target>
 
 	<target name="nexus.start" depends="nexus.configure">
-		<java jar="${cfdistro.basedir}/lib/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="true">
+		<java jar="${cfdistro.lib.dir}/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="true">
 			<jvmarg line="${server.jvm.args}"/>
 			<arg value="-war" /><arg value="${nexus.war}/" />
 			<arg value="-context" /><arg value="${nexus.context}" />
@@ -158,7 +158,7 @@
 	</target>
 
 	<target name="nexus.stop" depends="nexus.configure">
-		<java jar="${cfdistro.basedir}/lib/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="true">
+		<java jar="${cfdistro.lib.dir}/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="true">
 			<jvmarg line="${server.jvm.args}"/>
 			<arg value="-stop" /><arg value="8992" />
 		</java>
@@ -287,8 +287,8 @@
 		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
 		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
 		<property name="mvn.jre.dir" location="${basedir}/../${jre.type}" />
-		<property name="jre.prefix" value="${jre.type}-7u40" />
-		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u40" />
+		<property name="jre.prefix" value="${jre.type}-7u45" />
+		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u45" />
     	<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
 			input="${jre.prefix}" regexp="${jre.type}-(\d)u(\d+)" replace="1.\1.0_\2"/>
     	<input message="Do you agree to the ${jre.version} license?" addproperty="jre.lic.agree" />
@@ -296,7 +296,7 @@
     	<mkdir dir="${temp.dir}" />
     	<mkdir dir="${mvn.jre.tmp}" />
 		<echo message="*** GETTING ${jre.type} ${jre.version} ***" />    	
-    	<antcontrib:for list="linux-i586:b43,linux-x64:b43,macosx-x64:b43,windows-i586:b43,windows-x64:b43" param="file">
+    	<antcontrib:for list="linux-i586:b18,linux-x64:b18,macosx-x64:b18,windows-i586:b18,windows-x64:b18" param="file">
 			<sequential>
 				<antcontrib:propertyregex property="jre.os" override="yes" 
 					input="@{file}" regexp="([^:]*)" select="\1"/>
@@ -505,24 +505,32 @@
 				<then/>
 				<else>
 					<antcontrib:if>
-						<equals arg1="@{dest}" arg2="" />
+						<equals arg1="${copy.mappings.to.src}" arg2="true" />
 						<then>
-							<antcontrib:var name="ext.mapping.dir" value="${ext.mappings.dir}/@{groupId}/@{artifactId}/@{version}" />
-							<antcontrib:var name="physicalxml" value="@ext.mappings.dir@/@{groupId}/@{artifactId}/@{version}" />
+							<unzip src="${_dep.file}" dest="${war.target.dir}/@{mapping}"/>
 						</then>
 						<else>
-							<antcontrib:var name="ext.mapping.dir" value="@{dest}" />
-							<antcontrib:var name="physicalxml" value="@{dest}" />
+							<antcontrib:if>
+								<equals arg1="@{dest}" arg2="" />
+								<then>
+									<antcontrib:var name="ext.mapping.dir" value="${ext.mappings.dir}/@{groupId}/@{artifactId}/@{version}" />
+									<antcontrib:var name="physicalxml" value="@ext.mappings.dir@/@{groupId}/@{artifactId}/@{version}" />
+								</then>
+								<else>
+									<antcontrib:var name="ext.mapping.dir" value="@{dest}" />
+									<antcontrib:var name="physicalxml" value="@{dest}" />
+								</else>
+							</antcontrib:if>
+							<antcontrib:if>
+								<available file="${ext.mapping.dir}"/><then/>
+								<else>
+									<unzip src="${_dep.file}" dest="${ext.mapping.dir}"/>
+								</else>
+							</antcontrib:if>
+							<!-- physicalxml is what goes in the mappings.xml file. a token vs. the fixed path. -->
+							<mapping physical="${ext.mapping.dir}" physicalxml="${physicalxml}" virtual="@{mapping}"/>
 						</else>
 					</antcontrib:if>
-					<antcontrib:if>
-						<available file="${ext.mapping.dir}"/><then/>
-						<else>
-							<unzip src="${_dep.file}" dest="${ext.mapping.dir}"/>
-						</else>
-					</antcontrib:if>
-					<!-- physicalxml is what goes in the mappings.xml file. a token vs. the fixed path. -->
-					<mapping physical="${ext.mapping.dir}" physicalxml="${physicalxml}" virtual="@{mapping}"/>
 				</else>
 			</antcontrib:if>
 			<antcontrib:if>

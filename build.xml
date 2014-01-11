@@ -19,6 +19,14 @@
 		</java>
 	</target>
 
+    <condition property="cfdistro.lib.dir" value="${cfdistro.basedir}/libe">
+            <isfileselected file="${cfdistro.basedir}/libe"><writable/></isfileselected>
+    </condition>
+    <condition property="cfdistro.lib.dir" value="${user.home}/cfdistro/lib">
+            <isfileselected file="${user.home}/cfdistro/lib"><writable/></isfileselected>
+    </condition>
+	<echo message="${cfdistro.lib.dir}" />
+	<fail></fail>
 	<mkdir dir="${cfdistro.basedir}/lib" />
 	<path id="build.lib.path">
 		<fileset dir="${cfdistro.basedir}/lib">
@@ -247,7 +255,7 @@
 	<target name="clean" description="cleans project">
 		<sanitizeContextPath />
 		<delete dir="${temp.dir}" />
-		<!-- <delete dir="${dist.dir}" /> -->
+		<delete dir="${dist.dir}" />
 	</target>
 
 	<target name="jar.war">
@@ -382,6 +390,12 @@
 		<mkdir dir="${ext.dir}/jboss" />
 		<copy file="${ext.dir}/jboss/jboss-classloading.xml" tofile="${war.target.dir}/WEB-INF/jboss-classloading.xml" overwrite="true" />
 		-->
+		<antcontrib:if>
+			<equals arg1="${urlrewritefilter.install}" arg2="true" />
+			<then>
+				<antcontrib:runtarget target="urlrewritefilter.servlet.install" />
+			</then>
+		</antcontrib:if>
 	</target>
 
 	<target name="build.localdev" description="build localdev">
@@ -549,7 +563,7 @@
 		<antcontrib:runtarget target="start" />
 	</target>
 
-	<target name="start-clean" depends="build">
+	<target name="start-clean" depends="clean, build">
 		<exec executable="${basedir}/start.sh" spawn="true">
 		</exec>
 	</target>
@@ -1340,7 +1354,7 @@
 	<echoproperties />
 </target>
 
-<target name="cfdistro.dist" depends="clean" description="creates a minimal build">
+<target name="cfdistro.dist" description="creates a minimal build">
 <property name="dist.type" value="minimal" />
 <antcontrib:propertyregex property="creds.token.filename" input="${creds.token.file}" global="true" override="yes" regexp=".*[\\|/](.+)" select="\1" />
 <delete dir="${dist.dir}/${distro.name}/build/cfdistro/"/>

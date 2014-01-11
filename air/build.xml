@@ -31,7 +31,7 @@
 		<copy todir="${air.build.dir}" verbose="false" overwrite="true">
 			<fileset dir="${basedir}/../air" excludes="**/${air.cert.store}, **/airtemp/**"/>
 		</copy>
-		<copy file="${cfdistro.basedir}/lib/${jetty-runner.jar}" todir="${air.build.dir}" />
+		<copy file="${cfdistro.lib.dir}/${jetty-runner.jar}" todir="${air.build.dir}" />
 		<echo file="${air.build.dir}/start"><![CDATA[#!/bin/sh
 if test -n "${JAVA_HOME}"; then
   if test -z "${JAVA_EXE}"; then
