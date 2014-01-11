@@ -22,9 +22,7 @@
     <condition property="cfdistro.lib.dir" value="${cfdistro.lib.dir}">
             <isfileselected file="${cfdistro.lib.dir}"><writable/></isfileselected>
     </condition>
-    <condition property="cfdistro.lib.dir" value="${user.home}/cfdistro/lib">
-            <isfileselected file="${user.home}/cfdistro/lib"><writable/></isfileselected>
-    </condition>
+    <property name="cfdistro.lib.dir" value="${user.home}/cfdistro/lib"/>
 	<mkdir dir="${cfdistro.lib.dir}" />
 	<path id="build.lib.path">
 		<fileset dir="${cfdistro.lib.dir}">
