@@ -259,6 +259,7 @@
 		<attribute name="script"/>
 		<element name="properties" implicit="true"/>
 		<sequential>
+			<antcontrib:runtarget target="install-buckminster-headless" />
 			<antcontrib:runtarget target="init.platform" />
 			<echo message="running @{script} (workspace.dir: ${workspace.dir})"/>
 			<echo message="Current Platform -- os: ${os} ws: ${ws} arch:${arch}"/>
