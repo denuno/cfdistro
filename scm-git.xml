@@ -420,7 +420,7 @@
 									<arg value="@{remote}" />
 								</args>
 							</git>
-							<git-has-modifications dir="@{dest}" remote="" property="git.hasmods" />
+							<git-has-modifications dir="@{dest}" remote="@{remote}" branch="@{branch}" property="git.hasmods" />
 							<antcontrib:if>
 								<equals arg1="${git.hasmods}" arg2="true"/>
 								<then>
@@ -593,7 +593,7 @@
 			<git command="diff" dir="@{dir}/">
 				<args>
 					<arg value="--name-status" />
-					<arg value="origin/master" />
+					<arg value="@{remote}/@{branch}" />
 				</args>
 			</git>
 			<antcontrib:propertyregex override="yes" property="git.hasmodifications" input="${git.results}" 
