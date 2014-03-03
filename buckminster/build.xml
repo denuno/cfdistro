@@ -479,7 +479,7 @@
 		</concat>
 	</target>
 
-	<target name="test" depends="test-init">
+	<target name="buckminster.test" depends="test-init">
 		<delete dir="${junit-report-output}" quiet="true" />
 		<delete dir="${raw-junit-report-output}" quiet="true" />
 		<antcall target="core-test">
@@ -495,7 +495,7 @@
 		</junitreport>
 	</target>
 
-	<target name="buildAndTest" depends="clean, build.test.product, test" description="Runs all tests and creates a final product for the current platform">
+	<target name="buildAndTest" depends="clean, build.test.product, buckminster.test" description="Runs all tests and creates a final product for the current platform">
 		<condition property="junit.tests.failed">
 			<or>
 				<resourcecontains resource="${junit-report-output}/all-tests.xml" substring="&lt;error " />
