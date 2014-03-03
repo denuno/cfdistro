@@ -37,14 +37,23 @@
 
 	<target name="railo.war.init" depends="railo.requires">		
 		<unzip src="${ext.railo.war}" dest="${war.target.dir}"/>
+		<antcontrib:runtarget target="railo.war.config" />
+	</target>
+
+	<target name="railo.war.config">
 		<property name="extracted" location="${java.io.tmpdir}/extracted"/> 
 		<mkdir dir="${extracted}"/> 
 
 		<loadfile property="railo.web.mxl" srcfile="${war.target.dir}/WEB-INF/web.xml" />
 		<antcontrib:propertyregex override="yes" property="railo.web.mxl" input="${railo.web.mxl}" regexp="&lt;web-app[^&gt;]+&gt;" replace="&lt;web-app&gt;" global="true" />
 		<echo file="${war.target.dir}/WEB-INF/web.xml" message="${railo.web.mxl}" />
-
-		<unzip src="${war.target.dir}/WEB-INF/lib/railo-${railo.version}.jar" dest="${extracted}">
+		<available property="extract.railo.jar" value="${war.target.dir}/WEB-INF/lib/railo-${railo.version}.jar"
+		             file="${war.target.dir}/WEB-INF/lib/railo-${railo.version}.jar"/>
+		<available property="extract.railo.jar" value="${war.target.dir}/WEB-INF/lib/railo.jar"
+		             file="${war.target.dir}/WEB-INF/lib/railo.jar"/>
+		<echo message="${extract.railo.jar}" />
+		<echo message="${war.target.dir}" />
+		<unzip src="${extract.railo.jar}" dest="${extracted}">
 	        <patternset> 
 	            <include name="core/core.rc"/> 
 	        </patternset> 
