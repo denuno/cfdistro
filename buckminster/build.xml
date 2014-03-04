@@ -259,7 +259,9 @@
 		<attribute name="script"/>
 		<element name="properties" implicit="true"/>
 		<sequential>
+			<silent>
 			<antcontrib:runtarget target="install-buckminster-headless" />
+			</silent>
 			<antcontrib:runtarget target="init.platform" />
 			<echo message="running @{script} (workspace.dir: ${workspace.dir})"/>
 			<echo message="Current Platform -- os: ${os} ws: ${ws} arch:${arch}"/>
@@ -283,7 +285,7 @@
 				<arg line="-publishArtifacts" />
 			</java>
 -->
-			<java fork="true" dir="${buckminster-headless.dir}" logError="true" classname="org.eclipse.core.launcher.Main" failonerror="true" outputproperty="laughn">
+			<java fork="true" dir="${buckminster-headless.dir}" logError="true" classname="org.eclipse.core.launcher.Main" failonerror="true">
 				<classpath>
 					<fileset dir="${buckminster-headless.dir}/plugins">
 						<include name="org.eclipse.equinox.launcher_*.jar" />
@@ -310,9 +312,7 @@
 				<sysproperty key="target.arch" value="${arch}" />
 				<sysproperty key="eclipse.p2.MD5Check" value="false" />
 				<jvmarg line=" -Xms256m -Xmx512m -XX:MaxPermSize=128M"/>
-			</java>
-			<echo message="${laughn}" />
-			
+			</java>		
 		</sequential>
 	</macrodef>
 

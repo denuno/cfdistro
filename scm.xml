@@ -256,10 +256,12 @@
 				<param name="dest" path="@dest" default="NONE"/>
 				<param name="type" path="@type" default="NONE"/>
 				<param name="uri" path="@uri" default="NONE"/>
+				<param name="remote" path="@remote" default="NONE"/>
+				<param name="branch" path="@branch" default="NONE"/>
 				<actions>
 					<property name="project.src.type" value="@{type}" />
 					<property name="project.src.dest" value="@{dest}" />
-					<echo message="Project src type : ${project.src.type} dest: @{dest}"/>
+					<echo message="Project src type : ${project.src.type} dest: @{dest} @{remote}/@{branch}"/>
 				</actions>
 			</call>
 		</xmltask>

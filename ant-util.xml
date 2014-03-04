@@ -736,6 +736,15 @@
 		</sequential>
 	</macrodef>
 	
+	<macrodef name="silent">
+ 		<element name="stuff" implicit="true" optional="false"/>
+		<sequential>
+			<ant-set-log-level level="0"/>
+			<stuff/>
+			<ant-set-log-level level="2"/>
+		</sequential>
+	</macrodef>
+	
 	<macrodef name="cmdline-arg-list">
  		<attribute name="property" />
 		<attribute name="separator" default=" " />
