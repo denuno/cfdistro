@@ -44,7 +44,7 @@
 					              regexp=".+?=(.*)"
 					              select="\1"
 					              casesensitive="false" override="true" />
-					<deploy.echo message="remote: ${remote} - ${remoteprop} ${remotepropval}"/>
+					<deploy.echo message="remote: ${remote} - ${remoteprop}"/>
 					<antcontrib:var name="${remoteprop}" value="${remotepropval}"/>
 				</sequential>
 			</antcontrib:for>
