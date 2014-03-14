@@ -287,8 +287,8 @@
 		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
 		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
 		<property name="mvn.jre.dir" location="${basedir}/../${jre.type}" />
-		<property name="jre.prefix" value="${jre.type}-7u45" />
-		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u45" />
+		<property name="jre.prefix" value="${jre.type}-7u51" />
+		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u51" />
     	<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
 			input="${jre.prefix}" regexp="${jre.type}-(\d)u(\d+)" replace="1.\1.0_\2"/>
     	<input message="Do you agree to the ${jre.version} license?" addproperty="jre.lic.agree" />
@@ -296,7 +296,7 @@
     	<mkdir dir="${temp.dir}" />
     	<mkdir dir="${mvn.jre.tmp}" />
 		<echo message="*** GETTING ${jre.type} ${jre.version} ***" />    	
-    	<antcontrib:for list="linux-i586:b18,linux-x64:b18,macosx-x64:b18,windows-i586:b18,windows-x64:b18" param="file">
+    	<antcontrib:for list="linux-i586:b13,linux-x64:b13,macosx-x64:b13,windows-i586:b13,windows-x64:b13" param="file">
 			<sequential>
 				<antcontrib:propertyregex property="jre.os" override="yes" 
 					input="@{file}" regexp="([^:]*)" select="\1"/>

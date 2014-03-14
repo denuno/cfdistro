@@ -21,6 +21,7 @@
 	</antcontrib:for>
 
 	
+	<property name="scm.autobranch" value="false" description="create branch of any local changes" />
 	<property name="basedir.absolute" location="${basedir}" />
 	<property name="src.xml.file" value="${basedir.absolute}/src.xml" />
 	<import file="scm-git.xml"/>
@@ -189,7 +190,10 @@
 
 	<target name="check.project.for.newrevision" depends="get.project.src.type" unless="revisions.are.same" if="exists.src.xml">
 		<antcontrib:if>
-			<available file="${project.src.dest}.${project.src.type}" type="dir"/>
+                        <or>
+                        <available file="${project.src.dest}/.${project.src.type}" type="dir"/>
+                        <available file="${project.src.dest}.${project.src.type}" type="dir"/>
+                        </or>
 			<then>
 				<antcontrib:runtarget target="check.project.for.newrevision.${project.src.type}" />
 			</then>

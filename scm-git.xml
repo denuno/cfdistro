@@ -422,9 +422,13 @@
 							</git>
 							<git-has-modifications dir="@{dest}" remote="@{remote}" branch="@{branch}" property="git.hasmods" />
 							<antcontrib:if>
+								<and>
 								<equals arg1="${git.hasmods}" arg2="true"/>
+								<equals arg1="${scm.autobranch}" arg2="true"/>
+								</and>
 								<then>
 									<antcontrib:var name="NOW_BRANCH" unset="true" />
+									<antcontrib:var name="revisions.remote.differ" value="true" />
 									<tstamp><format property="NOW_BRANCH" pattern="yyyyMMdd_HHmmss"/></tstamp>
 									<echo message="Detected local modifications, stashing sources in autobranch${NOW_BRANCH}" />
 									<git command="checkout" dir="@{dest}">
