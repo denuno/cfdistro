@@ -178,10 +178,11 @@ fi
 	<macrodef name="deb-repo">
 		<attribute name="dir" default="/opt/repo/debs/noarch" />
 		<attribute name="dpkg-scanpackages" default="/usr/bin/dpkg-scanpackages" />
+		<property name="tmpdebrepo.sh" location="${temp.dir}/debrepo.sh" />
 		<sequential>
-			<echo file="${temp.dir}/debrepo.sh" message="@{dpkg-scanpackages} noarch | gzip -9c > @{dir}/../Packages.gz"/> 
+			<echo file="${tmpdebrepo.sh}" message="@{dpkg-scanpackages} noarch | gzip -9c > @{dir}/../Packages.gz"/> 
 			<exec executable="/bin/sh" dir="@{dir}/../">
-				<arg line="${temp.dir}/debrepo.sh"/>
+				<arg line="${tmpdebrepo.sh}"/>
 			</exec>
 		</sequential>
 	</macrodef>
