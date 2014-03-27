@@ -192,7 +192,7 @@
 	<macrodef name="testbox-rundirs">
 		<attribute name="basePath"/>
 		<attribute name="componentPath"/>
-		<attribute name="runner" default="http://${runwar.host}:${runwar.port}/coldbox/testing/resources/unitrunner.cfm?"/>
+		<attribute name="runner" default="http://${runwar.host}:${runwar.port}/coldbox/testing/resources/tboxrunner.cfm?"/>
 		<attribute name="recurse" default="true"/>
 		<attribute name="labels" default=""/>
 		<attribute name="failonerror" default="${mxunit.failonerror}"/>
