@@ -218,6 +218,17 @@
 				<equals arg1="${mxunit.verbose}" arg2="true" />
 				<then><result2text dir="@{outputdir}" /></then>
 			</antcontrib:if>
+			<antcontrib:if>
+				<equals arg1="${mxunit.verbose}" arg2="true" />
+				<then><result2html dir="@{outputdir}" /></then>
+			</antcontrib:if>
+			<antcontrib:if>
+				<equals arg1="@{failonerror}" arg2="true" />
+				<then>
+					<fail if="tests.fail" message="mxunit.failonerror is true and testbox tests failed!"/>
+					<fail if="tests.error" message="mxunit.failonerror is true and testbox tests erred!"/>
+				</then>
+			</antcontrib:if>
 		</sequential>
 	</macrodef>
 
