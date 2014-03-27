@@ -79,6 +79,8 @@
 	<target name="tests.results.text">
 		<!--
 		<trim-results dir="${mxunit.tests.results.dir}" />
+
+		<result2html dir="${mxunit.tests.results.dir}" />
 		-->
 		<result2text dir="${mxunit.tests.results.dir}" />
 	</target>
@@ -87,7 +89,7 @@
 	   <attribute name="dir" />
 	   <sequential>
     	<antcontrib:for param="file">
-			<path><fileset dir="@{dir}" includes="*.xml" /></path>
+			<path><fileset dir="@{dir}" includes="**/*.xml" /></path>
 			<sequential>
 				<echo message="file:@{file}" />
 				<replaceregexp 
@@ -106,13 +108,13 @@
 		<sequential>
 			<echo message="converting xml results in @{dir} to text" />
 			<delete dir="${temp.dir}/plaintext"/>
-			<xslt basedir="@{dir}" includes="*.xml" destdir="${temp.dir}/plaintext" 
+			<xslt basedir="@{dir}" includes="**/*.xml" destdir="${temp.dir}/plaintext" 
 			   extension=".txt" style="${mxunit.basedir}/results2text.xsl" failOnTransformationError="false"/>
 			<concat>
-				<fileset dir="${temp.dir}/plaintext" includes="*.txt" erroronmissingdir="false"/>
+				<fileset dir="${temp.dir}/plaintext" includes="**/*.txt" erroronmissingdir="false"/>
 			</concat>
 	    	<antcontrib:for param="file" description="sometimes errors will be in html files">
-				<path><fileset dir="@{dir}" includes="*.html" /></path>
+				<path><fileset dir="@{dir}" includes="**/*.html" /></path>
 				<sequential>
 					<echo message="Extracting content of html file: @{file}" />
 					<replaceregexp file="@{file}" match="function oc\(id\).*Railo" replace=" " byline="false" flags="g,s"/>
@@ -126,6 +128,37 @@
 				</sequential>
 			</antcontrib:for>
 			<antcontrib:var unset="true" name="_htmlfile" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="result2html">
+		<attribute name="dir"/>
+		<sequential>
+			<echo message="converting xml results in @{dir} to html" />
+			<delete dir="${temp.dir}/html"/>
+			<mkdir dir="${temp.dir}/html"/>
+			<!--
+            <junitreport todir="${temp.dir}/html">
+                    <fileset dir="@{dir}">
+                            <include name="*.xml" />
+                    </fileset>
+                    <report format="noframes" todir="${temp.dir}/html" styledir="${mxunit.basedir}" />
+            </junitreport>
+			<fail/>
+			-->
+			<echo message="&lt;testsuites&gt;" file="${temp.dir}/html/testsuites.xml"/>
+			<concat destfile="${temp.dir}/html/testsuites.xml" append="true">
+				<filterchain>
+					<replacetokens begintoken="&lt;" endtoken="&gt;">
+						<token key="testsuites" value=""/>
+						<token key="/testsuites" value=""/>
+					</replacetokens>
+				</filterchain>	
+				<fileset dir="@{dir}" includes="**/*.xml" erroronmissingdir="false"/>
+			</concat>
+			<echo message="&lt;/testsuites&gt;" file="${temp.dir}/html/testsuites.xml" append="true"/>
+			<xslt in="${temp.dir}/html/testsuites.xml" out="${temp.dir}/html/index.html" 
+			   style="${mxunit.basedir}/junit-noframes.xsl" failOnTransformationError="false"/>
 		</sequential>
 	</macrodef>
 
@@ -156,6 +189,38 @@
 		</sequential>
 	</macrodef>
 
+	<macrodef name="testbox-rundirs">
+		<attribute name="basePath"/>
+		<attribute name="componentPath"/>
+		<attribute name="runner" default="http://${runwar.host}:${runwar.port}/coldbox/testing/resources/unitrunner.cfm?"/>
+		<attribute name="recurse" default="true"/>
+		<attribute name="labels" default=""/>
+		<attribute name="failonerror" default="${mxunit.failonerror}"/>
+		<attribute name="outputdir" default="${mxunit.tests.results.dir}"/>
+		<sequential>
+			<echo message="runing tests in (@{basePath})" />
+			<abspath property="mxunit.tests.sub.dir.abs" path="@{basePath}" />
+			<delete dir="@{outputdir}" />
+	    	<antcontrib:for param="dir">
+				<path><dirset dir="@{basePath}" includes="*"/></path>
+				<sequential>
+					<antcontrib:var unset="true" name="_dirname" />
+					<basename file="@{dir}" property="_dirname" />
+					<echo message="runing tests in @{dir} (${_dirname})" />
+					<delete dir="@{outputdir}/${_dirname}"/>
+					<mkdir dir="@{outputdir}/${_dirname}"/>
+			        <get dest="@{outputdir}/${_dirname}/results.xml" ignoreerrors="true" retries="1"
+			           src="@{runner}target=@{componentPath}.${_dirname}&amp;recurse=@{recurse}&amp;reporter=ANTJunit&amp;labels=@{labels}" 
+			         />
+				</sequential>
+			</antcontrib:for>
+			<antcontrib:if>
+				<equals arg1="${mxunit.verbose}" arg2="true" />
+				<then><result2text dir="@{outputdir}" /></then>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+
 	<macrodef name="mxunit-call">
 		<attribute name="path" default="${mxunit.tests.dir}"/>
 		<attribute name="componentPath" default="${mxunit.componentpath}"/>
@@ -163,6 +228,8 @@
 		<attribute name="recurse" default="${mxunit.recurse}"/>
 		<attribute name="failonerror" default="${mxunit.failonerror}"/>
 		<attribute name="outputdir" default="${mxunit.tests.results.dir}"/>
+		<attribute name="defaultrunner" default="${mxunit.runner}"/>
+		<attribute name="inspect" default="false"/>
 		<sequential>
 			<taskdef-dependency name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" artifactId="mxunit-ant" groupId="cfdistro.lib" version="1.0.0.0" />
 			<delete dir="@{outputdir}" />
@@ -173,15 +240,62 @@
 			<echo message="Running MXUnit - mxunit.failonerror:@{failonerror} outputdir:@{outputdir}" />
 			<antcontrib:trycatch property="_erredbrah">
 				<try>
-					<mxunittask server="${server.host}" port="${server.port.http}"
-						defaultrunner="${mxunit.runner}" outputdir="@{outputdir}"
-						failureproperty="tests.fail" errorproperty="tests.error" haltonerror="false"
-						testResultsSummary="testresults.properties" verbose="true">
-						<!-- <testcase name="mxunit.tests.framework.AssertTest" packageName="mxunit.asserttests" /> -->
-						<directory runner="${mxunit.runner}"
-							remoteMethod="run" path="${mxunit.tests.dir.abs}" componentPath="@{componentPath}"
-							packageName="@{packageName}" recurse="@{recurse}" />
-					</mxunittask>
+					<antcontrib:if>
+						<equals arg1="@{inspect}" arg2="true" />
+						<then>
+							<property name="testcasesxml" value="" />
+					    	<antcontrib:for param="file">
+								<path><fileset dir="${mxunit.tests.dir}" includes="**/*.cfc" casesensitive="no">
+									<or>
+										<contains text="org.railo.cfml.test.RailoTestCase"/>
+										<contains text="mxunit.framework.TestCase"/>
+									</or>
+								</fileset>
+								</path>
+								<sequential>
+									<antcontrib:propertyregex property="testcasecfc" input="@{file}" 
+									 regexp="${mxunit.tests.dir}" replace="" global="true" override="yes"/>
+									<antcontrib:propertyregex property="testcasecfc" input="${testcasecfc}" 
+									 regexp="\\|/" replace="\." global="true" override="yes"/>
+									<antcontrib:propertyregex property="testcasecfc" input="${testcasecfc}" 
+									 regexp="^\.(.*)\.cfc$" replace="testcases.\1" global="true" override="yes"/>
+									<antcontrib:propertyregex property="testcasecfcpackage" input="${testcasecfc}" 
+									 regexp="(.*\..*)\.*$" replace="\1" global="true" override="yes"/>
+									<antcontrib:var name="testcasesxml"
+										value='${testcasesxml}&lt;testcase name="${testcasecfc}" packageName="${testcasecfcpackage}"/&gt;${line.separator}' />
+								</sequential>
+							</antcontrib:for>
+							<echo file="${basedir}/build-testcasesrun.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+								<project><import file="${basedir}/build.xml"/>
+								<target name="rundemtests">
+								 <taskdef-dependency name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" artifactId="mxunit-ant" version="1.0.0.0" />
+								<mxunittask server="${server.host}" port="${server.port.http}"
+									defaultrunner="@{defaultrunner}" outputdir="@{outputdir}"
+									failureproperty="tests.fail" errorproperty="tests.error" haltonerror="false"
+						 			testResultsSummary="testresults.properties" verbose="true">
+									${testcasesxml}
+								</mxunittask>
+								</target>
+								</project>
+								]]>
+							</echo>
+							<ant antfile="${basedir}/build-testcasesrun.xml" inheritAll="true" target="rundemtests" />
+					    	<!--
+					    	<delete file="${basedir}/build-testcasesrun.xml"/>
+					    	-->
+						</then>
+						<else>
+							<mxunittask server="${server.host}" port="${server.port.http}"
+								defaultrunner="${mxunit.runner}" outputdir="@{outputdir}"
+								failureproperty="tests.fail" errorproperty="tests.error" haltonerror="false"
+								testResultsSummary="testresults.properties" verbose="true">
+								<!-- <testcase name="mxunit.tests.framework.AssertTest" packageName="mxunit.asserttests" /> -->
+								<directory runner="${mxunit.runner}"
+									remoteMethod="run" path="${mxunit.tests.dir.abs}" componentPath="@{componentPath}"
+									packageName="@{packageName}" recurse="@{recurse}" />
+							</mxunittask>
+						</else>
+					</antcontrib:if>
 				</try>
 				<catch>
 					<echo message="MXUnit run failed: ${_erredbrah}"/>
@@ -191,6 +305,10 @@
 			<antcontrib:if>
 				<equals arg1="${mxunit.verbose}" arg2="true" />
 				<then><result2text dir="@{outputdir}" /></then>
+			</antcontrib:if>
+			<antcontrib:if>
+				<equals arg1="${mxunit.verbose}" arg2="true" />
+				<then><result2html dir="@{outputdir}" /></then>
 			</antcontrib:if>
 			<antcontrib:if>
 				<equals arg1="@{failonerror}" arg2="true" />
