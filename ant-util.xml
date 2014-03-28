@@ -13,6 +13,50 @@
 		</sequential>
 	</macrodef>
 
+	<scriptdef name="relpath-js" language="javascript">
+		  <attribute name="property"/>
+		  <attribute name="from"/>
+		  <attribute name="to"/>
+		  <![CDATA[
+		      // Imports: Helper classes for Files
+		      importClass(Packages.org.apache.tools.ant.util.FileUtils);
+		      importClass(Packages.java.io.File);
+		      importClass(Packages.java.lang.System);
+		     
+		      // Access to the attributes
+		      propName = attributes.get("property");
+		      baseFile = new File(attributes.get("to"));
+		      file     = new File(attributes.get("from"));
+		      // The relative
+		      relPath = FileUtils.getRelativePath(file, baseFile);
+		      if (!file.isDirectory()) {
+		          relPath = (relPath.length() >= 3) ? relPath.substring(3) : relPath;
+		      }
+		      relPath += "/";
+		
+		      // Store the result in a property
+		      project.setNewProperty(propName, relPath);
+		  ]]>
+	</scriptdef>
+	
+	<macrodef name="relpath">
+	  <attribute name="property"/>
+	  <attribute name="from"/>
+	  <attribute name="to"/>
+		<sequential>
+			<antcontrib:var name="___relpathprop" unset="true" />
+			<antcontrib:var name="___relpathfrom" unset="true" />
+			<antcontrib:var name="___relpathto" unset="true" />
+			<property name="___relpathfrom" location="@{from}" />
+			<property name="___relpathto" location="@{to}" />
+			<relpath-js property="___relpathprop" from="${___relpathfrom}" to="${___relpathto}" />
+			<antcontrib:var name="@{property}" value="${___relpathprop}" />			
+			<antcontrib:var name="___relpathprop" unset="true" />
+			<antcontrib:var name="___relpathfrom" unset="true" />
+			<antcontrib:var name="___relpathto" unset="true" />
+		</sequential>
+	</macrodef>
+	
 	<macrodef name="required-resource">
 		<attribute name="src" />
 		<attribute name="dest" />
@@ -60,50 +104,102 @@
 		</sequential>
 	</macrodef>
 
-	<scriptdef name="relpath-js" language="javascript">
-		  <attribute name="property"/>
-		  <attribute name="from"/>
-		  <attribute name="to"/>
-		  <![CDATA[
-		      // Imports: Helper classes for Files
-		      importClass(Packages.org.apache.tools.ant.util.FileUtils);
-		      importClass(Packages.java.io.File);
-		      importClass(Packages.java.lang.System);
-		     
-		      // Access to the attributes
-		      propName = attributes.get("property");
-		      baseFile = new File(attributes.get("to"));
-		      file     = new File(attributes.get("from"));
-		      // The relative
-		      relPath = FileUtils.getRelativePath(file, baseFile);
-		      if (!file.isDirectory()) {
-		          relPath = (relPath.length() >= 3) ? relPath.substring(3) : relPath;
-		      }
-		      relPath += "/";
-		
-		      // Store the result in a property
-		      project.setNewProperty(propName, relPath);
-		  ]]>
-	</scriptdef>
+	<scriptdef name="json2xml" language="javascript">
+		<attribute name="file"/>
+		<attribute name="property"/>
+		<![CDATA[
+        importClass(java.io.File);
+        importClass(java.io.FileReader);
+        importClass(java.io.BufferedReader);
+	    file = new File(attributes.get("file"));
+        print("Converting JSON to XML"); 
+        fr = new FileReader(file);
+        br = new BufferedReader(fr);
+        // This assumes the file has no line breaks and is one line.
+        var json = br.readLine();
+        var struct = eval("({json2xml:"+json+"})");
+		var json2xml = (typeof exports === 'undefined')? {} : exports; // like commonjs
+		(function() {		 
+        json2xml.convert = function(o) {
+           var toXml = function(v, name, ind) {
+              var xml = "";
+			  var isInArray = false;
+			  //print(name+":"+typeof(v));
+              if (v instanceof Array) {
+				var arrayName = name;
+				if(arrayName == "json2xml") {
+					ind += ind+"\t";
+					xml += "\n" + ind + "<array>\n";
+				} else {
+					arrayName = name;
+	  				xml += ind + "<"+arrayName+">\n";
+	  				xml += ind + "\t<array>\n";
+				}
+				name = "item";
 
-	<macrodef name="relpath">
-	  <attribute name="property"/>
-	  <attribute name="from"/>
-	  <attribute name="to"/>
-		<sequential>
-			<antcontrib:var name="___relpathprop" unset="true" />
-			<antcontrib:var name="___relpathfrom" unset="true" />
-			<antcontrib:var name="___relpathto" unset="true" />
-			<property name="___relpathfrom" location="@{from}" />
-			<property name="___relpathto" location="@{to}" />
-			<relpath-js property="___relpathprop" from="${___relpathfrom}" to="${___relpathto}" />
-			<antcontrib:var name="@{property}" value="${___relpathprop}" />			
-			<antcontrib:var name="___relpathprop" unset="true" />
-			<antcontrib:var name="___relpathfrom" unset="true" />
-			<antcontrib:var name="___relpathto" unset="true" />
-		</sequential>
-	</macrodef>
-	
+				for (var i=0, n=v.length; i<n; i++)
+                  xml += toXml(v[i], name, "\t"+ind+"");
+
+				if(arrayName == "json2xml") {
+					xml += ind + "\t</array>\n";
+				} else {
+					xml += ind + "\t</array>\n";
+					xml += ind + "</"+arrayName+">\n";
+				}
+				isInArray = false;
+              }
+              else if (typeof(v) == "object") {
+                 var hasChild = false;
+                 xml += ind + "<" + name;
+                 for (var m in v) {
+                    if (m.charAt(0) == "@")
+                       xml += " " + m.substr(1) + "=\"" + v[m].toString() + "\"";
+                    else
+                       hasChild = true;
+                 }
+                 xml += hasChild ? ">\n" : "/>\n";
+                 if (hasChild) {
+                    for (var m in v) {
+                       if (m == "#text")
+                              xml += makeSafe(v[m]);
+                       else if (m == "#cdata")
+                              xml += "<![CDATA[" + lines(v[m]) + "]"+"]>";
+                       else if (m.charAt(0) != "@")
+                              xml += toXml(v[m], m, ind+"\t");
+                    }
+                    xml += (xml.charAt(xml.length-1)=="\n"?ind:"") + "</" + name + ">\n";
+                 }
+              }
+              else { // added special-character transform, but this needs to be better handled [micmath]
+				 if(!v) v = "";
+                 xml += ind + "<" + name + ">" + makeSafe(v.toString()) +  "</" + name + ">\n";
+              }
+              return xml;
+           },
+           xml="";
+           for (var m in o) {
+             xml += toXml(o[m], m, "");
+           }
+           return xml;
+        }    
+		function isNumeric(n) {
+		  return !isNaN(parseFloat(n)) && isFinite(n);
+		}
+        function lines(str) {
+                // normalise line endings, all in file will be unixy
+                str = str.replace(/\r\n/g, '\n');		                
+                return str;
+        }        
+        function makeSafe(str) {
+                // xml special charaters
+                str = str.replace(/</g, '&lt;').replace(/&/g, '&amp;');		                
+                return lines(str);
+        }
+	})();
+	var retXML = "<json2xml>"+json2xml.convert(struct)+"</json2xml>";
+	project.setNewProperty(attributes.get("property"), retXML);
+	]]>
+	</scriptdef>
 
 	<macrodef name="version-splitter" description="splits a @{version} (3.9.12.333) into @{property}.major (3)  @{property}.minor (9) @{property}.build (12) @{property}.revision (333).  Optionally bumps one of [major|minor|build|revision] if specified.">
 	  <attribute name="version"/>
