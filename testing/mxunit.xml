@@ -157,7 +157,9 @@
 				<fileset dir="@{dir}" includes="**/*.xml" erroronmissingdir="false"/>
 			</concat>
 			<echo message="&lt;/testsuites&gt;" file="${temp.dir}/html/testsuites.xml" append="true"/>
-			<xslt in="${temp.dir}/html/testsuites.xml" out="${temp.dir}/html/index.html" 
+			<delete dir="@{dir}/html"/>
+			<mkdir dir="@{dir}/html"/>
+			<xslt in="${temp.dir}/html/testsuites.xml" out="@{dir}/html/index.html" 
 			   style="${mxunit.basedir}/junit-noframes.xsl" failOnTransformationError="false"/>
 		</sequential>
 	</macrodef>
