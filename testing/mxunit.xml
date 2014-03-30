@@ -179,7 +179,7 @@
 						<replaceregexp 
 						        file="@{dir}/html/index.html" 
 						        match="@{virtual}(\/.*?\.cf[mc])\:?(\d+)?" flags="gi"
-						        replace='&lt;a title="View Source Code" target="_blank" href="@{scmurl}${projectRelativePath}\1#L\2"&gt;\1&lt;/a&gt;'
+						        replace='&lt;a title="View Source Code" target="_blank" href="@{scmurl}${projectRelativePath}\1#L\2"&gt;@{virtual}\1&lt;/a&gt;'
 						        byline="false" 
 						/>
 					</actions>
