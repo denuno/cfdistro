@@ -666,6 +666,7 @@
 		<attribute name="physicalxml" default="@{physical}" />
 		<attribute name="archive" default="" />
 		<attribute name="virtual" />
+		<attribute name="scmurl" default="" />
 		<element name="args" optional="true" />
 		<sequential>
 			<antcontrib:var name="some.mapping.exists" unset="true" />
@@ -679,19 +680,19 @@
 						<!-- if no mappings at all, just insert -->
 						<insert path="/mappings" position="under" unless="some.mapping.exists">
 							<![CDATA[
-		  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
+		  						<mapping physical="@{physicalxml}" virtual="@{virtual}" scmurl="@{scmurl}"/>
 		  					]]>
 						</insert>
 						<!-- if some mappings exist we can update and add -->
 						<copy path="/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
 						<replace path="/mappings/mapping[@virtual=@{virtual}]/text()" if="mapping.exists">
 							<![CDATA[
-		  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
+		  						<mapping physical="@{physicalxml}" virtual="@{virtual}" scmurl="@{scmurl}"/>
 		  					]]>
 		  					</replace>
 						<insert path="/mappings" position="under" unless="mapping.exists">
 							<![CDATA[
-		  						<mapping physical="@{physicalxml}" virtual="@{virtual}"/>
+		  						<mapping physical="@{physicalxml}" virtual="@{virtual}" scmurl="@{scmurl}"/>
 		  					]]>
 						</insert>
 					</xmltask>

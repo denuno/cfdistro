@@ -80,9 +80,9 @@
 		<!--
 		<trim-results dir="${mxunit.tests.results.dir}" />
 
-		<result2html dir="${mxunit.tests.results.dir}" />
-		-->
 		<result2text dir="${mxunit.tests.results.dir}" />
+		-->
+		<result2html dir="${mxunit.tests.results.dir}" />
 	</target>
 
 	 <macrodef name="trim-results">
@@ -161,6 +161,31 @@
 			<mkdir dir="@{dir}/html"/>
 			<xslt in="${temp.dir}/html/testsuites.xml" out="@{dir}/html/index.html" 
 			   style="${mxunit.basedir}/junit-noframes.xsl" failOnTransformationError="false"/>
+			<antcontrib:runtarget target="exists.mappings.xml" />
+			<xmltask sourcebuffer="mappings.buff">
+				<call path="mappings/*">
+					<param name="virtual" path="@virtual" default="NONE" />
+					<param name="physical" path="@physical" default="NONE" />
+					<param name="scmurl" path="@scmurl" default="" />
+					<actions>
+						<antcontrib:var name="physical.dir.abs" unset="true"/>
+						<property name="physical.dir.abs" location="@{physical}"/>
+						<!-- replace mapping or source file location with relative path -->
+						<antcontrib:propertyregex property="projectRelativePath" input="${physical.dir.abs}" 
+						 regexp="${ext.dir}/mappings" replace="" global="true" override="yes"/>
+						<antcontrib:propertyregex property="projectRelativePath" input="${physical.dir.abs}" 
+						 regexp="${src.dir}" replace="" global="true" override="yes"/>
+<!--<echo message="${projectRelativePath} : @{virtual} (@{physical} ${src.dir} @{scmurl}"/> -->
+						<replaceregexp 
+						        file="@{dir}/html/index.html" 
+						        match="@{virtual}(\/.*?\.cf[mc])\:?(\d+)?" flags="gi"
+						        replace='&lt;a title="View Source Code" target="_blank" href="@{scmurl}${projectRelativePath}\1#L\2"&gt;\1&lt;/a&gt;'
+						        byline="false" 
+						/>
+					</actions>
+				</call>
+			</xmltask>
+
 		</sequential>
 	</macrodef>
 
