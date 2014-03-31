@@ -163,7 +163,7 @@
 			   style="${mxunit.basedir}/junit-noframes.xsl" failOnTransformationError="false"/>
 			<antcontrib:runtarget target="exists.mappings.xml" />
 			<xmltask sourcebuffer="mappings.buff">
-				<call path="mappings/*">
+				<call path="mappings/mapping[@scmurl and string(@scmurl)]">
 					<param name="virtual" path="@virtual" default="NONE" />
 					<param name="physical" path="@physical" default="NONE" />
 					<param name="scmurl" path="@scmurl" default="" />
@@ -178,8 +178,8 @@
 <!--<echo message="${projectRelativePath} : @{virtual} (@{physical} ${src.dir} @{scmurl}"/> -->
 						<replaceregexp 
 						        file="@{dir}/html/index.html" 
-						        match="@{virtual}(\/.*?\.cf[mc])\:?(\d+)?" flags="gi"
-						        replace='&lt;a title="View Source Code" target="_blank" href="@{scmurl}${projectRelativePath}\1#L\2"&gt;@{virtual}\1&lt;/a&gt;'
+								match="@{virtual}([^&quot;()]+\/.*?\.cf[mc])\:?(\d+)?" flags="gi"
+						        replace='&lt;a title="View Source Code" target="_blank" href="@{scmurl}${projectRelativePath}\1#L\2"&gt;@{virtual}\1:\2&lt;/a&gt;'
 						        byline="false" 
 						/>
 					</actions>

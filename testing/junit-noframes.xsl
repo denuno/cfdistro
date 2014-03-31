@@ -419,15 +419,19 @@
             <xsl:value-of select="@message"/>
         </xsl:otherwise>
     </xsl:choose>
-    <!-- display the stacktrace -->
+    <!-- display the stacktrace
     <code>
         <br/><br/>
         <xsl:call-template name="br-replace">
             <xsl:with-param name="word" select="."/>
         </xsl:call-template>
     </code>
+     -->
     <!-- the later is better but might be problematic for non-21" monitors... -->
-    <!--pre><xsl:value-of select="."/></pre-->
+    <code>
+        <br/><br/>
+    	<xsl:value-of select="." disable-output-escaping="yes"/>
+    </code>
 </xsl:template>
 
 <xsl:template name="JS-escape">
