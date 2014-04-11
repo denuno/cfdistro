@@ -178,8 +178,14 @@
 <!--<echo message="${projectRelativePath} : @{virtual} (@{physical} ${src.dir} @{scmurl}"/> -->
 						<replaceregexp 
 						        file="@{dir}/html/index.html" 
-								match="@{virtual}([^&quot;()]+\/.*?\.cf[mc])\:?(\d+)?" flags="gi"
+								match="@{virtual}(\/[^&quot;&apos;?()]+\/.*?\.cf[mc])\:?(\d+)?" flags="gi"
 						        replace='&lt;a title="View Source Code" target="_blank" href="@{scmurl}${projectRelativePath}\1#L\2"&gt;@{virtual}\1:\2&lt;/a&gt;'
+						        byline="false" 
+						/>
+						<replaceregexp 
+						        file="@{dir}/html/index.html" 
+								match="${src.dir}&lt;a" flags="gi"
+						        replace='&lt;a'
 						        byline="false" 
 						/>
 					</actions>
