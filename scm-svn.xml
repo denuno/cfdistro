@@ -10,6 +10,8 @@
 		<sequential>
 			<dependency artifactId="svnkit-1-7-5" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
 			<dependency artifactId="svnkit-cli-1-7-5" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+			<dependency artifactId="sequence-library-1-0-2" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+			<dependency artifactId="sqljet-1-1-3" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
 		</sequential>
 	</macrodef>
 

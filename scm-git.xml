@@ -570,8 +570,8 @@
 		<element name="xml" implicit="true" optional="true" />
 		<sequential>
 			<antcontrib:var unset="true" name="@{property}" />
-			<tempfile property="__xml_file.temp" />
-			<echoxml file="${__xml_file.temp}" namespacePolicy="@{namespacePolicy}">
+			<tempfile property="__xml_file.temp" prefix="args2props" />
+			<echoxml file="${__xml_file.temp}" namespacePolicy="@{namespacePolicy}" >
 				<placeholderbrah>
 				<xml />
 				</placeholderbrah>
@@ -582,6 +582,7 @@
 			<xmltask source="${__xml_file.temp}">
 				<copy path="placeholderbrah/arg/@value" attrValue="true" property="@{property}" append="true"/>
 			</xmltask>
+			<delete file="${__xml_file.temp}" />
 			<ant-set-log-level level="1"/>
 			<!-- default to nothing if no args -->
 			<property name="@{property}" value="" />
