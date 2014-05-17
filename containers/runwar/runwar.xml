@@ -1,9 +1,7 @@
-<project name="runwar" default="runwar.compile" xmlns:antcontrib="antlib:net.sf.antcontrib">
+<project name="runwar" default="runwar.install" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
-	<property name="jetty-runner.version" value="8-1-8-v20121106" />
-	<property name="jetty-runner.jar" value="jetty-runner-${jetty-runner.version}-1.0.0.0.jar" />
-	<property name="jetty-runner.jar.file" value="${cfdistro.lib.dir}/${jetty-runner.jar}" />
-	<property name="runwar.jar" value="runwar-1.0.0.0.jar" />
+	<property name="runwar.version" value="2.0.5" />
+	<property name="runwar.jar" value="runwar-${runwar.version}.jar" />
 	<property name="runwar.jar.file" value="${cfdistro.lib.dir}/${runwar.jar}" />
 	<dirname property="runwar.basedir" file="${ant.file.runwar}" />
 
@@ -31,7 +29,7 @@
 			<property name="runwar.host" value="${server.host}" />
 			<property name="runwar.maxmemory" value="${server.memory.max}" />
 			<property name="runwar.log.dir" location="${server.log.dir}/" />
-			<property name="log.level" value="INFO" />
+			<property name="log.level" value="WARN" />
 			<property name="loglevel" value="${log.level}" />
 			<property name="runwar.log.level" value="${loglevel}" />
 			<property name="runwar.stop.socket" value="${server.port.stop}" />
@@ -39,18 +37,10 @@
 			<property name="open.url" value="${server.url}" />
 			<fix-url-slashes property="open.url" />
 			<property name="runner.temp.dir" value="${temp.dir}/runner" />
-			<!--
-			<dependency groupId="org.eclipse.jetty" artifactId="jetty-runner" version="9.0.4.v20130625" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
-			<dependency groupId="org.mortbay.jetty" artifactId="jetty-runner" version="8.1.11.v20130520" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
-			-->
 			<antcontrib:if>
 				<available file="${runwar.jar.file}" /><then/>
 				<else>
-					<dependency groupId="cfdistro.lib" artifactId="runwar" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
-					<dependency groupId="cfdistro.lib" artifactId="jetty-runner-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
-					<dependency groupId="cfdistro.lib" artifactId="jetty-ajp-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
-					<dependency groupId="cfdistro.lib" artifactId="jetty-rewrite-8-1-8-v20121106" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
-					<dependency groupId="cfdistro.lib" artifactId="commons-cli-1-2" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+		            <dependency groupId="org.cfmlprojects" artifactId="runwar" version="${runwar.version}" dest="${cfdistro.lib.dir}" unzip="false" type="jar" />
 				</else>
 			</antcontrib:if>
 
@@ -94,65 +84,6 @@
 	</macrodef>
 	<runwar.initprops />
 
-	<target name="runwar.compile">
-		<runwar.initprops />
-		<delete dir="${runwar.basedir}/bin/runwar/"/>
-		<mkdir dir="${runwar.basedir}/bin/runwar/"/>
-		<!--
-		<javac srcdir="${runwar.basedir}/src/runwar" destdir="${runwar.basedir}/bin/runwar"
-    		classpathref="runwar.lib.path"/>
-    	-->
-		<javac-ecj srcdir="${runwar.basedir}/src/runwar" destdir="${runwar.basedir}/bin/runwar"
-			classpath="${toString:runwar.lib.path}"/>
-		    		
-	</target>
-
-	<target name="runwar.jar" depends="runwar.compile">
-		<runwar.initprops />
-	    <unzip dest="${runwar.basedir}/bin/runwar/">
-	        <fileset dir="${cfdistro.lib.dir}">
-		<!--  
-	            <include name="**/jetty-*.jar"/>
-		 -->
-	            <include name="**/jetty-ajp*.jar"/>
-	            <include name="**/commons-cli-*.jar"/>
-	        </fileset>
-	    </unzip>
-		<copy todir="${runwar.basedir}/bin/runwar/runwar/" file="${runwar.basedir}/src/runwar/icon.png" />
-		<jar destfile="${runwar.jar.file}"
-         basedir="${runwar.basedir}/bin/runwar/" 
-         includes="**/*.class, **/*.png" filesetmanifest="mergewithoutmain">
-			<manifest>
-				<attribute name="Main-Class" value="runwar.Start" />
-				<attribute name="Class-Path" value="./${jetty-runner.jar}" />
-			</manifest>
-		</jar>
-		<delete dir="${runwar.basedir}/bin"/>
-	</target>
-
-
-	<target name="runwar.jetty.jar" depends="runwar.compile">
-		<runwar.initprops />
-	    <unzip dest="${runwar.basedir}/bin/runwar/">
-	        <fileset dir="${cfdistro.lib.dir}">
-	            <include name="**/jetty-*.jar"/>
-	            <include name="**/jetty-ajp*.jar"/>
-	            <include name="**/commons-cli-*.jar"/>
-	        </fileset>
-	    </unzip>
-		<copy todir="${runwar.basedir}/bin/runwar/runwar/" file="${runwar.basedir}/src/runwar/icon.png" />
-		<property name="runwar.jar.location" value="${runwar.jar.file}" />
-		<jar destfile="${runwar.jar.location}"  filesetmanifest="mergewithoutmain"
-         basedir="${runwar.basedir}/bin/runwar/" 
-         includes="**/*.class, **/*.png">
-			<manifest>
-				<attribute name="Main-Class" value="runwar.Start" />
-				<attribute name="Class-Path" value="./${jetty-runner.jar}" />
-			</manifest>
-		</jar>
-		<delete dir="${runwar.basedir}/bin"/>
-	</target>
-
 	<target name="runembedded.jar" description="creates an jar with the WAR embedded">
 		<antcontrib:if>
 			<equals arg1="${build.type}" arg2="prod" />
@@ -169,15 +100,14 @@
 		<jar destfile="${runembedded.jar.file}" filesetmanifest="mergewithoutmain">
 			<manifest>
 				<attribute name="Main-Class" value="runwar.RunEmbeddedWar" />
-				<attribute name="Class-Path" value="./${jetty-runner.jar}" />
+				<attribute name="Class-Path" value="./${runwar.jar}" />
 			</manifest>
-			<zipfileset src="${jetty-runner.jar.file}" />
+			<zipfileset src="${runwar.jar.file}" />
 			<fileset file="${dist.dir}/${war.name}.war" />
 			<fileset dir="${dist.dir}/embedded/" />
 			<zipfileset src="${runwar.jar.file}" />
 		</jar>
 	</target>
-	
 	
 	<target name="if.toolong.echo" if="toolong">
 		<loadfile property="errlog"
@@ -191,7 +121,6 @@
 		<property name="runwar.dir" location="${war.target.dir}/WEB-INF/" />
 		<mkdir dir="${runwar.dir}" />
 		<copy todir="${runwar.dir}">
-			<fileset file="${jetty-runner.jar.file}"/>
 			<fileset file="${runwar.jar.file}"/>
 		</copy>
 		<echo file="${dist.dir}/${distro.name}.sh"><![CDATA[#start script
@@ -205,18 +134,18 @@ if test -z "${JAVA_EXE}"; then
 JAVA_EXE=java
 fi
 cd $(dirname $0)
-exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar} -jar ${war.name}.war/WEB-INF/${runwar.jar} ${war.name}.war -war ${war.contextpath} -host ${runwar.host} -port ${runwar.port} -stop-port ${runwar.stop.socket} -logdir ${runwar.log.dir} -cfml-dirs ${runwar.cfml.dirlist} -background false]]>
+exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${runwar.jar} -jar ${war.name}.war/WEB-INF/${runwar.jar} ${war.name}.war -war ${war.contextpath} -host ${runwar.host} -port ${runwar.port} -stop-port ${runwar.stop.socket} -logdir ${runwar.log.dir} -cfml-dirs ${runwar.cfml.dirlist} -background false]]>
 </echo>
 		<chmod file="${dist.dir}/${distro.name}.sh" perm="ugo+rx"/>
 	</target>
 	
-	<target name="runwar.start.fg" description="starts jetty-runner server in foreground">
+	<target name="runwar.start.fg" description="starts server in foreground">
 		<runwar.initprops />
 		<antcontrib:var name="background" value="false" />
 		<antcontrib:runtarget target="runwar.start" />
 	</target>
 
-	<target name="runwar.start" description="starts jetty-runner server">
+	<target name="runwar.start" description="starts server">
 		<runwar.initprops />
 		<echoproperties prefix="runwar"/>
 		<property name="background" value="true" />
@@ -225,7 +154,7 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 		<property name="runwar.keeprequestlog" value="false" />
 		<mkdir dir="${runwar.log.dir}" />
 		<ant-set-log-level level="2" />
-		<echo message="starting jetty-runner (host: ${runwar.host} port: ${runwar.port} server.jvm.args : ${server.jvm.args})"/>
+		<echo message="starting runner (host: ${runwar.host} port: ${runwar.port} server.jvm.args : ${server.jvm.args})"/>
 		<sequential>
 			<path id="cfdistro.libs.path">
 				<fileset dir="${cfdistro.lib.dir}">
@@ -258,8 +187,6 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 				<arg value="-processname" /><arg value="${distro.name}" />
 				<jvmarg line="${osxJVMargs}" />
 				<!--
-				<jvmarg value="-Djetty.logs=${runwar.log.dir}" />
-				<jvmarg value="-Dorg.eclipse.jetty.util.log.DEBUG=true" />
 				<jvmarg value="-Xdebug"/>
 				-->
 			</java>
@@ -275,7 +202,7 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 				<not><equals arg1="${runwar.port}" arg2="0" /></not>
 				</and>
 				<then>
-					<echo message="waiting for jetty-runner"/>
+					<echo message="waiting for runner"/>
 					<sleep seconds="7" />
 					<waitfor maxwait="51" maxwaitunit="second" checkevery="3" checkeveryunit="second" timeoutproperty="toolong">
 						<and>
@@ -293,17 +220,19 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 			</antcontrib:if>
 			<antcontrib:var name="runwarou" unset="true" />
 			<loadfile property="runwarou" srcfile="${runwar.log.dir}/server.out.txt" />
-			<antcontrib:propertyregex property="runwar.pid" input="${runwarou}" regexp=".*PID:([^\s]+)?.*" select="\1" global="false" override="yes" />
-			<antcontrib:propertyregex property="runwar.port" input="${runwarou}" regexp=".*http-port:([^\s]+)?.*" select="\1" global="false" override="yes" />
-			<antcontrib:propertyregex property="runwar.stop.socket" input="${runwarou}" regexp=".*stop-port:([^\s]+)?.*" select="\1" global="false" override="yes" />
+			<antcontrib:propertyregex property="runwar.pid" input="${runwarou}" regexp="Server is up.*PID:([^\s]+)?.*" select="\1" global="false" override="yes" />
+			<antcontrib:propertyregex property="runwar.port" input="${runwarou}" regexp="Server is up.*http-port:([^\s]+)?.*" select="\1" global="false" override="yes" />
+			<antcontrib:propertyregex property="runwar.stop.socket" input="${runwarou}" regexp="Server is up.*stop-port:([^\s]+)?.*" select="\1" global="false" override="yes" />
+			<echoproperties prefix="runwar."></echoproperties>
+			<echo message="${runwarou}"/>
 			<antcontrib:var name="server.port.http" value="${runwar.port}" />
 			<antcontrib:var name="runwarou" unset="true" />
 		</sequential>
 	</target>
 	
-	<target name="runwar.stop" description="stops jetty-runner server">
+	<target name="runwar.stop" description="stops server">
 		<runwar.initprops />
-		<echo message="stopping jetty-runner (using stop listener on port ${runwar.stop.socket})."/>
+		<echo message="stopping runner (using stop listener on port ${runwar.stop.socket})."/>
 		<antcontrib:trycatch property="foo" reference="bar">
 			<try>
 			<java classname="runwar.Stop" classpathref="runwar.lib.path">
@@ -333,7 +262,7 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${jetty-runner.jar
 		<requires-ext resource="${ext.dir}/ant-lib" />
 		<requires-ext resource="${ext.dir}/launch4j" />
 		<requires-ext resource="${ext.dir}/izpack" />
-		<copy file="${jetty-runner.jar.file}" tofile="${runner.jar}" overwrite="true" />
+		<copy file="${runwar.jar.file}" tofile="${runner.jar}" overwrite="true" />
 		<copy file="${war.target.dir}" todir="${runner.temp.dir}" />
 		<!--
 		<copy todir="${runner.temp.dir}/${war.name}.war">
@@ -534,7 +463,7 @@ __ARCHIVE_FOLLOWS__
 		</sequential>
 	</macrodef>	
 	
-	<target name="runwar.start.stop" description="starts and then stops jetty-runner server for some odd reason.  generation of stuff maybe?">
+	<target name="runwar.start.stop" description="starts and then stops the server for some odd reason.  generation of stuff maybe?">
 		<parallel>
 			<sequential>
 				<antcall target="runwar.start"/>
@@ -544,7 +473,7 @@ __ARCHIVE_FOLLOWS__
 		</parallel>
 	</target>
 
-	<target name="runwar.stop.start" description="starts and then stops jetty-runner server for some odd reason.  generation of stuff maybe?">
+	<target name="runwar.stop.start" description="starts and then stops the server for some odd reason.  generation of stuff maybe?">
 		<parallel>
 			<sequential>
 				<antcall target="runwar.stop"/>

@@ -68,8 +68,6 @@
 	</macrodef>
 
 	<taskdef-dependency name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" artifactId="xmltask-v1-16-1" groupId="cfdistro.lib" version="1.0.0.0" />
-	<taskdef name="sshsession" classname="org.apache.tools.ant.taskdefs.optional.ssh.SSHSession" classpath="${cfdistro.basedir}/ant/lib/ant.jar" />
-	<taskdef name="sshexec" classname="org.apache.tools.ant.taskdefs.optional.ssh.SSHExec" classpathref="build.lib.path" />
 
 	<!--
 	load the specified build properties

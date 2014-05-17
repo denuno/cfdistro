@@ -1,15 +1,12 @@
 <project name="rpm" default="rpm" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:redline="antlib:org.redline_rpm"  basedir=".">
 	
-    <property name="redline.ant.tasks.jar" value="${cfdistro.lib.dir}/redline-1-1-10-SNAPSHOT.jar" />
-    <available property="redline.ant.tasks.jar.exists" file="${redline.ant.tasks.jar}" />
-
-    <!-- This will download the "latest version" of the maven-ant-tasks if needed -->
-    <target name="bootstrap_redline" unless="redline.ant.tasks.jar.exists">
-		<dependency artifactId="redline-1-1-10-SNAPSHOT" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+    <target name="bootstrap_redline">
+		<dependency artifactId="ant-deb-0-0-1" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+		<taskdef-dependency name="deb" classname="com.googlecode.ant_deb_task.Deb" artifactId="ant-deb-0-0-1" version="1.0.0.0" />
+		<taskdef-dependency name="redline" classname="org.redline_rpm.RedlineTask" artifactId="redline-1-1-10-SNAPSHOT" version="1.0.0.0" />
     </target>
     
 	<target name="rpm" depends="bootstrap_redline">
-    	<taskdef resource="org/redline_rpm/antlib.xml" uri="antlib:org.redline_rpm" classpathref="build.lib.path"/>
 		<mkdir dir="rpms" />
 		<!--  make RC rpm -->
 		<property name="rpm.user" value="railo" />
@@ -25,16 +22,16 @@ fi
 		<property name="rpm.railo.dir" value="/opt/railo/${railo.build.version.major}" />
 		<property name="rpm.packager" value="Railo" />
 		<!--  make libs rpm -->
-		<redline:rpm destination="rpms" release="1"
+		<redline destination="rpms" release="1"
 			group="org.getrailo" name="railo-libs" version="${railo.build.version.major}"
 			preinstallscript="${temp.dir}/preinstall.sh" packager="${rpm.packager}"
 			url="http://getrailo.org">
 			<tarfileset dir="${railo.lib.dir}" prefix="${rpm.railo.dir}/libs"
 				 filemode="644" username="railo" group="railo" excludes=".classpath, .project" />
 			<link path="/opt/railo/libs" target="${rpm.railo.dir}/libs" />
-		</redline:rpm>
+		</redline>
 		<!--  make core rpm -->
-		<redline:rpm destination="rpms"  
+		<redline destination="rpms"  
 			provides="railo" release="1"
 			group="org.getrailo" name="railo-core" version="${railo.build.version.long}"
 			preinstallscript="${temp.dir}/preinstall.sh" packager="${rpm.packager}"
@@ -44,14 +41,14 @@ fi
 					filemode="644" username="${rpm.user}" group="${rpm.user}" />
 			<depends name="railo-libs" version="${railo.build.version.major}"/>
 			<link path="/opt/railo/railo-server" target="${rpm.railo.dir}/railo-server"/>
-		</redline:rpm>
+		</redline>
 		<!--  make runner rpm -->
 		<echo file="${temp.dir}/postinstall.sh">
 		<![CDATA[echo "java -jar runwar.jar" > ${rpm.railo.dir}/railo.sh]]>
 		</echo>
 		<antcontrib:var name="runwar.jar.location" value="${temp.dir}/runwar.jar" />
 		<antcontrib:runtarget target="runwar.jetty.jar" />
-		<redline:rpm destination="rpms" release="1"
+		<redline destination="rpms" release="1"
 			group="org.getrailo" name="railo-runner" version="${railo.build.version.long}"
 			postinstallscript="${temp.dir}/postinstall.sh" packager="${rpm.packager}"
 			url="http://getrailo.org">
@@ -60,11 +57,10 @@ fi
 			<tarfileset dir="${basedir}/resource/railo-war-template" prefix="${rpm.railo.dir}/webroot"
 				 filemode="644" username="railo" group="railo"/>
 			<depends name="railo" version=""/>
-		</redline:rpm>
+		</redline>
 	</target>
 	
 	<target name="cfdistro.rpm" depends="bootstrap_redline">
-    	<taskdef resource="org/redline_rpm/antlib.xml" uri="antlib:org.redline_rpm" classpathref="build.lib.path"/>
 		<property name="rpm.user" value="cfml" />
 		<property name="rpm.source.dir" value="${dist.dir}" />
 		<property name="rpm.target.dir" value="/opt/${distro.name}" />
@@ -88,7 +84,6 @@ fi
 	</target>
 	
 	<target name="build.cfdistro.rpm" depends="bootstrap_redline">
-    	<taskdef resource="org/redline_rpm/antlib.xml" uri="antlib:org.redline_rpm" classpathref="build.lib.path"/>
 		<property name="rpm.user" value="root" />
 		<property name="rpm.source.dir" value="${cfdistro.basedir}" />
 		<property name="rpm.source.excludes" value="ext/**,artifacts/**,dist/**,**/.git/**,**/.svn/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**,lib/**" />
@@ -113,7 +108,7 @@ fi
 		<property name="rpm.version" value="${cfdistro.version}" />
 		<echo file="${temp.dir}/cfdistro">${rpm.target.dir}/bin/cfdistro $*</echo>
 		<echo message="using rpm.repo: ${rpm.repo}" />
-		<redline:rpm destination="${rpm.repo}" release="1"
+		<redline destination="${rpm.repo}" release="1"
 			group="${rpm.group}" name="${rpm.name}" version="${rpm.version}"
 			packager="${rpm.packager}"
 			url="${rpm.url}">
@@ -126,7 +121,7 @@ fi
 			<tarfileset prefix="/bin/" 
 					file="${temp.dir}/cfdistro"
 					filemode="755" username="${rpm.user}" group="${rpm.user}" />
-		</redline:rpm>
+		</redline>
 		<echo file="cfdistro.properties" message="cfdistro.version=${cfdistro.version}" />
 		<rpm-repo dir="${rpm.repo}" />
 
@@ -134,7 +129,6 @@ fi
 		<mkdir dir="${deb.repo}"/>
 	   	<echo message="Creating debian .deb file from: ${rpm.source.dir}"/>
 	   	<delete file="${dist.dir}/${rpm.name}-${rpm.version}-1_all.deb" />
-		<taskdef-dependency name="deb" classname="com.googlecode.ant_deb_task.Deb" artifactId="ant-deb-0-0-1" version="1.0.0.0" />
 	   	<deb
 	        todir="${deb.repo}"
 	        package="${rpm.name}"
@@ -164,6 +158,32 @@ fi
 	gpgcheck=0" />
 	</target>
 	
+	<macrodef name="rpm-create">
+		<attribute name="rpm.user" default="cfml" />
+		<attribute name="rpm.source.dir" default="${dist.dir}" />
+		<attribute name="rpm.source.excludes" default="" />
+		<attribute name="rpm.target.dir" default="/opt/${distro.name}" />
+		<attribute name="rpm.packager" default="cfdistro" />
+		<attribute name="rpm.group" default="cfdistro" />
+		<attribute name="rpm.name" default="${distro.name}" />
+		<attribute name="rpm.version" default="1.0.0.0" />
+		<attribute name="rpm.release" default="1" />
+		<attribute name="rpm.url" default="http://cfmlprojects.org/cfdistro" />
+		<attribute name="rpm.repo" default="${cfdistro.basedir}/artifacts/RPMS/noarch" />
+		<element name="tarfilesets" implicit="true"/>
+		<sequential>
+			<antcontrib:runtarget target="bootstrap_redline" />
+			<redline destination="@{rpm.repo}" release="@{rpm.release}"
+				group="@{rpm.group}" name="@{rpm.name}" version="@{rpm.version}"
+				packager="@{rpm.packager}"
+				url="@{rpm.url}">
+				<depends name="java" version=""/>
+				<tarfilesets />
+			</redline>
+			<rpm-repo dir="${rpm.repo}" />
+		</sequential>
+	</macrodef>
+
 	<macrodef name="rpm-repo">
 		<attribute name="dir" default="/opt/repo/RPMS/noarch" />
 		<sequential>
@@ -199,7 +219,7 @@ fi
 		<attribute name="rpm.url" default="http://cfmlprojects.org/cfdistro" />
 		<attribute name="rpm.repo" default="${basedir}/../RPMS/noarch" />
 		<sequential>
-    		<taskdef resource="org/redline_rpm/antlib.xml" uri="antlib:org.redline_rpm" classpathref="build.lib.path"/>
+			<antcontrib:runtarget target="bootstrap_redline" />
 			<mkdir dir="@{rpm.repo}" />
 			<!--  make RC rpm -->
 			<echo file="${temp.dir}/preinstall.sh">
@@ -212,14 +232,14 @@ fi
 	]]>
 			</echo>
 			<!--  make core rpm -->
-			<redline:rpm destination="@{rpm.repo}" release="1"
+			<redline destination="@{rpm.repo}" release="1"
 				group="@{rpm.group}" name="@{rpm.name}" version="@{rpm.version}"
 				preinstallscript="${temp.dir}/preinstall.sh" packager="@{rpm.packager}"
 				url="@{rpm.url}">
 				<tarfileset prefix="@{rpm.target.dir}" 
 						dir="@{rpm.source.dir}" excludes="@{rpm.source.excludes}"
 						filemode="644" username="@{rpm.user}" group="@{rpm.user}" />
-			</redline:rpm>
+			</redline>
 
 		</sequential>
 

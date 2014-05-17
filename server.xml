@@ -48,7 +48,7 @@
 	<import file="containers/jetty/jetty.xml" />
 	<import file="containers/resin/resin.xml" />
 	<import file="containers/glassfish/glassfish.xml" />
-	<import file="java/runwar/build.xml" />
+	<import file="containers/runwar/runwar.xml" />
 
 	<target name="server.etc.hosts">
 		<antcontrib:switch value="${os.name}">

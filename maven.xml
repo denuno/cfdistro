@@ -14,156 +14,6 @@
     <get src="http://cfmlprojects.org/artifacts/cfdistro/lib/maven-ant-tasks-2-1-3/1.0.0.0/maven-ant-tasks-2-1-3-1.0.0.0.jar" dest="${maven.ant.tasks.jar}" skipexisting="true" />
 	<ant-set-log-level level="2"/>
     <taskdef resource="org/apache/maven/artifact/ant/antlib.xml" uri="antlib:org.apache.maven.artifact.ant" classpathref="maven.ant.tasks.classpath" />
-
-	<property name="nexus.version" value="2.0.6" />
-	<property name="ext.nexus.dir" location="${ext.dir}/nexus/${nexus.version}" />
-	<property name="nexus.dir" location="${user.home}/nexus" />
-	<property name="nexus.repo.dir" location="${user.home}/nexus/repo" />
-	<property name="ext.nexus.war.uri" value="http://www.sonatype.org/downloads/nexus-${nexus.version}.war" />
-	<property name="ext.nexus.war" location="${ext.nexus.dir}/nexus-${nexus.version}.war" />
-	<property name="nexus.war" location="${nexus.dir}/nexus-${nexus.version}.war" />
-	<property name="nexus.context" value="/nexus" />
-	<available file="${nexus.war}" property="nexus.isconfigured" />
-	
-    <!-- This will download the "latest version" of the maven-ant-tasks if needed
-    <target name="bootstrap_maven" unless="maven.ant.tasks.jar.exists">
-	    <property name="maven.ant.tasks.bootstrap.location" value="https://builds.apache.org/job/maven-ant-tasks/org.apache.maven$maven-ant-tasks/lastSuccessfulBuild/artifact/org.apache.maven/maven-ant-tasks/2.1.4-SNAPSHOT/maven-ant-tasks-2.1.4-SNAPSHOT.jar" />
-	    <get src="${maven.ant.tasks.bootstrap.location}" dest="${maven.ant.tasks.jar}" skipexisting="true" />
-    </target>
-     -->
-
-	<property name="nexus.admin.user" value="${ci.admin.user}" />
-	<property name="nexus.admin.password" value="${ci.admin.password}" />
-   	<property name="nexus.port" value="8081" />
-   	<property name="nexus.host" value="127.0.0.1" />
-   	<property name="nexus.baseurl" value="http://${nexus.host}:${nexus.port}/nexus" />
-	
-	<property name="nexus.background" value="true" />
-
-	<target name="nexus.install">
-		<mkdir dir="${ext.nexus.dir}"/>
-		<mkdir dir="${nexus.dir}"/>
-		<sequential>
-			<required-resource
-				src="${ext.nexus.war.uri}"
-				dest="${ext.nexus.war}"/>
-			<unzip src="${ext.nexus.war}" dest="${nexus.war}" />
-		</sequential>
-	</target>
-
-	<target name="nexus.configure" unless="nexus.isconfigured">
-		<mkdir dir="${nexus.dir}"/>
-		<sequential>
-			<!-- <cfdistro target="cfdistro.dist" properties="dist.dir=${nexus.dir}/workspace/cfdistrojob/" /> -->
-			<required-resource
-				src="${ext.nexus.war.uri}"
-				dest="${ext.nexus.war}"
-			/>
-			<antcontrib:runtarget target="nexus.install" />
-			<sha plaintext="${nexus.admin.password}" property="nexus.admin.password.hash" />
-			<echo message="Admin: ${nexus.admin.user} ${nexus.admin.password} (${nexus.admin.password.hash})" />
-			<property name="nexus.nonpub.password" value="nonpubpass" />
-			<sha plaintext="${nexus.nonpub.password}" property="nexus.nonpub.password.hash" />
-			<propertyfile file="${nexus.war}/WEB-INF/plexus.properties">
-				<entry  key="nexus-work" value="${nexus.dir}/sonatype-work"/>
-				<entry  key="security-xml-file" value="${nexus.dir}/security.xml"/>
-			</propertyfile>
-			<echo file="${nexus.dir}/security.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?><security><version>2.0.5</version>
-				  <users>
-				    <user>
-				      <id>${nexus.admin.user}</id>
-				      <firstName>Administrator</firstName>
-				      <password>${nexus.admin.password.hash}</password>
-				      <status>active</status>
-				      <email>changeme@yourcompany.com</email>
-				    </user>
-				    <user>
-				      <id>nonpub</id>
-				      <firstName>nonpub</firstName>
-				      <password>${nexus.nonpub.password.hash}</password>
-				      <status>active</status>
-				      <email>noreply@nowhere.com</email>
-				    </user>
-				    <user>
-				      <id>anonymous</id>
-				      <firstName>Nexus</firstName>
-				      <lastName>Anonymous User</lastName>
-				      <password>0a92fab3230134cca6eadd9898325b9b2ae67998</password>
-				      <status>active</status>
-				      <email>changeme2@yourcompany.com</email>
-				    </user>
-				  </users>
-				  <userRoleMappings>
-				    <userRoleMapping>
-				      <userId>ci</userId>
-				      <source>default</source>
-				      <roles>
-				        <role>nx-admin</role>
-				      </roles>
-				    </userRoleMapping>
-				    <userRoleMapping>
-				      <userId>anonymous</userId>
-				      <source>default</source>
-				      <roles>
-				        <role>anonymous</role>
-				      </roles>
-				    </userRoleMapping>
-				  </userRoleMappings>
-				</security>
-				]]></echo>
-
-			<unzip src="${nexus.war}/WEB-INF/lib/nexus-oss-edition-2.0.6.jar" dest="${nexus.dir}/sonatype-work/conf/">
-			    <patternset>
-			        <include name="META-INF/nexus/nexus.xml"/>
-			    </patternset>
-			    <mapper type="flatten"/>
-			</unzip>
-			<xmltask source="${nexus.dir}/sonatype-work/conf/nexus.xml" dest="${nexus.dir}/sonatype-work/conf/nexus.xml">
-				<cut path="nexusConfiguration/repositories/repository[id[text()='releases']]" buffer="releaseReop" />
-				<cut path="nexusConfiguration/repositories/repository[id[text()='snapshots']]" buffer="snapshotReop"/>
-				<remove path="nexusConfiguration/repositories/*"/>
-				<paste path="nexusConfiguration/repositories" buffer="releaseReop"/>
-				<paste path="nexusConfiguration/repositories" buffer="snapshotReop"/>
-				<remove path="nexusConfiguration/repositories/repository[id[text()='releases']]/localStorage/*"/>
-				<insert path="nexusConfiguration/repositories/repository[id[text()='releases']]" 
-					xml="&lt;localStorage&gt;&lt;provider&gt;file&lt;/provider&gt;&lt;url&gt;${nexus.repo.dir}&lt;/url&gt;&lt;/localStorage&gt;" />
-				<insert path="nexusConfiguration/restApi"><![CDATA[<baseUrl>${nexus.baseurl}</baseUrl>
-				    <forceBaseUrl>true</forceBaseUrl>]]>
-				</insert>
-			</xmltask>
-
-		</sequential>
-
-	</target>
-
-	<target name="nexus.start" depends="nexus.configure">
-		<java jar="${cfdistro.lib.dir}/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="true">
-			<jvmarg line="${server.jvm.args}"/>
-			<arg value="-war" /><arg value="${nexus.war}/" />
-			<arg value="-context" /><arg value="${nexus.context}" />
-			<arg value="-host" /><arg value="${nexus.host}" />
-			<arg value="-port" /><arg value="${nexus.port}" />
-			<arg value="-stop-port" /><arg value="8992" />
-			<arg value="-enable-ajp" /><arg value="false" />
-			<arg value="-ajp-port" /><arg value="${server.port.ajp}" />
-			<arg value="-log-dir" /><arg value="${nexus.dir}" />
-			<arg value="-loglevel" /><arg value="INFO" />
-			<arg value="-dirs" /><arg value="${nexus.dir}" />
-			<arg value="-background" /><arg value="${nexus.background}" />
-			<arg value="-requestlog" /><arg value="false" />
-			<arg value="-open-browser" /><arg value="false" />
-			<arg value="-open-url" /><arg value="none" />
-			<arg value="-osxprocessname" /><arg value="nexus" />
-		</java>
-	</target>
-
-	<target name="nexus.stop" depends="nexus.configure">
-		<java jar="${cfdistro.lib.dir}/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="true">
-			<jvmarg line="${server.jvm.args}"/>
-			<arg value="-stop" /><arg value="8992" />
-		</java>
-	</target>
-	
     <!-- This will initialize all the maven ant tasks and download the requested artifact and its dependencies -->
     <target name="get" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
     
@@ -287,8 +137,9 @@
 		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
 		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
 		<property name="mvn.jre.dir" location="${basedir}/../${jre.type}" />
-		<property name="jre.prefix" value="${jre.type}-7u51" />
-		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u51" />
+		<property name="jre.prefix" value="${jre.type}-7u55" />
+		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u55" />
+    	
     	<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
 			input="${jre.prefix}" regexp="${jre.type}-(\d)u(\d+)" replace="1.\1.0_\2"/>
     	<input message="Do you agree to the ${jre.version} license?" addproperty="jre.lic.agree" />
@@ -306,6 +157,8 @@
 				<exec executable="wget" failonerror="true">
 					<arg value="--no-check-certificate"/>
 				    <arg line='--header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F"'/>
+				    <arg line='--header "Cookie: gpv_p24=no%20value"'/>
+				    <arg line='--header "Cookie: oraclelicense=accept-securebackup-cookie"'/>
 				    <arg value="-O"/>
 				    <arg value="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar.gz"/>
 				    <arg value="${jre.baseurl}-${jre.b.version}/${jre.prefix}-${jre.os}.tar.gz"/>
@@ -661,6 +514,156 @@
 		</authentication>
     </mvn-repo>
 
+<!--
+NEXUS STUFF
+-->	
+	<property name="nexus.version" value="2.0.6" />
+	<property name="ext.nexus.dir" location="${ext.dir}/nexus/${nexus.version}" />
+	<property name="nexus.dir" location="${user.home}/nexus" />
+	<property name="nexus.repo.dir" location="${user.home}/nexus/repo" />
+	<property name="ext.nexus.war.uri" value="http://www.sonatype.org/downloads/nexus-${nexus.version}.war" />
+	<property name="ext.nexus.war" location="${ext.nexus.dir}/nexus-${nexus.version}.war" />
+	<property name="nexus.war" location="${nexus.dir}/nexus-${nexus.version}.war" />
+	<property name="nexus.context" value="/nexus" />
+	<available file="${nexus.war}" property="nexus.isconfigured" />
 	
+    <!-- This will download the "latest version" of the maven-ant-tasks if needed
+    <target name="bootstrap_maven" unless="maven.ant.tasks.jar.exists">
+	    <property name="maven.ant.tasks.bootstrap.location" value="https://builds.apache.org/job/maven-ant-tasks/org.apache.maven$maven-ant-tasks/lastSuccessfulBuild/artifact/org.apache.maven/maven-ant-tasks/2.1.4-SNAPSHOT/maven-ant-tasks-2.1.4-SNAPSHOT.jar" />
+	    <get src="${maven.ant.tasks.bootstrap.location}" dest="${maven.ant.tasks.jar}" skipexisting="true" />
+    </target>
+     -->
+
+	<property name="nexus.admin.user" value="${ci.admin.user}" />
+	<property name="nexus.admin.password" value="${ci.admin.password}" />
+   	<property name="nexus.port" value="8081" />
+   	<property name="nexus.host" value="127.0.0.1" />
+   	<property name="nexus.baseurl" value="http://${nexus.host}:${nexus.port}/nexus" />
 	
+	<property name="nexus.background" value="true" />
+
+	<target name="nexus.install">
+		<mkdir dir="${ext.nexus.dir}"/>
+		<mkdir dir="${nexus.dir}"/>
+		<sequential>
+			<required-resource
+				src="${ext.nexus.war.uri}"
+				dest="${ext.nexus.war}"/>
+			<unzip src="${ext.nexus.war}" dest="${nexus.war}" />
+		</sequential>
+	</target>
+
+	<target name="nexus.configure" unless="nexus.isconfigured">
+		<mkdir dir="${nexus.dir}"/>
+		<sequential>
+			<!-- <cfdistro target="cfdistro.dist" properties="dist.dir=${nexus.dir}/workspace/cfdistrojob/" /> -->
+			<required-resource
+				src="${ext.nexus.war.uri}"
+				dest="${ext.nexus.war}"
+			/>
+			<antcontrib:runtarget target="nexus.install" />
+			<sha plaintext="${nexus.admin.password}" property="nexus.admin.password.hash" />
+			<echo message="Admin: ${nexus.admin.user} ${nexus.admin.password} (${nexus.admin.password.hash})" />
+			<property name="nexus.nonpub.password" value="nonpubpass" />
+			<sha plaintext="${nexus.nonpub.password}" property="nexus.nonpub.password.hash" />
+			<propertyfile file="${nexus.war}/WEB-INF/plexus.properties">
+				<entry  key="nexus-work" value="${nexus.dir}/sonatype-work"/>
+				<entry  key="security-xml-file" value="${nexus.dir}/security.xml"/>
+			</propertyfile>
+			<echo file="${nexus.dir}/security.xml"><![CDATA[<?xml version="1.0" encoding="UTF-8"?><security><version>2.0.5</version>
+				  <users>
+				    <user>
+				      <id>${nexus.admin.user}</id>
+				      <firstName>Administrator</firstName>
+				      <password>${nexus.admin.password.hash}</password>
+				      <status>active</status>
+				      <email>changeme@yourcompany.com</email>
+				    </user>
+				    <user>
+				      <id>nonpub</id>
+				      <firstName>nonpub</firstName>
+				      <password>${nexus.nonpub.password.hash}</password>
+				      <status>active</status>
+				      <email>noreply@nowhere.com</email>
+				    </user>
+				    <user>
+				      <id>anonymous</id>
+				      <firstName>Nexus</firstName>
+				      <lastName>Anonymous User</lastName>
+				      <password>0a92fab3230134cca6eadd9898325b9b2ae67998</password>
+				      <status>active</status>
+				      <email>changeme2@yourcompany.com</email>
+				    </user>
+				  </users>
+				  <userRoleMappings>
+				    <userRoleMapping>
+				      <userId>ci</userId>
+				      <source>default</source>
+				      <roles>
+				        <role>nx-admin</role>
+				      </roles>
+				    </userRoleMapping>
+				    <userRoleMapping>
+				      <userId>anonymous</userId>
+				      <source>default</source>
+				      <roles>
+				        <role>anonymous</role>
+				      </roles>
+				    </userRoleMapping>
+				  </userRoleMappings>
+				</security>
+				]]></echo>
+
+			<unzip src="${nexus.war}/WEB-INF/lib/nexus-oss-edition-2.0.6.jar" dest="${nexus.dir}/sonatype-work/conf/">
+			    <patternset>
+			        <include name="META-INF/nexus/nexus.xml"/>
+			    </patternset>
+			    <mapper type="flatten"/>
+			</unzip>
+			<xmltask source="${nexus.dir}/sonatype-work/conf/nexus.xml" dest="${nexus.dir}/sonatype-work/conf/nexus.xml">
+				<cut path="nexusConfiguration/repositories/repository[id[text()='releases']]" buffer="releaseReop" />
+				<cut path="nexusConfiguration/repositories/repository[id[text()='snapshots']]" buffer="snapshotReop"/>
+				<remove path="nexusConfiguration/repositories/*"/>
+				<paste path="nexusConfiguration/repositories" buffer="releaseReop"/>
+				<paste path="nexusConfiguration/repositories" buffer="snapshotReop"/>
+				<remove path="nexusConfiguration/repositories/repository[id[text()='releases']]/localStorage/*"/>
+				<insert path="nexusConfiguration/repositories/repository[id[text()='releases']]" 
+					xml="&lt;localStorage&gt;&lt;provider&gt;file&lt;/provider&gt;&lt;url&gt;${nexus.repo.dir}&lt;/url&gt;&lt;/localStorage&gt;" />
+				<insert path="nexusConfiguration/restApi"><![CDATA[<baseUrl>${nexus.baseurl}</baseUrl>
+				    <forceBaseUrl>true</forceBaseUrl>]]>
+				</insert>
+			</xmltask>
+
+		</sequential>
+
+	</target>
+
+	<target name="nexus.start" depends="nexus.configure">
+		<java jar="${cfdistro.lib.dir}/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="true">
+			<jvmarg line="${server.jvm.args}"/>
+			<arg value="-war" /><arg value="${nexus.war}/" />
+			<arg value="-context" /><arg value="${nexus.context}" />
+			<arg value="-host" /><arg value="${nexus.host}" />
+			<arg value="-port" /><arg value="${nexus.port}" />
+			<arg value="-stop-port" /><arg value="8992" />
+			<arg value="-enable-ajp" /><arg value="false" />
+			<arg value="-ajp-port" /><arg value="${server.port.ajp}" />
+			<arg value="-log-dir" /><arg value="${nexus.dir}" />
+			<arg value="-loglevel" /><arg value="INFO" />
+			<arg value="-dirs" /><arg value="${nexus.dir}" />
+			<arg value="-background" /><arg value="${nexus.background}" />
+			<arg value="-requestlog" /><arg value="false" />
+			<arg value="-open-browser" /><arg value="false" />
+			<arg value="-open-url" /><arg value="none" />
+			<arg value="-osxprocessname" /><arg value="nexus" />
+		</java>
+	</target>
+
+	<target name="nexus.stop" depends="nexus.configure">
+		<java jar="${cfdistro.lib.dir}/runwar.jar" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="true">
+			<jvmarg line="${server.jvm.args}"/>
+			<arg value="-stop" /><arg value="8992" />
+		</java>
+	</target>
+		
 </project>
