@@ -135,11 +135,13 @@
     <target name="jre.7.update" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="convert packed bins to zip">
         <property name="jre.type" value="jre" />
 		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
-		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
+		<property name="jre.suffix" value="8u5" />
+		<property name="jre.suffix" value="7u55" />
 		<property name="mvn.jre.dir" location="${basedir}/../${jre.type}" />
-		<property name="jre.prefix" value="${jre.type}-7u55" />
-		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/7u55" />
+		<property name="jre.prefix" value="${jre.type}-${jre.suffix}" />
+		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/${jre.suffix}" />
     	
+    	<echoproperties prefix="jre." />
     	<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
 			input="${jre.prefix}" regexp="${jre.type}-(\d)u(\d+)" replace="1.\1.0_\2"/>
     	<input message="Do you agree to the ${jre.version} license?" addproperty="jre.lic.agree" />
@@ -165,26 +167,34 @@
 				</exec>
 				<gunzip src="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar.gz" dest="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar"/>
 				<untar src="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar" dest="${mvn.jre.tmp}/${jre.os}"/>
+				<antcontrib:var unset="true" name="jre_dir_name"/>
+				<antcontrib:var unset="true" name="jre-dir-name"/>
+				<path id="jre_dir_name">
+					<dirset dir="${mvn.jre.tmp}/${jre.os}">
+						<include name="${jre.type}*"/>
+					</dirset>
+				</path>
+				<property name="jre-dir-name" refid="jre_dir_name" />
 				<antcontrib:if>
-		    		<available file="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}.jre/Contents/Home/" />
+		    		<available file="${jre-dir-name}.jre/Contents/Home/" />
 		    		<then><!-- OS X -->
-						<move todir="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}">
-						  <fileset dir="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}.jre/Contents">
+						<move todir="${jre-dir-name}">
+						  <fileset dir="${jre-dir-name}.jre/Contents">
 						    <include name="*/**"/>
 						    <exclude name="*"/>
 						  </fileset>
 						  <regexpmapper from="^[^/]*/(.*)$$" to="\1" handledirsep="true"/>
 						</move>
-		    	    	<delete dir="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}.jre" />
+		    	    	<delete dir="${jre-dir-name}.jre" />
 		    		</then>
 		    	</antcontrib:if>
 		    	<antcontrib:if>
-		    		<available file="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}/bin" />
+		    		<available file="${jre-dir-name}/bin" />
 		    		<then>
-						<chmod dir="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}/bin" perm="+x" includes="*"/>
+						<chmod dir="${jre-dir-name}/bin" perm="+x" includes="*"/>
 		    		</then>
 		    	</antcontrib:if>
-	    		<zipdir destfile="${mvn.jre.tmp}/${jre.type}${jre.version}-${jre.os}.zip" sourcedir="${mvn.jre.tmp}/${jre.os}/${jre.type}${jre.version}/" />
+				<zipdir destfile="${mvn.jre.tmp}/${jre.type}${jre.version}-${jre.os}.zip" sourcedir="${jre-dir-name}/" />
 			</sequential>
     	</antcontrib:for>
     	<echo message="*** POMN ***" />    	
