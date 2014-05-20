@@ -29,18 +29,5 @@
 		<urlrewriteout name="rootToContextPath" from="/(.*)" to="%{context-path}/$1" type="forward"/>
 		-->
 	</target>	
-
-	<!-- these are just here for the Eclipse Ant UI ordering -->
-	<target name="build.start.launch">
-		<antcontrib:runtarget target="cfdistro.build.start.launch" />
-	</target>	
-
-	<target name="build.start" depends="build">
-		<antcontrib:runtarget target="server.start" />
-	</target>	
-
-	<target name="build.stop">
-		<antcontrib:runtarget target="server.stop" />
-	</target>	
 	
 </project>

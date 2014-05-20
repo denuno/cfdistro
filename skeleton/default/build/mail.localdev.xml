@@ -3,7 +3,7 @@
 	<settings log="./temp/logs/mail.log" spool-enable="true"
 		spool-interval="5" timeout="30" />
 	<servers>
-		<server password="@gmail.password@"
-			port="587" smtp="smtp.gmail.com" ssl="false" tls="true" username="@gmail.user@" />
+		<server smtp="smtp.gmail.com" port="587" ssl="false" tls="true"
+			username="@gmail.user@" password="@gmail.password@"/>
 	</servers>
 </mail>

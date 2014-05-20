@@ -10,14 +10,19 @@
    	-->
     <property name="maven.ant.tasks.jar" value="${cfdistro.lib.dir}/maven-ant-tasks-2-1-3-1.0.0.0.jar" />
 	<path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
-	<ant-set-log-level level="0"/>
-    <get src="http://cfmlprojects.org/artifacts/cfdistro/lib/maven-ant-tasks-2-1-3/1.0.0.0/maven-ant-tasks-2-1-3-1.0.0.0.jar" dest="${maven.ant.tasks.jar}" skipexisting="true" />
-	<ant-set-log-level level="2"/>
+	<antcontrib:if>
+        <available file="${maven.ant.tasks.jar}" /><then/>
+        <else>
+			<ant-set-log-level level="0"/>
+		    <get src="http://cfmlprojects.org/artifacts/cfdistro/lib/maven-ant-tasks-2-1-3/1.0.0.0/maven-ant-tasks-2-1-3-1.0.0.0.jar" dest="${maven.ant.tasks.jar}" skipexisting="true" />
+			<ant-set-log-level level="2"/>
+        </else>
+    </antcontrib:if>
     <taskdef resource="org/apache/maven/artifact/ant/antlib.xml" uri="antlib:org.apache.maven.artifact.ant" classpathref="maven.ant.tasks.classpath" />
-    <!-- This will initialize all the maven ant tasks and download the requested artifact and its dependencies -->
+
+	<!-- This will initialize all the maven ant tasks and download the requested artifact and its dependencies -->
     <target name="get" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
-    
-	<taskdef-dependency name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" artifactId="xmltask-v1-16-1" groupId="cfdistro.lib" version="1.0.0.0" />
+		<taskdef-dependency name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" artifactId="xmltask-v1-16-1" groupId="cfdistro.lib" version="1.0.0.0" />
         <path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
         <condition property="maven.repo.local" value="${maven.repo.local}" else="${user.home}/.m2/repository">
             <isset property="maven.repo.local" />

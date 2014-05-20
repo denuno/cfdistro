@@ -74,7 +74,6 @@
 			<antcontrib:if>
 				<or>
 					<contains string="@{repository}" substring="github" casesensitive="false" />
-					<contains string="wee" substring="wee" casesensitive="false" />
 				</or>
 				<then>
 					<antcontrib:var name="git.temp" unset="true" />
@@ -128,31 +127,6 @@
 		</sequential>
 	</macrodef>
 
-	<macrodef name="git-clone">
-		<attribute name="repository" />
-		<attribute name="dest" />
-		<attribute name="tag" default="HEAD" />
-		<attribute name="use-jgit" default="${use.jgit}" />
-		<sequential>
-			<git command="clone" use-jgit="@{use-jgit}">
-				<args>
-					<arg value="@{repository}" />
-					<arg value="@{dest}" />
-				</args>
-			</git>
-			<antcontrib:if>
-				<or>
-					<equals arg1="@{tag}" arg2="HEAD" />
-					<equals arg1="@{tag}" arg2="" />
-				</or>
-				<then/>
-				<else>
-					<git-checkout repository="@{dest}" branch="@{tag}" use-jgit="@{use-jgit}" />
-				</else>
-			</antcontrib:if>
-		</sequential>
-	</macrodef>
-
 	<macrodef name="git-currentbranch">
 		<attribute name="dir" />
 		<sequential>
@@ -164,40 +138,65 @@
 	</macrodef>
 
 	<macrodef name="git-checkout">
-		<attribute name="repository" />
-		<attribute name="branch" />
 		<attribute name="uri" default="" />
-		<attribute name="force" default="false"/>
+		<attribute name="gitdir" />
+		<attribute name="remote" default="origin" />
+		<attribute name="branch" default="master" />
+		<attribute name="pristene" default="false"/>
 		<attribute name="use-jgit" default="${use.jgit}" />
 		<sequential>
 			<antcontrib:if>
-				<not><available file="@{repository}"/></not>
+				<available file="@{gitdir}"/>
 				<then>
+					<git command="fetch" dir="@{gitdir}">
+						<args><arg value="@{remote}" /></args>
+					</git>
+				</then>
+				<else>
 					<git command="clone" use-jgit="@{use-jgit}">
 						<args>
 							<arg value="@{uri}" />
-							<arg value="@{repository}" />
+							<arg value="@{gitdir}" />
+							<arg value="--origin=@{remote}" />
 						</args>
 					</git>
-				</then>
+				</else>
 			</antcontrib:if>
 			<antcontrib:if>
-				<equals arg1="@{force}" arg2="true"/>
+				<equals arg1="@{use-jgit}" arg2="true"/>
 				<then>
-					<echo message="FORCED checkout.  Any changes were overwritten!"/>
-					<git command="checkout" dir="@{repository}" use-jgit="@{use-jgit}">
+					<jgit-checkout gitdir="@{gitdir}" remote="@{remote}" branch="@{branch}" pristene="@{pristene}" />
+				</then>
+				<else>
+					<git command="checkout" dir="@{gitdir}" use-jgit="@{use-jgit}">
 						<args>
 							<arg value="-f" />
 							<arg value="@{branch}" />
 						</args>
 					</git>
-				</then>
-				<else>
-					<git command="checkout" dir="@{repository}" use-jgit="@{use-jgit}">
+					<git command="branch" dir="@{gitdir}" use-jgit="@{use-jgit}">
 						<args>
+							<arg value="--set-upstream-to" />
+							<arg value="@{remote}/@{branch}" />
 							<arg value="@{branch}" />
 						</args>
 					</git>
+					<git command="reset" dir="@{gitdir}" use-jgit="@{use-jgit}">
+						<args>
+							<arg value="--hard" />
+							<arg value="@{remote}/@{branch}" />
+						</args>
+					</git>
+					<antcontrib:if>
+						<equals arg1="@{pristene}" arg2="true"/>
+						<then>
+							<git command="clean" dir="@{gitdir}" use-jgit="@{use-jgit}">
+								<args>
+									<arg value="-xdf" />
+								</args>
+							</git>
+						</then>
+					</antcontrib:if>
 				</else>
 			</antcontrib:if>
 		</sequential>
@@ -228,6 +227,7 @@
 		<attribute name="remote"/>
 		<attribute name="branch" />
 	    <![CDATA[
+		try{ load("nashorn:mozilla_compat.js"); } catch (e) {}; //java8
 		importClass(org.eclipse.jgit.api.Git);
 		importClass(org.eclipse.jgit.storage.file.FileRepositoryBuilder);
 		importClass(java.io.File);
@@ -257,11 +257,80 @@
 	    ]]> 
 	</scriptdef>
 	
+	<scriptdef name="jgit-checkout" language="javascript" classpathref="build.lib.path">
+		<attribute name="gitdir" />
+		<attribute name="remote" />
+		<attribute name="branch" />
+		<attribute name="pristene" />
+	    <![CDATA[
+		try{ load("nashorn:mozilla_compat.js"); } catch (e) {}; //java8
+		importClass(org.eclipse.jgit.api.Git);
+		importClass(org.eclipse.jgit.storage.file.FileRepositoryBuilder);
+		importClass(org.eclipse.jgit.api.CreateBranchCommand);
+		importClass(org.eclipse.jgit.api.ResetCommand);
+		importClass(org.eclipse.jgit.lib.Constants);
+		importClass(org.eclipse.jgit.revwalk.RevWalk);
+		importClass(java.io.File);
+	    var gitdir = new File(attributes.get( "gitdir" ));
+	    var remote = attributes.get( "remote" ) ? attributes.get( "remote" ) : "origin";
+	    var branch = attributes.get( "branch" ) ? attributes.get( "branch" ) : "master";
+	    var pristene = attributes.get( "pristene" ) ? attributes.get( "pristene" ) : "false";
+		var createBranch = true;
+        var repository = new FileRepositoryBuilder().findGitDir(gitdir).build();
+        var git = new Git(repository);
+		var branches = git.branchList().call().iterator();
+		while (branches.hasNext()){
+			var branchObj = branches.next();
+			if(branchObj.getName() == "refs/heads/" + branch) {
+				createBranch = false;
+			}
+		}
+		if(createBranch) {
+			println(branch + " branch will be created locally");
+		} else {
+			println(branch + " branch exists locally");
+		}
+		println("checking out " + remote + "/" + branch);
+		git.checkout().
+			setForce(true).
+	        setCreateBranch(createBranch).
+	        setName(branch).
+	        setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+	        setStartPoint(remote + "/" + branch).
+	        call();
+		git.branchCreate()
+			.setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM)
+			.setForce(true)
+			.setName(branch)
+	        .setStartPoint(remote + "/" + branch)
+			.call()
+		println("Branch "+branch+" set up to track remote branch "+branch+" from "+remote+".");
+		println("removing any local changes");
+		var reset = git.reset()
+			.setMode(ResetCommand.ResetType.HARD)
+			.setRef(org.eclipse.jgit.lib.Constants.HEAD)
+			.call();
+		var walk = new RevWalk(repository);
+		walk.markStart(walk.parseCommit(reset.getObjectId()));
+		var commit = walk.iterator().next();
+		println("HEAD is now at "+reset.getObjectId().getName().substring(0,7) + " " + commit.getShortMessage());
+		if(pristene == "true") {
+			println("making pristene - removing all untracked files");
+			var cleaned = git.clean().setCleanDirectories(true).call().iterator();
+			while (cleaned.hasNext()){
+	        	println("Removing " + cleaned.next());
+			}
+		}
+		repository.close()
+	    ]]> 
+	</scriptdef>
+	
 	<scriptdef name="git-reset-hard" language="javascript" classpathref="build.lib.path">
 		<attribute name="repository" />
 		<attribute name="remote"/>
 		<attribute name="branch" />
 	    <![CDATA[
+		try{ load("nashorn:mozilla_compat.js"); } catch (e) {}; //java8
 		importClass(org.eclipse.jgit.api.Git);
 		importClass(org.eclipse.jgit.storage.file.FileRepositoryBuilder);
 		importClass(org.eclipse.jgit.api.ResetCommand);
@@ -387,31 +456,12 @@
 				<param name="sshkey" path="@sshkey" default="NONE" />
 				<actions>
 					<antcontrib:if>
-						<or>
-							<and>
-								<not><available file="@{dest}.git" type="dir"/></not>
-								<not><available file="@{dest}/.git" type="dir"/></not>
-							</and>
-							<equals arg1="${project.overwrite}" arg2="true" />
-						</or>
+						<equals arg1="${project.overwrite}" arg2="true" />
 						<then>
-							<echo message="@{dest}.git not there (or $${project.overwrite} is true), let us try to get one- you may want to go get some coffee..." />
+							<echo message="$${project.overwrite} is true, let us try to get a new repo- you may want to go get some coffee..." />
+							<delete dir="@{dest}"/>
 							<git-clone repository="@{uri}" dest="@{dest}" />
-							<antcontrib:if>
-								<or>
-								<equals arg1="@{branch}" arg2="master" />
-								<equals arg1="@{branch}" arg2="NONE" />
-								</or>
-								<then/>
-								<else>
-									<git command="branch" dir="@{dest}">
-										<args>
-											<arg value="@{branch}" />
-											<arg value="@{remote}/@{branch}" />
-										</args>
-									</git>
-								</else>
-							</antcontrib:if>
+							<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="@{branch}" />
 						</then>
 						<else>
 							<echo message="updating src: @{dest}" />
@@ -423,8 +473,8 @@
 							<git-has-modifications dir="@{dest}" remote="@{remote}" branch="@{branch}" property="git.hasmods" />
 							<antcontrib:if>
 								<and>
-								<equals arg1="${git.hasmods}" arg2="true"/>
-								<equals arg1="${scm.autobranch}" arg2="true"/>
+									<equals arg1="${git.hasmods}" arg2="true"/>
+									<equals arg1="${scm.autobranch}" arg2="true"/>
 								</and>
 								<then>
 									<antcontrib:var name="NOW_BRANCH" unset="true" />
@@ -442,27 +492,10 @@
 									<git command="commit" dir="@{dest}">
 										<args><arg line="-a -m 'autocommit'" /></args>
 									</git>
-									<git command="checkout" dir="@{dest}">
-										<args>
-											<arg value="-f" />
-											<arg value="@{branch}" />
-										</args>
-									</git>
-									<!--
-									<git-reset-hard repository="@{dest}" remote="origin" />
-									-->
-									<git command="merge" dir="@{dest}">
-										<args>
-											<arg line="@{remote}/@{branch}" />
-										</args>
-									</git>
+									<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="@{branch}" />
 								</then>
 								<else>
-									<git command="merge" dir="@{dest}">
-										<args>
-											<arg line="@{remote}/@{branch}" />
-										</args>
-									</git>
+									<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="@{branch}" />
 								</else>
 							</antcontrib:if>
 						</else>
@@ -499,7 +532,19 @@
 		</xmltask>
 	</target>
 	
-	<target name="project.checkout.git" depends="project.update.git">
+	<target name="project.checkout.git">
+		<antcontrib:runtarget target="exists.src.xml" />				
+		<xmltask sourcebuffer="src.buff">
+			<call path="src/project/src[@type='git']">
+				<param name="dest" path="@dest" />
+				<param name="uri" path="@uri" />
+				<param name="remote" path="@remote" default="origin" />
+				<param name="branch" path="@branch" default="master" />
+				<actions>
+					<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="@{branch}" />
+				</actions>
+			</call>
+		</xmltask>
 	</target>
 	
 	<target name="check.project.for.newrevision.git">
@@ -576,14 +621,13 @@
 				<xml />
 				</placeholderbrah>
 			</echoxml>
-
-			<taskdef-dependency name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" artifactId="xmltask-v1-16-1" groupId="cfdistro.lib" version="1.0.0.0" />
 			<ant-set-log-level level="0"/>
+			<taskdef-dependency name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" artifactId="xmltask-v1-16-1" groupId="cfdistro.lib" version="1.0.0.0" />
 			<xmltask source="${__xml_file.temp}">
 				<copy path="placeholderbrah/arg/@value" attrValue="true" property="@{property}" append="true"/>
 			</xmltask>
 			<delete file="${__xml_file.temp}" />
-			<ant-set-log-level level="1"/>
+			<ant-set-log-level level="2"/>
 			<!-- default to nothing if no args -->
 			<property name="@{property}" value="" />
 		</sequential>

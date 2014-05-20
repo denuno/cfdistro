@@ -2,9 +2,9 @@
 <src>
 	<project>
 	<!-- project sources
-		<src dest="@src.dir@/../" type="svn" 
-		uri="http://subversion.assembla.com/svn/cfdistro/trunk/cfdistro" 
-		user="" password="" />
+	<src dest="@sc.@distro.name@.dest@" branch="@sc.@distro.name@.branch@" 
+		remote="@sc.@distro.name@.remote@" type="@sc.@distro.name@.type@" uri="@sc.@distro.name@.uri@"
+		user="@sc.@distro.name@.user@" password="@sc.@distro.name@.password@" />
 	-->
 	</project>
 	<sources>
@@ -38,8 +38,8 @@
 		uri="http://svn.mach-ii.com/machii/skeleton/1-8-0/trunk/" 
 		user="" password="" />
  -->
-<!--	FW/1  (to src/${distro.name}/org)
-		<src dest="@src.dir@/@distro.name@/org" type="git" 
+<!--	FW/1  (to src/@distro.name@/org)
+		<src dest="@src.dir@/org" type="git" 
 		uri="https://github.com/seancorfield/fw1.git"
 		path="/org" 
 		user="" password="" />

@@ -99,12 +99,13 @@
 		<attribute name="path" default="" />
 		<attribute name="tag" default="HEAD" />
 		<attribute name="branch" default="" />
+		<attribute name="remote" default="origin" />
 		<attribute name="user" default="" />
 		<attribute name="password" default="" />
 		<sequential>
 			<antcontrib:switch value="@{type}">
 				<case value="git">
-					<git-checkout uri="@{uri}" repository="@{dest}" branch="@{branch}"/>
+					<git-checkout uri="@{uri}" gitdir="@{dest}" branch="@{branch}" remote="@{remote}"/>
 				</case>
 				<case value="svn">
 					<svn-checkout uri="@{uri}" dest="@{dest}" user="@{user}" password="@{password}"/>
@@ -141,6 +142,7 @@
 				<param name="uri" path="@uri" default="NONE" />
 				<param name="path" path="@path" default="" />
 				<param name="branch" path="@branch" default="master" />
+				<param name="remote" path="@remote" default="origin" />
 				<param name="tag" path="@tag" default="HEAD" />
 				<param name="user" path="@user" default="" />
 				<param name="password" path="@password" default="" />
@@ -152,7 +154,7 @@
 						</then>
 						<else>
 							<echo message="Src dir : @{dest} ain't there, downloading" />
-							<scm-checkout dest="@{dest}" type="@{type}" uri="@{uri}" branch="@{branch}" path="@{path}" tag="@{tag}" user="@{user}" password="@{password}" />
+							<scm-checkout dest="@{dest}" type="@{type}" uri="@{uri}" branch="@{branch}" remote="@{remote}" path="@{path}" tag="@{tag}" user="@{user}" password="@{password}" />
 						</else>
 					</antcontrib:if>
 				</actions>
@@ -162,6 +164,8 @@
 				<param name="type" path="@type" default="NONE" />
 				<param name="uri" path="@uri" default="NONE" />
 				<param name="path" path="@path" default="" />
+				<param name="branch" path="@branch" default="master" />
+				<param name="remote" path="@remote" default="origin" />
 				<param name="tag" path="@tag" default="HEAD" />
 				<param name="user" path="@user" default="" />
 				<param name="password" path="@password" default="" />

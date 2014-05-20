@@ -2,6 +2,7 @@
 <!-- 
 to run:  ant -f selftest.xml -lib ../ant/lib
  -->
+	<property name="use.jgit" value="false" />
 	<property name="temp.dir" location="./temp" />
 	<property name="git.repo.dir" location="${temp.dir}/gitrepo" />
 	<property name="test.project.dir" location="${temp.dir}/testproject" />
@@ -12,6 +13,12 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 
 
 	<property name="cfdistro.basedir" location="./../" />
+
+    <condition property="cfdistro.lib.dir" value="${cfdistro.basedir}/lib">
+            <isfileselected file="${cfdistro.basedir}"><writable/></isfileselected>
+    </condition>
+    <property name="cfdistro.lib.dir" value="${user.home}/cfdistro/lib"/>
+
 	<path id="build.lib.path">
 		<fileset dir="${cfdistro.lib.dir}">
 			<include name="*.jar" />
@@ -42,6 +49,7 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 			</fail>
 		</sequential>
 	</macrodef>
+
 	<import file="${cfdistro.basedir}/scm-git.xml"/>
 
 	<echo>*******************  BEGIN TESTS  **********************</echo>
@@ -50,8 +58,12 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 		<sequential>
 		<echo message="*******************  SETUP  **********************"/>
 		<git command="init" dir="${git.repo.dir}" />
+		<echo message="newcommit" file="${git.repo.dir}/.gitignore" />
+		<git command="add" dir="${git.repo.dir}">
+			<args><arg value=".gitignore" /></args>
+		</git>
 		<git command="commit" dir="${git.repo.dir}">
-			<args><arg value="-m" /><arg value="testing bro" /></args>
+			<args><arg value="-a" /><arg value="-m" /><arg value="initialized repo" /></args>
 		</git>
 		<cfdistro target="cfdistro.skeleton"
 			properties="target.dir='${test.project.dir}' distro.name='testproject'" />
@@ -75,6 +87,8 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 		<antcontrib:var value="${props} sc.myrepo.dest=@src.dir@/" name="props" />
 		<antcontrib:var value="${props} sc.myrepo.uri=${git.repo.dir}/.git" name="props" />
 		<antcontrib:var value="${props} sc.myrepo.branch='master'" name="props" />
+		<antcontrib:var value="${props} sc.myrepo.user=''" name="props" />
+		<antcontrib:var value="${props} sc.myrepo.password=''" name="props" />
 		
 		<!-- this will do a checkout as the project sources are not there yet -->
 		<cfdistro target="project.update" properties="${props}" />
@@ -98,13 +112,6 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 		<fail message="test.check.newrevision failure!  Did not update. ${test.src.dir}/fun.txt" unless="isEqual" />
 
 		<echo message="newfile" file="${test.src.dir}/fun2.txt" />
-		<git command="add" dir="${git.repo.dir}">
-			<args><arg value="fun2.txt" /></args>
-		</git>
-		<git command="commit" dir="${git.repo.dir}">
-			<args><arg value="-a" /><arg value="-m" /><arg value="testing new bro" /></args>
-		</git>
-
 		<cfdistro target="project.update" properties="${props}" />
 
 	    <au:assertResourceDoesntExist resource="${test.src.dir}/fun2.txt" 
