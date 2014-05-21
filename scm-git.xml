@@ -142,7 +142,7 @@
 		<attribute name="gitdir" />
 		<attribute name="remote" default="origin" />
 		<attribute name="branch" default="master" />
-		<attribute name="pristene" default="false"/>
+		<attribute name="pristine" default="false"/>
 		<attribute name="use-jgit" default="${use.jgit}" />
 		<sequential>
 			<antcontrib:if>
@@ -165,7 +165,7 @@
 			<antcontrib:if>
 				<equals arg1="@{use-jgit}" arg2="true"/>
 				<then>
-					<jgit-checkout gitdir="@{gitdir}" remote="@{remote}" branch="@{branch}" pristene="@{pristene}" />
+					<jgit-checkout gitdir="@{gitdir}" remote="@{remote}" branch="@{branch}" pristine="@{pristine}" />
 				</then>
 				<else>
 					<git command="checkout" dir="@{gitdir}" use-jgit="@{use-jgit}">
@@ -188,7 +188,7 @@
 						</args>
 					</git>
 					<antcontrib:if>
-						<equals arg1="@{pristene}" arg2="true"/>
+						<equals arg1="@{pristine}" arg2="true"/>
 						<then>
 							<git command="clean" dir="@{gitdir}" use-jgit="@{use-jgit}">
 								<args>
@@ -261,20 +261,21 @@
 		<attribute name="gitdir" />
 		<attribute name="remote" />
 		<attribute name="branch" />
-		<attribute name="pristene" />
+		<attribute name="pristine" />
 	    <![CDATA[
 		try{ load("nashorn:mozilla_compat.js"); } catch (e) {}; //java8
 		importClass(org.eclipse.jgit.api.Git);
 		importClass(org.eclipse.jgit.storage.file.FileRepositoryBuilder);
 		importClass(org.eclipse.jgit.api.CreateBranchCommand);
 		importClass(org.eclipse.jgit.api.ResetCommand);
+		importClass(org.eclipse.jgit.api.MergeResult);
 		importClass(org.eclipse.jgit.lib.Constants);
 		importClass(org.eclipse.jgit.revwalk.RevWalk);
 		importClass(java.io.File);
 	    var gitdir = new File(attributes.get( "gitdir" ));
 	    var remote = attributes.get( "remote" ) ? attributes.get( "remote" ) : "origin";
 	    var branch = attributes.get( "branch" ) ? attributes.get( "branch" ) : "master";
-	    var pristene = attributes.get( "pristene" ) ? attributes.get( "pristene" ) : "false";
+	    var pristine = attributes.get( "pristine" ) ? attributes.get( "pristine" ) : "false";
 		var createBranch = true;
         var repository = new FileRepositoryBuilder().findGitDir(gitdir).build();
         var git = new Git(repository);
@@ -291,20 +292,43 @@
 			println(branch + " branch exists locally");
 		}
 		println("checking out " + remote + "/" + branch);
-		git.checkout().
-			setForce(true).
-	        setCreateBranch(createBranch).
-	        setName(branch).
-	        setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
-	        setStartPoint(remote + "/" + branch).
-	        call();
-		git.branchCreate()
-			.setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM)
-			.setForce(true)
-			.setName(branch)
-	        .setStartPoint(remote + "/" + branch)
-			.call()
-		println("Branch "+branch+" set up to track remote branch "+branch+" from "+remote+".");
+	 	try {
+			git.checkout().
+				setForce(true).
+		        setCreateBranch(createBranch).
+		        setName(branch).
+		        setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+		        setStartPoint(remote + "/" + branch).
+		        call();
+        } catch (e) {
+			paths = e.javaException.getConflictingPaths().iterator();
+            while (paths.hasNext()) {
+				var path = paths.next();
+                var conflict = new File(repository.getWorkTree(), path);
+                println("[WARNING] deleting conflicting path " + conflict);
+                if (!conflict.delete()) {
+                    if (conflict.exists()) {
+                        println("[WARNING] conflicting path " + conflict + " not deleted");
+                    }
+                }
+            }
+			git.checkout().
+				setForce(true).
+		        setCreateBranch(createBranch).
+		        setName(branch).
+		        setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+		        setStartPoint(remote + "/" + branch).
+		        call();
+		}
+		if(createBranch) {
+			git.branchCreate()
+				.setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM)
+				.setForce(true)
+				.setName(branch)
+		        .setStartPoint(remote + "/" + branch)
+				.call()
+			println("Branch "+branch+" set up to track remote branch "+branch+" from "+remote+".");
+		}
 		println("removing any local changes");
 		var reset = git.reset()
 			.setMode(ResetCommand.ResetType.HARD)
@@ -314,13 +338,18 @@
 		walk.markStart(walk.parseCommit(reset.getObjectId()));
 		var commit = walk.iterator().next();
 		println("HEAD is now at "+reset.getObjectId().getName().substring(0,7) + " " + commit.getShortMessage());
-		if(pristene == "true") {
-			println("making pristene - removing all untracked files");
-			var cleaned = git.clean().setCleanDirectories(true).call().iterator();
+		if(pristine == "true") {
+			println("making pristine - removing all untracked files ("+gitdir+")");
+			var cleaned = git.clean().setCleanDirectories(true).setIgnore(false).call().iterator();
 			while (cleaned.hasNext()){
 	        	println("Removing " + cleaned.next());
 			}
 		}
+		var res = git.merge().call()
+		if (res.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)){
+		   println(res.getConflicts().toString());
+		}
+
 		repository.close()
 	    ]]> 
 	</scriptdef>
@@ -458,10 +487,8 @@
 					<antcontrib:if>
 						<equals arg1="${project.overwrite}" arg2="true" />
 						<then>
-							<echo message="$${project.overwrite} is true, let us try to get a new repo- you may want to go get some coffee..." />
-							<delete dir="@{dest}"/>
-							<git-clone repository="@{uri}" dest="@{dest}" />
-							<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="@{branch}" />
+							<echo message="$${project.overwrite} is true, we're resetting it all to pristine condition." />
+							<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="@{branch}" pristine="true" />
 						</then>
 						<else>
 							<echo message="updating src: @{dest}" />
