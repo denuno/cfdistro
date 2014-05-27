@@ -146,10 +146,11 @@
 		<attribute name="pristine" default="false"/>
 		<attribute name="use-jgit" default="${use.jgit}" />
 		<sequential>
+			<abspath path="@{gitdir}" property="__git.dir" />
 			<antcontrib:if>
-				<available file="@{gitdir}"/>
+				<available file="${__git.dir}"/>
 				<then>
-					<git command="fetch" dir="@{gitdir}">
+					<git command="fetch" dir="${__git.dir}">
 						<args><arg value="@{remote}" /></args>
 					</git>
 				</then>
@@ -157,7 +158,7 @@
 					<git command="clone" use-jgit="@{use-jgit}">
 						<args>
 							<arg value="@{uri}" />
-							<arg value="@{gitdir}" />
+							<arg value="${__git.dir}" />
 							<arg value="--origin=@{remote}" />
 						</args>
 					</git>
@@ -166,10 +167,10 @@
 			<antcontrib:if>
 				<equals arg1="@{use-jgit}" arg2="true"/>
 				<then>
-					<jgit-checkout gitdir="@{gitdir}" remote="@{remote}" branch="@{branch}" pristine="@{pristine}" />
+					<jgit-checkout gitdir="${__git.dir}" remote="@{remote}" branch="@{branch}" pristine="@{pristine}" />
 				</then>
 				<else>
-					<git command="checkout" dir="@{gitdir}" use-jgit="@{use-jgit}">
+					<git command="checkout" dir="${__git.dir}" use-jgit="@{use-jgit}">
 						<args>
 							<arg value="-f" />
 							<arg value="@{remote}/@{branch}" />
@@ -178,7 +179,7 @@
 					<antcontrib:if>
 						<equals arg1="@{pristine}" arg2="true"/>
 						<then>
-							<git command="clean" dir="@{gitdir}" use-jgit="@{use-jgit}">
+							<git command="clean" dir="${__git.dir}" use-jgit="@{use-jgit}">
 								<args>
 									<arg value="-xdf" />
 								</args>
