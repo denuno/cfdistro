@@ -6,7 +6,7 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 	<property name="temp.dir" location="./temp" />
 	<property name="git.repo.dir" location="${temp.dir}/gitrepo" />
 	<property name="test.project.dir" location="${temp.dir}/testproject" />
-	<property name="test.src.dir" location="${test.project.dir}/src" />
+	<property name="test.src.dir" location="${test.project.dir}/src/testproject" />
 	<delete dir="${temp.dir}" />
 	<mkdir dir="${test.project.dir}" />
 	<mkdir dir="${git.repo.dir}" />
@@ -84,7 +84,7 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 		<antcontrib:var value="${props} src.dir=${test.src.dir}" name="props" />
 		<antcontrib:var value="${props} sc=myrepo" name="props" />
 		<antcontrib:var value="${props} sc.myrepo.type=git" name="props" />
-		<antcontrib:var value="${props} sc.myrepo.dest=@src.dir@/" name="props" />
+		<antcontrib:var value="${props} sc.myrepo.dest=@src.dir@" name="props" />
 		<antcontrib:var value="${props} sc.myrepo.uri=${git.repo.dir}/.git" name="props" />
 		<antcontrib:var value="${props} sc.myrepo.branch='master'" name="props" />
 		<antcontrib:var value="${props} sc.myrepo.user=''" name="props" />
@@ -99,27 +99,30 @@ to run:  ant -f selftest.xml -lib ../ant/lib
 			<args><arg value="fun.txt" /></args>
 		</git>
 		<git command="commit" dir="${git.repo.dir}">
-			<args><arg value="-a" /><arg value="-m" /><arg value="testing updated bro" /></args>
+			<args><arg value="-a" /><arg value="-m" /><arg value="testing conflict bro" /></args>
 		</git>
 		<echo message="CONFLICT YO!" file="${test.src.dir}/fun.txt" />
+		<echo message="############# TESTING CONFLICT  ###################"/>
 
 		<cfdistro target="project.update" properties="${props}" />
 
 	    <au:assertFileExists file="${test.src.dir}/fun.txt" 
-	    	message="test.check.newrevision failure!  Did not update. ${test.src.dir}/fun.txt"/>
+	    	message="test.check.newrevision failure!  Does not exist: ${test.src.dir}/fun.txt"/>
 
 		<checksum file="${git.repo.dir}/fun.txt" property="${funMD5}" verifyProperty="isEqual"/>
 		<fail message="test.check.newrevision failure!  Did not update. ${test.src.dir}/fun.txt" unless="isEqual" />
 
+		<echo message="############# TESTING CLEAN  ###################"/>
 		<echo message="newfile" file="${test.src.dir}/fun2.txt" />
-		<cfdistro target="project.update" properties="${props}" />
+		<cfdistro target="project.update" properties="${props} project.overwrite=true" />
 
 	    <au:assertResourceDoesntExist resource="${test.src.dir}/fun2.txt" 
-	    	message="project.update failure!  Did not update. ${test.src.dir}/fun2.txt still exists" />
+	    	message="project.update project.overwrite=true failure!  Did not make pristine. ${test.src.dir}/fun2.txt still exists" />
 
 		<!-- 
 		****** test incoming change with no local modifications (git pull) ****** 
 		-->
+		<echo message="############# TESTING INCOMING  ###################"/>
 		<echo message="newfile3" file="${git.repo.dir}/fun3.txt" />
 		<git command="add" dir="${git.repo.dir}">
 			<args><arg value="fun3.txt" /></args>

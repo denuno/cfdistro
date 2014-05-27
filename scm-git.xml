@@ -171,19 +171,6 @@
 					<git command="checkout" dir="@{gitdir}" use-jgit="@{use-jgit}">
 						<args>
 							<arg value="-f" />
-							<arg value="@{branch}" />
-						</args>
-					</git>
-					<git command="branch" dir="@{gitdir}" use-jgit="@{use-jgit}">
-						<args>
-							<arg value="--set-upstream-to" />
-							<arg value="@{remote}/@{branch}" />
-							<arg value="@{branch}" />
-						</args>
-					</git>
-					<git command="reset" dir="@{gitdir}" use-jgit="@{use-jgit}">
-						<args>
-							<arg value="--hard" />
 							<arg value="@{remote}/@{branch}" />
 						</args>
 					</git>
@@ -295,9 +282,8 @@
 	 	try {
 			git.checkout().
 				setForce(true).
-		        setCreateBranch(createBranch).
-		        setName(branch).
-		        setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+		        setCreateBranch(false).
+		        setName(remote + "/" + branch).
 		        setStartPoint(remote + "/" + branch).
 		        call();
         } catch (e) {
@@ -314,30 +300,16 @@
             }
 			git.checkout().
 				setForce(true).
-		        setCreateBranch(createBranch).
-		        setName(branch).
-		        setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK).
+		        setCreateBranch(false).
+		        setName(remote + "/" + branch).
 		        setStartPoint(remote + "/" + branch).
 		        call();
 		}
-		if(createBranch) {
-			git.branchCreate()
-				.setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM)
-				.setForce(true)
-				.setName(branch)
-		        .setStartPoint(remote + "/" + branch)
-				.call()
-			println("Branch "+branch+" set up to track remote branch "+branch+" from "+remote+".");
-		}
-		println("removing any local changes");
-		var reset = git.reset()
-			.setMode(ResetCommand.ResetType.HARD)
-			.setRef(org.eclipse.jgit.lib.Constants.HEAD)
-			.call();
+		var HEAD = repository.resolve(org.eclipse.jgit.lib.Constants.HEAD);
 		var walk = new RevWalk(repository);
-		walk.markStart(walk.parseCommit(reset.getObjectId()));
+		walk.markStart(walk.parseCommit(HEAD));
 		var commit = walk.iterator().next();
-		println("HEAD is now at "+reset.getObjectId().getName().substring(0,7) + " " + commit.getShortMessage());
+		println("HEAD is now at "+HEAD.getName().substring(0,7) + " " + commit.getShortMessage());
 		if(pristine == "true") {
 			println("making pristine - removing all untracked files ("+gitdir+")");
 			var cleaned = git.clean().setCleanDirectories(true).setIgnore(false).call().iterator();
@@ -345,11 +317,6 @@
 	        	println("Removing " + cleaned.next());
 			}
 		}
-		var res = git.merge().call()
-		if (res.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)){
-		   println(res.getConflicts().toString());
-		}
-
 		repository.close()
 	    ]]> 
 	</scriptdef>
