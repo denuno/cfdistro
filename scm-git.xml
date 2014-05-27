@@ -9,6 +9,7 @@
 		<attribute name="verbose" default="true" />
 		<element name="args" optional="true" />
 		<sequential>
+			<abspath path="@{dir}" property="__git.dir" />
 			<antcontrib:var name="git.results" unset="true" />
 			<antcontrib:if>
 				<or>
@@ -20,7 +21,7 @@
 					<echo message="Using system Git - command: @{command}" />
 					<antcontrib:trycatch>
 					<try>
-						<exec executable="git" dir="@{dir}" outputproperty="git.results" failifexecutionfails="true" failonerror="true">
+						<exec executable="git" dir="${__git.dir}" outputproperty="git.results" failifexecutionfails="true" failonerror="true">
 							<arg value="@{command}" />
 							<args />
 						</exec>
@@ -33,10 +34,10 @@
 				<else>
 					<dependency artifactId="jgit-cli" groupId="cfdistro.lib" version="2.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
 					<args2property property="gitcmdline"><args /></args2property>
-					<echo message="JGit - command: @{command} ${gitcmdline} (@{dir})" /><!-- <echoxml><elem /></echoxml> -->
+					<echo message="JGit - command: @{command} ${gitcmdline} (${__git.dir})" /><!-- <echoxml><elem /></echoxml> -->
 					<antcontrib:trycatch property="foo" reference="bar">
 						<try>
-						<java classname="org.eclipse.jgit.pgm.Main" classpathref="build.lib.path" fork="true" dir="@{dir}" outputproperty="git.results" failonerror="true">
+						<java classname="org.eclipse.jgit.pgm.Main" classpathref="build.lib.path" fork="true" dir="${__git.dir}" outputproperty="git.results" failonerror="true">
 							<arg value="@{command}" />
 							<args />
 			            </java>
