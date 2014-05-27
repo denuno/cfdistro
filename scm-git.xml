@@ -31,7 +31,7 @@
 					</antcontrib:trycatch>
 				</then>
 				<else>
-					<dependency artifactId="jgit-cli" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
+					<dependency artifactId="jgit-cli" groupId="cfdistro.lib" version="2.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
 					<args2property property="gitcmdline"><args /></args2property>
 					<echo message="JGit - command: @{command} ${gitcmdline} (@{dir})" /><!-- <echoxml><elem /></echoxml> -->
 					<antcontrib:trycatch property="foo" reference="bar">
