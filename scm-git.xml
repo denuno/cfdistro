@@ -452,20 +452,21 @@
 				<param name="remote" path="@remote" default="origin" />
 				<param name="sshkey" path="@sshkey" default="NONE" />
 				<actions>
+					<abspath path="@{dest}" property="__git.dir" />
 					<antcontrib:if>
 						<equals arg1="${project.overwrite}" arg2="true" />
 						<then>
 							<echo message="$${project.overwrite} is true, we're resetting it all to pristine condition." />
-							<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="@{branch}" pristine="true" />
+							<git-checkout uri="@{uri}" gitdir="${__git.dir}" remote="@{remote}" branch="@{branch}" pristine="true" />
 						</then>
 						<else>
-							<echo message="updating src: @{dest}" />
-							<git command="fetch" dir="@{dest}">
+							<echo message="updating src: ${__git.dir}" />
+							<git command="fetch" dir="${__git.dir}">
 								<args>
 									<arg value="@{remote}" />
 								</args>
 							</git>
-							<git-has-modifications dir="@{dest}" remote="@{remote}" branch="@{branch}" property="git.hasmods" />
+							<git-has-modifications dir="${__git.dir}" remote="@{remote}" branch="@{branch}" property="git.hasmods" />
 							<antcontrib:if>
 								<and>
 									<equals arg1="${git.hasmods}" arg2="true"/>
@@ -555,9 +556,10 @@
 					<antcontrib:var name="revisions.are.same" value="true"/>
 					<antcontrib:var name="desthash" unset="true"/>
 					<antcontrib:var name="pre.fetch.commit.hash" unset="true"/>
+					<abspath path="@{dest}" property="__git.dir" />
 					<safestring value="@{dest}" property="desthash"/>
 					<echo message="DestHash: ${desthash}"/>
-					<git-commit-hash repository="@{dest}" remote="" property="pre.fetch.commit.hash" />
+					<git-commit-hash repository="${__git.dir}" remote="" property="pre.fetch.commit.hash" />
 					<propertyfile file="${basedir}/scm.cache" comment="source control management cache">
 						<entry key="${desthash}.last.commit.hash" default="${pre.fetch.commit.hash}" />
 						<entry key="${desthash}.current.commit.hash" value="${pre.fetch.commit.hash}" />
@@ -581,7 +583,7 @@
 					<git command="fetch" dir="@{dest}">
 						<args><arg value="@{remote}" /></args>
 					</git>
-					<git-commit-hash repository="@{dest}" remote="" property="post.fetch.commit.hash" />
+					<git-commit-hash repository="${__git.dir}" remote="" property="post.fetch.commit.hash" />
 					<antcontrib:if>
 						<equals arg1="${pre.fetch.commit.hash}" arg2="${post.fetch.commit.hash}" />
 						<then>
