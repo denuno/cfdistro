@@ -329,12 +329,28 @@
 		<attribute name="labels" default=""/>
 		<attribute name="failonerror" default="${mxunit.failonerror}"/>
 		<attribute name="outputdir" default="${mxunit.tests.results.dir}"/>
+		<attribute name="includes" default="*"/>
 		<sequential>
 			<echo message="runing tests in (@{basePath})" />
 			<abspath property="mxunit.tests.sub.dir.abs" path="@{basePath}" />
 			<delete dir="@{outputdir}" />
+			<!-- first do any tests in the base dir  -->
+	    	<antcontrib:for param="test">
+				<path><fileset dir="@{basePath}" includes="*.cfc"/></path>
+				<sequential>
+					<antcontrib:propertyregex property="test.name"
+	                 input="@{test}" regexp=".*[\\/](.*)\.(.*)" select="\1" override="true"/>
+					<echo message="runing @{test} (@{componentPath}.${test.name})" />
+					<delete dir="@{outputdir}/${test.name}"/>
+					<mkdir dir="@{outputdir}/${test.name}"/>
+			        <get dest="@{outputdir}/${test.name}/results.xml" ignoreerrors="true" retries="1"
+			           src="@{runner}target=@{componentPath}.${test.name}&amp;recurse=@{recurse}&amp;reporter=ANTJunit&amp;labels=@{labels}" 
+			         />
+				</sequential>
+			</antcontrib:for>
+			<!-- then do whole subdirectories  -->
 	    	<antcontrib:for param="dir">
-				<path><dirset dir="@{basePath}" includes="*"/></path>
+				<path><dirset dir="@{basePath}" includes="@{includes}"/></path>
 				<sequential>
 					<antcontrib:var unset="true" name="_dirname" />
 					<basename file="@{dir}" property="_dirname" />

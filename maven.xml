@@ -216,7 +216,6 @@
     	<delete dir="${temp.dir}" />
 	</target>	
 		
-	
 	<macrodef name="mvn-repo">
 		<attribute name="id" />
 		<attribute name="url"/>
@@ -522,13 +521,32 @@
 	</macrodef>
 
 	<property name="cfmlprojects.repo.user" value="admin" />
-   	<property name="cfmlprojects.repo.password" value="admin123" />
-    <mvn-repo id="cfmlprojects.repo" url="http://cfmlprojects.org/artifacts">
+   	<property name="cfmlprojects.repo.key" value="${user.home}/.ssh/cfmlprojectskey" />
+   	<property name="cfmlprojects.repo.key.pass" value="seekrit" />
+   	<property name="cfmlprojects.repo.url" value="scp://cfmlprojects.org/artifacts" />
+    <mvn-repo id="cfmlprojects.repo" url="${cfmlprojects.repo.url}">
     	<authentication>
-    		<authentication username="${cfmlprojects.repo.user}" password="${cfmlprojects.repo.password}"/>
+    		<authentication username="${cfmlprojects.repo.user}" privateKey="${cfmlprojects.repo.key}" passphrase="${cfmlprojects.repo.key.pass}"/>
 		</authentication>
     </mvn-repo>
 
+	<target name="artifact.add">
+		<sequential>
+		<property name="mvn.repo.id" value="cfdistro.repo.local"/>
+		<property name="mvn.repo.id" value="cfmlprojects.repo"/>
+		<artifact:install-provider artifactId="wagon-ssh" version="1.0-beta-2"/>
+		<input message="artifact:" addproperty="artifact" />
+		<input message="group:" addproperty="group" />
+		<input message="artifactId:" addproperty="artifactId" />
+		<input message="name:" addproperty="name" />
+		<input message="version:" addproperty="version" />
+		<antcontrib:propertyregex property="suffix.name"
+		 input="${artifact}" regexp="(.*)\.(.*)" select="\2" override="true"/>
+		<pom-and-deploy pomid="addartifact" packaging="${suffix.name}" artifact="${artifact}"
+         groupId="${group}" artifactId="${artifactId}" version="${version}" name="${name}"/>
+		</sequential>
+	</target>
+	
 <!--
 NEXUS STUFF
 -->	
