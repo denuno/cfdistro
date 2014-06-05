@@ -44,7 +44,7 @@
 						</try>
 						<catch>
 							<property name="baz" refid="bar" />
-							<fail message="error occurred : ${git.results}" />
+							<fail message="error occurred : ${git.results} ${baz}" />
 						</catch>
 					</antcontrib:trycatch>
 
@@ -167,6 +167,7 @@
 			<antcontrib:if>
 				<equals arg1="@{use-jgit}" arg2="true"/>
 				<then>
+					<mkdir dir="${__git.dir}"/>
 					<jgit-checkout gitdir="${__git.dir}" remote="@{remote}" branch="@{branch}" pristine="@{pristine}" />
 				</then>
 				<else>
