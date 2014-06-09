@@ -150,12 +150,13 @@
 			<antcontrib:if>
 				<available file="${__git.dir}"/>
 				<then>
-					<git command="fetch" dir="${__git.dir}">
+					<git command="fetch" dir="${__git.dir}" use-jgit="@{use-jgit}">
 						<args><arg value="@{remote}" /></args>
 					</git>
 				</then>
 				<else>
-					<git command="clone" use-jgit="@{use-jgit}">
+					<mkdir dir="${__git.dir}" />
+					<git command="clone" dir="${__git.dir}" use-jgit="@{use-jgit}">
 						<args>
 							<arg value="@{uri}" />
 							<arg value="${__git.dir}" />
@@ -167,7 +168,6 @@
 			<antcontrib:if>
 				<equals arg1="@{use-jgit}" arg2="true"/>
 				<then>
-					<mkdir dir="${__git.dir}"/>
 					<jgit-checkout gitdir="${__git.dir}" remote="@{remote}" branch="@{branch}" pristine="@{pristine}" />
 				</then>
 				<else>
@@ -279,7 +279,11 @@
 		if(createBranch) {
 			println(branch + " branch will be created locally");
 		} else {
-			println(branch + " branch exists locally");
+			println(branch + " branch exists locally, hard reset to HEAD");
+			git.reset()
+				.setMode(ResetCommand.ResetType.HARD)
+				.setRef(org.eclipse.jgit.lib.Constants.HEAD)
+				.call();
 		}
 		println("checking out " + remote + "/" + branch);
 	 	try {
@@ -687,14 +691,15 @@
     				<param name="remote" path="@remote" default="origin" />
     				<actions>
 						<!--  get branches -->
-						<git command="fetch" dir="@{dest}">
+    					<abspath path="@{dest}" property="__git.dir" />
+						<git command="fetch" dir="${__git.dir}">
 							<args>
 								<arg value="@{remote}" />
 								<arg value="+refs/heads/*:refs/remotes/@{remote}/*" />
 							</args>
 						</git>
 						<!--  get tags -->
-						<git command="fetch" dir="@{dest}">
+						<git command="fetch" dir="${__git.dir}">
 							<args>
 								<arg value="@{remote}" />
 								<arg value="+refs/tags/*:refs/remotes/@{remote}/*" />

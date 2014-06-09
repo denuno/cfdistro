@@ -285,17 +285,18 @@
 			<antcontrib:trycatch property="_erredesse">
 				<try>
 					<property name="scm.dir" value="${src.dir}" />
+					<property name="scm.remote" value="origin" />
 					<git-fetch-from-remote />
 					<!-- use the system git as jgit has trouble with conflicts --> 
 					<git command="checkout" dir="${scm.dir}" use-jgit="false">
 						<args>
 							<arg value="-f" />
-							<arg value="origin/${scm.branch}" />
+							<arg value="${scm.remote}/${scm.branch}" />
 						</args>
 					</git>
 				</try>
 				<catch>
-					<echo message="could not check out origin/${scm.branch} for ${scm.dir} (${_erredesse})"/>
+					<echo message="could not check out ${scm.remote}/${scm.branch} for ${scm.dir} (${_erredesse})"/>
 				</catch>
 			</antcontrib:trycatch>
 		</else>
