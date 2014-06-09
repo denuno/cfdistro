@@ -288,7 +288,7 @@
 					<property name="scm.remote" value="origin" />
 					<git-fetch-from-remote />
 					<!-- use the system git as jgit has trouble with conflicts --> 
-					<git command="checkout" dir="${scm.dir}" use-jgit="false">
+					<git command="checkout" dir="${scm.dir}">
 						<args>
 							<arg value="-f" />
 							<arg value="${scm.remote}/${scm.branch}" />
