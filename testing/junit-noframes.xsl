@@ -174,7 +174,7 @@
                             <xsl:when test="$errorCount &gt; 0">Error</xsl:when>
                         </xsl:choose>
                     </xsl:attribute>
-                    <td><a href="#{@package}"><xsl:value-of select="@package"/></a></td>
+                    <td><a href="#package{@package}"><xsl:value-of select="@package"/></a></td>
                     <td><xsl:value-of select="$testCount"/></td>
                     <td><xsl:value-of select="$errorCount"/></td>
                     <td><xsl:value-of select="$failureCount"/></td>

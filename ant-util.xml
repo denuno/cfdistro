@@ -1,7 +1,7 @@
 <project name="ant-util" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
 	<antcontrib:osfamily property="os.family" />
-	
+
 	<macrodef name="abspath">
 		<attribute name="path" description="the path to get the absolute dir from" />
 		<attribute name="property" description="The property to set with the value." />
