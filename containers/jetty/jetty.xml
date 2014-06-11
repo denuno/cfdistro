@@ -9,8 +9,8 @@
 	<property name="server.maxmemory" value="256M"/>
 	<property name="server.sharedlibs" value="false"/>
 
-	<property name="jetty.version" value="8" />
-	<property name="jetty.version.minor" value="1.7.v20120910" />
+	<property name="jetty.version" value="9" />
+	<property name="jetty.version.minor" value="2.0.v20140526" />
 	<property name="jetty.host" value="${server.host}"/>
 	<property name="jetty.host.aliases" value=""/>
 	<property name="ext.jetty.dir" location="${ext.dir}/jetty/${jetty.version}" />

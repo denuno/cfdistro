@@ -140,8 +140,8 @@
     <target name="jre.7.update" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="convert packed bins to zip">
         <property name="jre.type" value="jre" />
 		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
+		<property name="jre.suffix" value="7u60" />
 		<property name="jre.suffix" value="8u5" />
-		<property name="jre.suffix" value="7u55" />
 		<property name="mvn.jre.dir" location="${basedir}/../${jre.type}" />
 		<property name="jre.prefix" value="${jre.type}-${jre.suffix}" />
 		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/${jre.suffix}" />
@@ -154,7 +154,7 @@
     	<mkdir dir="${temp.dir}" />
     	<mkdir dir="${mvn.jre.tmp}" />
 		<echo message="*** GETTING ${jre.type} ${jre.version} ***" />    	
-    	<antcontrib:for list="linux-i586:b13,linux-x64:b13,macosx-x64:b13,windows-i586:b13,windows-x64:b13" param="file">
+    	<antcontrib:for list="linux-i586:b19,linux-x64:b19,macosx-x64:b19,windows-i586:b19,windows-x64:b19" param="file">
 			<sequential>
 				<antcontrib:propertyregex property="jre.os" override="yes" 
 					input="@{file}" regexp="([^:]*)" select="\1"/>
