@@ -279,11 +279,7 @@
 		if(createBranch) {
 			println(branch + " branch will be created locally");
 		} else {
-			println(branch + " branch exists locally, hard reset to HEAD");
-			git.reset()
-				.setMode(ResetCommand.ResetType.HARD)
-				.setRef(org.eclipse.jgit.lib.Constants.HEAD)
-				.call();
+			println(branch + " branch exists locally");
 		}
 		println("checking out " + remote + "/" + branch);
 	 	try {
@@ -299,7 +295,7 @@
 				var path = paths.next();
                 var conflict = new File(repository.getWorkTree(), path);
                 println("[WARNING] deleting conflicting path " + conflict);
-                if (!conflict.delete()) {
+                if (!conflict["delete"]()) { // call delete like this for odd windows bug
                     if (conflict.exists()) {
                         println("[WARNING] conflicting path " + conflict + " not deleted");
                     }

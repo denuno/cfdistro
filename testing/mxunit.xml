@@ -175,8 +175,9 @@
 						 regexp="${ext.dir}/mappings" replace="" global="true" override="yes"/>
 						<antcontrib:propertyregex property="projectRelativePath" input="${physical.dir.abs}" 
 						 regexp=".*?@src.dir@" replace="" global="true" override="yes"/>
+						<replace-windows-slashes property="___src.dir.esc" input="${src.dir}"/>						
 						<antcontrib:propertyregex property="projectRelativePath" input="${physical.dir.abs}" 
-						 regexp="${src.dir}" replace="" global="true" override="yes"/>
+						 regexp="${___src.dir.esc}" replace="" global="true" override="yes"/>
 <!--<echo message="${projectRelativePath} : @{virtual} (@{physical} ${src.dir} @{scmurl}"/> -->
 						<replaceregexp 
 						        file="@{dir}/html/index.html" 
@@ -186,14 +187,13 @@
 						/>
 						<replaceregexp 
 						        file="@{dir}/html/index.html" 
-								match="${src.dir}&lt;a" flags="gi"
+								match="${___src.dir.esc}&lt;a" flags="gi"
 						        replace='&lt;a'
 						        byline="false" 
 						/>
 					</actions>
 				</call>
 			</xmltask>
-
 		</sequential>
 	</macrodef>
 

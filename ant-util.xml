@@ -611,9 +611,11 @@
 			<antcontrib:for list="${__dirs}" param="dir">
 				<sequential>
 					<antcontrib:var name="__dir" value="@{dir}" />
-					<antcontrib:propertyregex property="@{propertyname}" override="true" input="@{string}" regexp="@${__dir}@(.*)" replace="${@{dir}}\1" casesensitive="false" />
+					<replace-windows-slashes property="___dirpath" input="${@{dir}}"/>
+					<antcontrib:propertyregex property="@{propertyname}" override="true" input="@{string}" regexp="@${__dir}@(.*)" replace="${___dirpath}\1" casesensitive="false" />
 				</sequential>
 			</antcontrib:for>
+			<antcontrib:var name="___dirpath" unset="true" />
 			<antcontrib:var name="__dirs" unset="true" />
 			<antcontrib:var name="__dir" unset="true" />
 	</sequential>
@@ -625,7 +627,7 @@
 		<sequential>
 			<!--
 			add to windows path:
-			   	reg add “HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment” /v Path /t REG_EXPAND_SZ /d “%path%;c:\test” /f
+			   	reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path /t REG_EXPAND_SZ /d "%path%;c:\test" /f
 			   	2.run:
 			   	nircmd sysrefresh
 			-->
