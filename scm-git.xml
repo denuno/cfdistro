@@ -148,7 +148,13 @@
 		<sequential>
 			<abspath path="@{gitdir}" property="__git.dir" />
 			<antcontrib:if>
+				<and>
 				<available file="${__git.dir}"/>
+				<available file="${__git.dir}/HEAD"/>
+				<or>
+					<available file="${__git.dir}/.git"/>
+				</or>
+				</and>
 				<then>
 					<git command="fetch" dir="${__git.dir}" use-jgit="@{use-jgit}">
 						<args><arg value="@{remote}" /></args>
