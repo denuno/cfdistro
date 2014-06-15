@@ -330,7 +330,7 @@
 		<attribute name="repoId" default="cfdistro.repo.remote" />
 		<element name="exclusions" implicit="false" optional="true"/>
 		<sequential>
-			<property name="ext.mappings.dir" value="${ext.dir}/mappings" />
+			<property name="ext.mappings.dir" value="${user.home}/cfdistro/ext/mappings" />
 			<antcontrib:var name="dependency.location" value="@{groupId}"/>
 			<antcontrib:propertyregex 
 			property="dependency.location" 
@@ -429,7 +429,28 @@
 		<pom-and-deploy pomid="cfdistro.put.pom" artifact="@{artifact}" packaging="@{packaging}" buildtype="${mvn.type}"
 		 groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" repoId="@{repoId}"/>
 		</sequential>
-	</macrodef>	
+	</macrodef>
+
+	<macrodef name="delete-snapshots">
+		<attribute name="repo" />
+		<attribute name="artifact" default="" />
+		<attribute name="groupId" default="" />
+		<attribute name="artifactId" default="" />
+		<attribute name="version" default="" />
+		<sequential>
+			<antcontrib:propertyregex 
+			property="dependency.location" 
+			input="@{groupId}"
+			global="true" override="yes"
+			regexp="\."
+			replace="/" />
+			<delete>
+				<fileset dir="@{repo}/${dependency.location}/@{artifactId}/@{version}">
+				  <containsregexp expression="[0-9]{8}.[0-9]{6}-[0-9]+"/>
+				</fileset>
+			</delete>
+		</sequential>
+	</macrodef>
 	
 	<macrodef name="pom-and-deploy">
 		<attribute name="pomid" />
@@ -451,7 +472,7 @@
 			<antcontrib:if>
 				<equals arg1="@{buildtype}" arg2="snapshot" />
 				<then>
-    				<property name="__buildtype.suffix" value="-SNAPSHOT" /> 
+					<property name="__buildtype.suffix" value="-SNAPSHOT" /> 
 				</then>
 			</antcontrib:if>
     		<property name="__buildtype.suffix" value="" /> 
