@@ -20,12 +20,19 @@
 			<dependency artifactId="colddoc" version="1.0" mapping="/colddoc" groupId="org.riaforge" />
 			<echo file="@{colddoc.tmp.dir}/Application.cfc">component { 
 				this.name="docgen"; this.mappings["/@{packagenames}"] = "@{sourcepath}";
+				this.mappings["/colddoc"] = "${ext.mappings.dir}/org.riaforge/colddoc/1.0/";
 			}</echo>
 			<echo file="@{colddoc.tmp.dir}/colddoc.cfm">&lt;cfscript&gt;
+try {
 colddoc = createObject("component", "colddoc.ColdDoc").init();
 strategy = createObject("component", "colddoc.strategy.api.HTMLAPIStrategy").init("@{destdir}", "@{title}");
 colddoc.setStrategy(strategy);
 colddoc.generate("@{sourcepath}", "@{packagenames}");
+} catch (any e) {
+	writeOutput(e.message);
+	writeOutput(e.detail);
+	abort;
+}
 gendate=now();
 &lt;/cfscript&gt;
 &lt;cfcontent reset="true"&gt;@{title} API from @{sourcepath} mapping: @{packagenames} 
@@ -35,7 +42,6 @@ generated to @{destdir} on &lt;cfset writeOutput(gendate)/&gt;
 			<antcontrib:var unset="true" name="colddoc.return" />
 			<loadfile property="colddoc.return" srcfile="@{colddoc.tmp.dir}/colddoc.html"/>
 	    	<echo message="Colddoc: ${colddoc.return}"></echo>
-			<delete dir="@{colddoc.tmp.dir}" />
 		</sequential>
 	</macrodef>
 
