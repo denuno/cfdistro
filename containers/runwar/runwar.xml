@@ -134,7 +134,7 @@ if test -z "${JAVA_EXE}"; then
 JAVA_EXE=java
 fi
 cd $(dirname $0)
-exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${runwar.jar} -jar ${war.name}.war/WEB-INF/${runwar.jar} ${war.name}.war -war ${war.contextpath} -host ${runwar.host} -port ${runwar.port} -stop-port ${runwar.stop.socket} -logdir ${runwar.log.dir} -cfml-dirs ${runwar.cfml.dirlist} -background false]]>
+exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${runwar.jar} -jar ${war.name}.war/WEB-INF/${runwar.jar} ${war.name}.war -war ${war.contextpath} -host ${runwar.host} -port ${runwar.port} -stop-port ${runwar.stop.socket} -logdir ${runwar.log.dir} --dirs ${runwar.cfml.dirlist} -background false]]>
 </echo>
 		<chmod file="${dist.dir}/${distro.name}.sh" perm="ugo+rx"/>
 	</target>

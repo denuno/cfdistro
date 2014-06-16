@@ -214,7 +214,7 @@
 						<include name="**/urlrewrite-${urlrewritefilter.version}.jar" />
 					</fileset>
 				</copy>
-				<copy todir="${war.target.dir}/WEB-INF/" overwrite="true" file="${urlrewrite.file}" verbose="true" />
+				<copy todir="${war.target.dir}/WEB-INF/" overwrite="true" file="${urlrewrite.file}" verbose="true" failonerror="false" />
 			</then>
 			<else>
 				<echo message="No urlrewrite.xml to import : ${basedir}/urlrewrite.xml does not exist." />
