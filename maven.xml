@@ -37,10 +37,6 @@
 
 
     <target name="mvn.deploy.jre" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
-    	<antcontrib:var name="mvn.jre.version" value="1.7.0_15" />
-		<!--
-		<antcontrib:var name="mvn.jre.version" value="1.6.0_41" />
-    	-->
 		<property name="mvn.jre.dir" value="${basedir}/../jre" />
 		<pom-and-deploy pomid="jre.pom" packaging="pom" buildtype="${mvn.type}"
 		 groupId="oracle" artifactId="jre" version="${mvn.jre.version}" name="oracle.jre">
@@ -476,6 +472,15 @@
 			<!-- <artifact:install-provider artifactId="wagon-ssh" version="1.0-beta-2"/> -->
     		<echoproperties prefix="repository." />
 			<antcontrib:if>
+				<equals arg1="@{repoId}" arg2="$${mvn.repo.id}" />
+				<then>
+					<antcontrib:var name="__repo.id" value="cfdistro.repo.local"/>
+				</then>
+				<else>
+					<antcontrib:var name="__repo.id" value="@{repoId}"/>
+				</else>
+			</antcontrib:if>
+			<antcontrib:if>
 				<equals arg1="@{buildtype}" arg2="snapshot" />
 				<then>
 					<property name="__buildtype.suffix" value="-SNAPSHOT" /> 
@@ -502,7 +507,7 @@
 					<delete file="${temp.dir}/tmppom.pom" />
 					<artifact:writepom pomrefid="@{pomid}" file="${temp.dir}/tmppom.pom" trim="true"/>
 					<artifact:deploy file="${temp.dir}/tmppom.pom">
-					  <remoteRepository refid="@{repoId}" />
+					  <remoteRepository refid="${__repo.id}" />
 					  <!-- <localRepository path="${cfdistro.repo.local.path}" /> -->
 			          <attachments />
 					  <pom refid="@{pomid}"/>
@@ -520,7 +525,7 @@
 					</artifact:mvn>
 				 -->
 					<artifact:deploy file="@{artifact}">
-					  <remoteRepository refid="@{repoId}" />
+					  <remoteRepository refid="${__repo.id}" />
 					  <!-- <localRepository path="${cfdistro.repo.local.path}" /> -->
 			          <attachments />
 					  <pom refid="@{pomid}"/>
