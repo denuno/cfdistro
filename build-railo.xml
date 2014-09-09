@@ -128,6 +128,15 @@
 		</xmltask>
 		<railo-scope setting="session-type" value="${cfml.session.type}" configfile="${railo.server.config.file}" />
 		<railo-scope setting="session-type" value="${cfml.session.type}"/>
+		<property name="railo.function.dir" value="" />
+		<antcontrib:if>
+			<not><equals arg1="${railo.function.dir}" arg2="" /></not>
+			<then>
+				<xmltask source="${railo.web.config.file}" dest="${railo.web.config.file}">
+					<attr path="/railo-configuration/file-system" attr="function-directory" value="${railo.function.dir}" />
+				</xmltask>
+			</then>
+		</antcontrib:if>
 		<antcontrib:runtarget target="railo.ra.install" />
 	</target>
 
