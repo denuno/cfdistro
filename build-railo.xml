@@ -114,17 +114,17 @@
 
 		<cfmlengcrypt engine="railo" plaintext="${cfadmin.password}" property="railo.password.encrypted" />
 		<xmltask source="${railo.server.config.file}" dest="${railo.server.config.file}">
-			<attr path="/railo-configuration" attr="password" value="${railo.password.encrypted}" />
-			<attr path="/railo-configuration" attr="default-password" value="${railo.password.encrypted}" />
+			<attr path="/*[1]" attr="password" value="${railo.password.encrypted}" />
+			<attr path="/*[1]" attr="default-password" value="${railo.password.encrypted}" />
 		</xmltask>
 		<xmltask source="${railo.web.config.file}" dest="${railo.web.config.file}">
-			<attr path="/railo-configuration" attr="password" value="${railo.password.encrypted}" />
+			<attr path="/*[1]" attr="password" value="${railo.password.encrypted}" />
 		</xmltask>
 		<xmltask source="${railo.web.config.file}" dest="${railo.web.config.file}">
-			<insert path="//railo-configuration" position="under" xml="&lt;charset/&gt;" />
-			<attr path="/railo-configuration/charset" attr="resource-charset" value="${railo.charset.resource}" />
-			<attr path="/railo-configuration/charset" attr="template-charset" value="${railo.charset.template}" />
-			<attr path="/railo-configuration/charset" attr="web-charset" value="${railo.charset.web}" />
+			<insert path="//*[1]" position="under" xml="&lt;charset/&gt;" />
+			<attr path="/*[1]/charset" attr="resource-charset" value="${railo.charset.resource}" />
+			<attr path="/*[1]/charset" attr="template-charset" value="${railo.charset.template}" />
+			<attr path="/*[1]/charset" attr="web-charset" value="${railo.charset.web}" />
 		</xmltask>
 		<railo-scope setting="session-type" value="${cfml.session.type}" configfile="${railo.server.config.file}" />
 		<railo-scope setting="session-type" value="${cfml.session.type}"/>
@@ -133,7 +133,7 @@
 			<not><equals arg1="${railo.function.dir}" arg2="" /></not>
 			<then>
 				<xmltask source="${railo.web.config.file}" dest="${railo.web.config.file}">
-					<attr path="/railo-configuration/file-system" attr="function-directory" value="${railo.function.dir}" />
+					<attr path="/*[1]/file-system" attr="function-directory" value="${railo.function.dir}" />
 				</xmltask>
 			</then>
 		</antcontrib:if>
@@ -172,7 +172,7 @@
 				<echo message="Adding mapping for archive - /${mappingName} - @{file}" />
 				<copy file="@{file}" todir="${war.target.dir}" overwrite="true" />
 				<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-					<insert path="/railo-configuration/mappings" position="under">
+					<insert path="/*[1]/mappings" position="under">
 						<![CDATA[
 					<mapping
 						readonly="yes"
@@ -188,7 +188,7 @@
 			</sequential>
 		</antcontrib:for>
 		<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-			<attr path="/railo-configuration/java" attr="inspect-template" value="never" />
+			<attr path="/*[1]/java" attr="inspect-template" value="never" />
 		</xmltask>
 	</target>
 
@@ -204,7 +204,7 @@
 				<echo message="Adding mapping for archive - /${mappingName} - @{file}" />
 				<copy file="@{file}" todir="${war.target.dir}" overwrite="true" />
 				<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-					<insert path="/railo-configuration/mappings" position="under">
+					<insert path="/*[1]/mappings" position="under">
 						<![CDATA[
 					<mapping
 						readonly="yes"
@@ -297,10 +297,10 @@
 				<param name="timeout" path="@timeout" default="30" />
 				<actions>
 					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-						<attr path="/railo-configuration/mail" attr="log" value="@{log}" />
-						<attr path="/railo-configuration/mail" attr="spool-enable" value="@{spool-enable}" />
-						<attr path="/railo-configuration/mail" attr="spool-interval" value="@{spool-interval}" />
-						<attr path="/railo-configuration/mail" attr="timeout" value="@{timeout}" />
+						<attr path="/*[1]/mail" attr="log" value="@{log}" />
+						<attr path="/*[1]/mail" attr="spool-enable" value="@{spool-enable}" />
+						<attr path="/*[1]/mail" attr="spool-interval" value="@{spool-interval}" />
+						<attr path="/*[1]/mail" attr="timeout" value="@{timeout}" />
 					</xmltask>
 				</actions>
 			</call>
@@ -317,8 +317,8 @@
 				<actions>
 					<antcontrib:var name="mailserver.exists" unset="true" />
 					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-						<copy path="/railo-configuration/mail/server[@smtp='@{smtp}']/@smtp" attrValue="true" property="mailserver.exists" />
-						<replace path="/railo-configuration/mail/server[@smtp=@{smtp}]/text()" if="mailserver.exists">
+						<copy path="/*[1]/mail/server[@smtp='@{smtp}']/@smtp" attrValue="true" property="mailserver.exists" />
+						<replace path="/*[1]/mail/server[@smtp=@{smtp}]/text()" if="mailserver.exists">
 							<![CDATA[
 							<server 
 								smtp="@{smtp}" 
@@ -330,7 +330,7 @@
 							/>
 		  					]]>
 	  					</replace>
-						<insert path="/railo-configuration/mail" position="under" unless="mailserver.exists">
+						<insert path="/*[1]/mail" position="under" unless="mailserver.exists">
 							<![CDATA[
 							<server 
 								smtp="@{smtp}" 
@@ -387,8 +387,8 @@
 				<actions>
 					<antcontrib:var name="datasource.exists" unset="true" />
 					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-						<copy path="/railo-configuration/data-sources/data-source[@name='@{name}']/@name" attrValue="true" property="datasource.exists" />
-						<replace path="/railo-configuration/data-sources/data-source[@name='@{name}']" if="datasource.exists">
+						<copy path="/*[1]/data-sources/data-source[@name='@{name}']/@name" attrValue="true" property="datasource.exists" />
+						<replace path="/*[1]/data-sources/data-source[@name='@{name}']" if="datasource.exists">
 							<![CDATA[
 	  						<data-source allow="415" blob="@{blob}" 
 	  							name="@{name}" 
@@ -404,7 +404,7 @@
 	  						/>	  					    
 	  					]]>
 	  					</replace>
-						<insert path="/railo-configuration/data-sources" position="under" unless="datasource.exists">
+						<insert path="/*[1]/data-sources" position="under" unless="datasource.exists">
 							<![CDATA[
 	  						<data-source allow="415" blob="@{blob}" 
 	  							name="@{name}" 
@@ -547,26 +547,26 @@
 		<relpath property="log.dir" to="${log.dir}" from="${war.target.dir}/WEB-INF/railo/logs"/>
 		<echo message="setting logging dir to ${log.dir}"/>
 		<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-			<attr path="/railo-configuration/remote-clients" attr="log" value="${log.dir}" />
-			<attr path="/railo-configuration/remote-clients" attr="log-level" value="info" />
-			<attr path="/railo-configuration/scope" attr="requesttimeout-log" value="${log.dir}requesttimeout.log" />
-			<attr path="/railo-configuration/scope" attr="requesttimeout" value="${cfml.request.timeout}" />
-			<attr path="/railo-configuration/scope" attr="applicationtimeout" value="${cfml.application.timeout}" />
-			<attr path="/railo-configuration/mail" attr="log" value="${log.dir}mail.log" />
-			<attr path="/railo-configuration/debugging" attr="memory-log" value="${log.dir}memory.log" />
-			<attr path="/railo-configuration/debugging" attr="debug" value="no" />
-			<attr path="/railo-configuration/application" attr="application-log" value="${log.dir}application.log" />
-			<attr path="/railo-configuration/application" attr="application-log-level" value="${log.level}" />
-			<attr path="/railo-configuration/application" attr="trace-log" value="${log.dir}trace.log" />
-			<attr path="/railo-configuration/application" attr="trace-log-level" value="${log.level}" />
-			<attr path="/railo-configuration/application" attr="exception-log" value="${log.dir}exception.log" />
+			<attr path="/*[1]/remote-clients" attr="log" value="${log.dir}" />
+			<attr path="/*[1]/remote-clients" attr="log-level" value="info" />
+			<attr path="/*[1]/scope" attr="requesttimeout-log" value="${log.dir}requesttimeout.log" />
+			<attr path="/*[1]/scope" attr="requesttimeout" value="${cfml.request.timeout}" />
+			<attr path="/*[1]/scope" attr="applicationtimeout" value="${cfml.application.timeout}" />
+			<attr path="/*[1]/mail" attr="log" value="${log.dir}mail.log" />
+			<attr path="/*[1]/debugging" attr="memory-log" value="${log.dir}memory.log" />
+			<attr path="/*[1]/debugging" attr="debug" value="no" />
+			<attr path="/*[1]/application" attr="application-log" value="${log.dir}application.log" />
+			<attr path="/*[1]/application" attr="application-log-level" value="${log.level}" />
+			<attr path="/*[1]/application" attr="trace-log" value="${log.dir}trace.log" />
+			<attr path="/*[1]/application" attr="trace-log-level" value="${log.level}" />
+			<attr path="/*[1]/application" attr="exception-log" value="${log.dir}exception.log" />
 		</xmltask>
 	</target>
 
 	<target name="railo.set.debug">
 		<echo message="setting logging dir to ${log.dir}"/>
 		<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-			<attr path="/railo-configuration/debugging" attr="debug" value="${debugging.enabled}" />
+			<attr path="/*[1]/debugging" attr="debug" value="${debugging.enabled}" />
 		</xmltask>
 	</target>
 
@@ -574,7 +574,7 @@
 	<target name="railo.set.inspect.templates">
 		<echo message="Will inspect each template ${cfmlengine.inspect.templates}"/>
 		<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-			<attr path="/railo-configuration/java" attr="inspect-template" value="${cfmlengine.inspect.templates}" />
+			<attr path="/*[1]/java" attr="inspect-template" value="${cfmlengine.inspect.templates}" />
 		</xmltask>
 	</target>
 
@@ -582,8 +582,8 @@
 		<echo message="Setting security options"/>
 		<antcontrib:var name="datasource.exists" unset="true" />
 		<xmltask source="${railo.server.config.file}" dest="${railo.server.config.file}">
-			<copy path="/railo-configuration/security" attrValue="true" property="security.exists" />
-			<replace path="/railo-configuration/security']" if="security.exists">
+			<copy path="/*[1]/security" attrValue="true" property="security.exists" />
+			<replace path="/*[1]/security']" if="security.exists">
 				<![CDATA[
 				<security access_read="${railo.security.access_read}" access_write="${railo.security.access_write}" 
 				cache="${railo.security.cache}" cfx_setting="${railo.security.cfx_setting}" cfx_usage="${railo.security.cfx_usage}"
@@ -593,7 +593,7 @@
 				tag_execute="yes" tag_import="yes" tag_object="yes" tag_registry="yes"/>
 				]]>
 				</replace>
-			<insert path="/railo-configuration" position="under" unless="security.exists">
+			<insert path="/*[1]" position="under" unless="security.exists">
 				<![CDATA[
 				<security access_read="${railo.security.access_read}" access_write="${railo.security.access_write}" 
 				cache="${railo.security.cache}" cfx_setting="${railo.security.cfx_setting}" cfx_usage="${railo.security.cfx_usage}"
@@ -639,8 +639,8 @@
 					</antcontrib:if>
 					<antcontrib:var name="mapping.exists" unset="true" />
 					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-						<copy path="/railo-configuration/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
-						<replace path="/railo-configuration/mappings/mapping[@virtual='@{virtual}']" if="mapping.exists">
+						<copy path="/*[1]/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
+						<replace path="/*[1]/mappings/mapping[@virtual='@{virtual}']" if="mapping.exists">
 							<![CDATA[
 							<mapping
 								readonly="@{readonly}"
@@ -652,7 +652,7 @@
 							/>
 							]]>
 							</replace>
-						<insert path="/railo-configuration/mappings" position="under" unless="mapping.exists">
+						<insert path="/*[1]/mappings" position="under" unless="mapping.exists">
 							<![CDATA[
 							<mapping
 								readonly="@{readonly}"
@@ -682,9 +682,10 @@
 	<macrodef name="railo-rest-mapping">
 		<attribute name="physical" />
 		<attribute name="virtual" />
+		<attribute name="servletMapping" default="@{virtual}/*"/>
 		<attribute name="default" default="true"/>
 		<sequential>
-			<servlet-mapping rest="true" virtual="@{virtual}/*" physical="@{physical}" />
+			<servlet-mapping rest="true" virtual="@{servletMapping}" physical="@{physical}" />
 			<antcontrib:var name="___physical" value="@{physical}" />
 			<antcontrib:if>
 				<equals arg1="${mappings.relative}" arg2="true" />
@@ -695,15 +696,15 @@
 			</antcontrib:if>
 			<antcontrib:var name="mapping.exists" unset="true" />
 			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-				<copy path="/railo-configuration/rest/mapping/@virtual" attrValue="true" property="mapping.exists" />
-				<insert path="/railo-configuration" position="under" unless="mapping.exists">
+				<copy path="/*[1]/rest/mapping/@virtual" attrValue="true" property="mapping.exists" />
+				<insert path="/*[1]" position="under" unless="mapping.exists">
 				<![CDATA[<rest></rest>]]>
 				</insert>
 			</xmltask>
 			<antcontrib:var name="mapping.exists" unset="true" />
 			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-				<copy path="/railo-configuration/rest/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
-				<replace path="/railo-configuration/rest/mapping[@virtual='@{virtual}']" if="mapping.exists">
+				<copy path="/*[1]/rest/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
+				<replace path="/*[1]/rest/mapping[@virtual='@{virtual}']" if="mapping.exists">
 					<![CDATA[
 					<mapping
 						virtual="@{virtual}"
@@ -712,7 +713,7 @@
 					/>
 					]]>
 					</replace>
-				<insert path="/railo-configuration/rest" position="under" unless="mapping.exists">
+				<insert path="/*[1]/rest" position="under" unless="mapping.exists">
 					<![CDATA[
 					<mapping
 						virtual="@{virtual}"
@@ -762,8 +763,8 @@
 			</antcontrib:if>
 			<antcontrib:var name="mapping.exists" unset="true" />
 			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-				<copy path="/railo-configuration/custom-tag/mapping[@physical='${customtag.physical}']/@physical" attrValue="true" property="mapping.exists" />
-				<replace path="/railo-configuration/custom-tag/mapping[@physical='${customtag.physical}']/text()" if="mapping.exists">
+				<copy path="/*[1]/custom-tag/mapping[@physical='${customtag.physical}']/@physical" attrValue="true" property="mapping.exists" />
+				<replace path="/*[1]/custom-tag/mapping[@physical='${customtag.physical}']/text()" if="mapping.exists">
 					<![CDATA[
 				<mapping
 					trusted="false"
@@ -771,7 +772,7 @@
 				/>
 				]]>
 				</replace>
-				<insert path="/railo-configuration/custom-tag" position="under" unless="mapping.exists">
+				<insert path="/*[1]/custom-tag" position="under" unless="mapping.exists">
 					<![CDATA[
 				<mapping
 					trusted="false"
@@ -817,8 +818,8 @@
 		<sequential>
 			<antcontrib:var name="datasource.exists" unset="true" />
 			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-				<copy path="/railo-configuration/data-sources/data-source[@name='@{name}']/@name" attrValue="true" property="datasource.exists" />
-				<replace path="/railo-configuration/data-sources/data-source[@name='@{name}']" if="datasource.exists">
+				<copy path="/*[1]/data-sources/data-source[@name='@{name}']/@name" attrValue="true" property="datasource.exists" />
+				<replace path="/*[1]/data-sources/data-source[@name='@{name}']" if="datasource.exists">
 					<![CDATA[
  						<data-source allow="415" blob="@{blob}" 
  							name="@{name}" 
@@ -833,7 +834,7 @@
  						/>	  					    
  					]]>
  					</replace>
-				<insert path="/railo-configuration/data-sources" position="under" unless="datasource.exists">
+				<insert path="/*[1]/data-sources" position="under" unless="datasource.exists">
 					<![CDATA[
  						<data-source allow="415" blob="@{blob}" 
  							name="@{name}" 
@@ -876,19 +877,19 @@
 					<antcontrib:var name="some.cache.exists" unset="true" />
 					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
 						<xmlcatalog refId="commonDTDs" />
-						<copy path="//railo-configuration/cache/text()" property="some.cache.exists" />
+						<copy path="//*[1]/cache/text()" property="some.cache.exists" />
 						<!-- if no caches at all, just insert -->
-						<insert path="//railo-configuration" position="under" unless="some.cache.exists">
+						<insert path="//*[1]" position="under" unless="some.cache.exists">
 							<![CDATA[<cache>
 							<connection class="@{class}" custom="@{custom}" name="@{name}" read-only="@{read-only}" storage="@{storage}"/></cache>]]>
 						</insert>
-						<copy path="//railo-configuration/cache/connection[@name='@{name}']/@name" attrValue="true" property="cache.exists" />
-						<replace path="//railo-configuration/cache/connection[@name='@{name}']" if="cache.exists">
+						<copy path="//*[1]/cache/connection[@name='@{name}']/@name" attrValue="true" property="cache.exists" />
+						<replace path="//*[1]/cache/connection[@name='@{name}']" if="cache.exists">
 							<![CDATA[
 							<connection class="@{class}" custom="@{custom}" name="@{name}" read-only="@{read-only}" storage="@{storage}"/>
 		  					]]>
 		  					</replace>
-						<insert path="//railo-configuration/cache" position="under" unless="cache.exists">
+						<insert path="//*[1]/cache" position="under" unless="cache.exists">
 							<![CDATA[
 							<connection class="@{class}" custom="@{custom}" name="@{name}" read-only="@{read-only}" storage="@{storage}"/>
 		  					]]>
@@ -899,7 +900,7 @@
 						<then/>
 						<else>
 							<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-								<attr path="/railo-configuration/cache" attr="@{default-type}" value="@{name}" />
+								<attr path="/*[1]/cache" attr="@{default-type}" value="@{name}" />
 							</xmltask>
 						</else>
 					</antcontrib:if>
@@ -1399,8 +1400,8 @@
 		<sequential>
 			<antcontrib:var name="mapping.exists" unset="true" />
 			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-				<copy path="/railo-configuration/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
-				<replace path="/railo-configuration/mappings/mapping[@virtual=@{virtual}]/text()" if="mapping.exists">
+				<copy path="/*[1]/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
+				<replace path="/*[1]/mappings/mapping[@virtual=@{virtual}]/text()" if="mapping.exists">
 					<![CDATA[]]>
 				</replace>
 			</xmltask>
@@ -1422,9 +1423,9 @@
 			<echo>setting railo template-@{type} to @{path}</echo>
 			<antcontrib:var name="railo.template.error.exists" unset="true" />
 			<xmltask source="${railo.config.file}" dest="${railo.config.file}">
-				<copy path="/railo-configuration/error/@status-code" attrValue="true" property="railo.template.error.exists"/>
-				<insert path="/railo-configuration" position="under" unless="railo.template.error.exists"><![CDATA[<error status-code="true"/>]]></insert>
-				<attr path="/railo-configuration/error" attr="template-@{type}" value="@{path}" />
+				<copy path="/*[1]/error/@status-code" attrValue="true" property="railo.template.error.exists"/>
+				<insert path="/*[1]" position="under" unless="railo.template.error.exists"><![CDATA[<error status-code="true"/>]]></insert>
+				<attr path="/*[1]/error" attr="template-@{type}" value="@{path}" />
 			</xmltask>
 		</sequential>
 	</macrodef>	
@@ -1445,18 +1446,18 @@
 					<antcontrib:var name="some.extension.exists" unset="true" />
 					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
 						<xmlcatalog refId="commonDTDs" />
-						<copy path="/railo-configuration/extensions/text()" property="some.extension.exists" />
+						<copy path="/*[1]/extensions/text()" property="some.extension.exists" />
 						<!-- if no extensions at all, just insert -->
-						<insert path="/railo-configuration" position="under" unless="some.extension.exists">
+						<insert path="/*[1]" position="under" unless="some.extension.exists">
 							<![CDATA[<extensions><provider url="@{url}"/></extensions>]]>
 						</insert>
-						<copy path="/railo-configuration/extensions/provider[@url='@{url}']/@url" attrValue="true" property="extension.exists" />
-						<replace path="/railo-configuration/extensions/provider[@url='@{url}']/text()" if="extension.exists">
+						<copy path="/*[1]/extensions/provider[@url='@{url}']/@url" attrValue="true" property="extension.exists" />
+						<replace path="/*[1]/extensions/provider[@url='@{url}']/text()" if="extension.exists">
 							<![CDATA[
 		  						<provider url="@{url}"/>
 		  					]]>
 		  					</replace>
-						<insert path="/railo-configuration/extensions" position="under" unless="extension.exists">
+						<insert path="/*[1]/extensions" position="under" unless="extension.exists">
 							<![CDATA[
 								<provider url="@{url}"/>
 		  					]]>
@@ -1501,22 +1502,22 @@
 					<antcontrib:var name="some.gateway.exists" unset="true" />
 					<xmltask source="${railo.config.file}" dest="${railo.config.file}">
 						<xmlcatalog refId="commonDTDs" />
-						<copy path="/railo-configuration/gateways/text()" property="some.gateway.exists" />
+						<copy path="/*[1]/gateways/text()" property="some.gateway.exists" />
 						<!-- if no gateways at all, just insert -->
-						<insert path="/railo-configuration" position="under" unless="some.gateway.exists">
+						<insert path="/*[1]" position="under" unless="some.gateway.exists">
 							<![CDATA[
 						    <gateways>
 							<gateway cfc-path="@{cfc-path}" class="" custom="directory=@{directory}&amp;interval=@{interval}&amp;changeFunction=@{changeFunction}&amp;extensions=@{extensions}&amp;recurse=@{recurse}&amp;addFunction=@{addFunction}&amp;deleteFunction=@{deleteFunction}" id="@{id}" listener-cfc-path="@{listener-cfc-path}" read-only="@{read-only}" startup-mode="@{startup-mode}"/>
 						    </gateways>
 		  					]]>
 						</insert>
-						<copy path="/railo-configuration/gateways/gateway[@id='@{id}']/@id" attrValue="true" property="gateway.exists" />
-						<replace path="/railo-configuration/gateways/provider[@url='@{url}']/text()" if="gateway.exists">
+						<copy path="/*[1]/gateways/gateway[@id='@{id}']/@id" attrValue="true" property="gateway.exists" />
+						<replace path="/*[1]/gateways/provider[@url='@{url}']/text()" if="gateway.exists">
 							<![CDATA[
 							<gateway cfc-path="@{cfc-path}" class="" custom="directory=@{directory}&amp;interval=@{interval}&amp;changeFunction=@{changeFunction}&amp;extensions=@{extensions}&amp;recurse=@{recurse}&amp;addFunction=@{addFunction}&amp;deleteFunction=@{deleteFunction}" id="@{id}" listener-cfc-path="@{listener-cfc-path}" read-only="@{read-only}" startup-mode="@{startup-mode}"/>
 		  					]]>
 		  					</replace>
-						<insert path="/railo-configuration/gateways" position="under" unless="gateway.exists">
+						<insert path="/*[1]/gateways" position="under" unless="gateway.exists">
 							<![CDATA[
 							<gateway cfc-path="@{cfc-path}" class="" custom="directory=@{directory}&amp;interval=@{interval}&amp;changeFunction=@{changeFunction}&amp;extensions=@{extensions}&amp;recurse=@{recurse}&amp;addFunction=@{addFunction}&amp;deleteFunction=@{deleteFunction}" id="@{id}" listener-cfc-path="@{listener-cfc-path}" read-only="@{read-only}" startup-mode="@{startup-mode}"/>
 		  					]]>
@@ -1546,7 +1547,7 @@
 		<sequential>
 			<echo message="scope setting @{setting} = @{value}"/>
 			<xmltask source="@{configfile}" dest="@{configfile}">
-				<attr path="/railo-configuration/scope" attr="@{setting}" value="@{value}" />
+				<attr path="/*[1]/scope" attr="@{setting}" value="@{value}" />
 			</xmltask>
 		</sequential>
 	</macrodef>	
@@ -1558,8 +1559,8 @@
 		<sequential>
 			<echo message="applicationlistener listener-mode:@{listener-mode} listener-type:@{listener-type}"/>
 			<xmltask source="@{configfile}" dest="@{configfile}">
-				<attr path="/railo-configuration/application" attr="listener-mode" value="@{listener-mode}" />
-				<attr path="/railo-configuration/application" attr="listener-type" value="@{listener-type}" />
+				<attr path="/*[1]/application" attr="listener-mode" value="@{listener-mode}" />
+				<attr path="/*[1]/application" attr="listener-type" value="@{listener-type}" />
 			</xmltask>
 		</sequential>
 	</macrodef>	
@@ -1572,9 +1573,9 @@
 		<sequential>
 			<echo message="flex configuration:@{configuration} caster-class:@{caster-class} caster-class-arguments:@{caster-class-arguments}"/>
 			<xmltask source="@{configfile}" dest="@{configfile}">
-				<attr path="/railo-configuration/flex" attr="configuration" value="@{configuration}" />
-				<attr path="/railo-configuration/flex" attr="caster-class" value="@{caster-class}" />
-				<attr path="/railo-configuration/flex" attr="caster-class-arguments" value="@{caster-class-arguments}" />
+				<attr path="/*[1]/flex" attr="configuration" value="@{configuration}" />
+				<attr path="/*[1]/flex" attr="caster-class" value="@{caster-class}" />
+				<attr path="/*[1]/flex" attr="caster-class-arguments" value="@{caster-class-arguments}" />
 			</xmltask>
 		</sequential>
 	</macrodef>	
@@ -1586,7 +1587,7 @@
 		<sequential>
 			<echo message="security setting @{setting} = @{value}"/>
 			<xmltask source="@{configfile}" dest="@{configfile}">
-				<attr path="/railo-configuration/security" attr="@{setting}" value="@{value}" />
+				<attr path="/*[1]/security" attr="@{setting}" value="@{value}" />
 			</xmltask>
 		</sequential>
 	</macrodef>	
@@ -1598,7 +1599,7 @@
 		<sequential>
 			<echo message="regional setting @{setting} = @{value}"/>
 			<xmltask source="@{configfile}" dest="@{configfile}">
-				<attr path="/railo-configuration/regional" attr="@{setting}" value="@{value}" />
+				<attr path="/*[1]/regional" attr="@{setting}" value="@{value}" />
 			</xmltask>
 		</sequential>
 	</macrodef>	
@@ -1610,7 +1611,7 @@
 		<sequential>
 			<echo message="file-system setting @{setting} = @{value}"/>
 			<xmltask source="@{configfile}" dest="@{configfile}">
-				<attr path="/railo-configuration/file-system" attr="@{setting}" value="@{value}" />
+				<attr path="/*[1]/file-system" attr="@{setting}" value="@{value}" />
 			</xmltask>
 		</sequential>
 	</macrodef>	
@@ -1622,8 +1623,8 @@
 		<sequential>
 			<echo message="file-system setting @{setting} = @{value}"/>
 			<xmltask source="@{configfile}" dest="@{configfile}">
-				<attr path="/railo-configuration/system" attr="out" value="@{out}" />
-				<attr path="/railo-configuration/system" attr="err" value="@{err}" />
+				<attr path="/*[1]/system" attr="out" value="@{out}" />
+				<attr path="/*[1]/system" attr="err" value="@{err}" />
 			</xmltask>
 		</sequential>
 	</macrodef>	
