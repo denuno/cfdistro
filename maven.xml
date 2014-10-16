@@ -572,10 +572,11 @@
 		<input message="artifactId:" addproperty="artifactId" />
 		<input message="name:" addproperty="name" />
 		<input message="version:" addproperty="version" />
+		<input message="classifier:" addproperty="classifier" />
 		<antcontrib:propertyregex property="suffix.name"
 		 input="${artifact}" regexp="(.*)\.(.*)" select="\2" override="true"/>
 		<pom-and-deploy pomid="addartifact" packaging="${suffix.name}" artifact="${artifact}"
-         groupId="${group}" artifactId="${artifactId}" version="${version}" name="${name}"/>
+         groupId="${group}" artifactId="${artifactId}" version="${version}" name="${name}" classifier="${classifier}" />
 		</sequential>
 	</target>
 	
