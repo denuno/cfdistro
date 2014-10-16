@@ -134,16 +134,16 @@
 	</target>	
 		
     <target name="jre.8.update" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="update Java 8 JREs">
-		<property name="jre.suffix" value="8u20" />
-		<property name="mvn.jre.oslist" value="macosx-x64:b26,linux-i586:b26,linux-x64:b26,windows-i586:b26,windows-x64:b26" />
+		<property name="jre.suffix" value="8u25" />
+		<property name="mvn.jre.oslist" value="macosx-x64:b17,linux-i586:b17,linux-x64:b17,windows-i586:b18,windows-x64:b18" />
 		<antcontrib:runtarget target="jre.7.update" />
     </target>
 
 	<target name="jre.7.update" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="update Java 7 JREs">
         <property name="jre.type" value="jre" />
 		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
-		<property name="jre.suffix" value="7u67" />
-		<property name="mvn.jre.oslist" value="macosx-x64:b01,linux-i586:b01,linux-x64:b01,windows-i586:b01,windows-x64:b01" />
+		<property name="jre.suffix" value="7u71" />
+		<property name="mvn.jre.oslist" value="macosx-x64:b14,linux-i586:b14,linux-x64:b14,windows-i586:b14,windows-x64:b14" />
 		<property name="mvn.jre.dir" location="${basedir}/../${jre.type}" />
 		<property name="jre.prefix" value="${jre.type}-${jre.suffix}" />
 		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/${jre.suffix}" />
