@@ -1,6 +1,6 @@
 <project name="runwar" default="runwar.install" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
-	<property name="runwar.version" value="2.0.7" />
+	<property name="runwar.version" value="2.1.0" />
 	<property name="runwar.jar" value="runwar-${runwar.version}.jar" />
 	<property name="runwar.jar.file" value="${cfdistro.lib.dir}/${runwar.jar}" />
 	<dirname property="runwar.basedir" file="${ant.file.runwar}" />

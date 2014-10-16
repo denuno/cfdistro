@@ -398,9 +398,7 @@
 					<echo message="no custom properties: ${basedir}/build.@{buildtype}.properties" />
 					<antcontrib:trycatch>
 						<try>
-							<!-- note="do it twice to catch any already defined deals" -->
-							<antcontrib:var file="${cfdistro.basedir}/buildtypes/build.@{buildtype}.properties" />
-							<antcontrib:var file="${cfdistro.basedir}/buildtypes/build.@{buildtype}.properties" />
+							<loadproperties srcFile="${cfdistro.basedir}/buildtypes/build.@{buildtype}.properties" />
 							<echo message="loaded built-in custom properties: ${cfdistro.basedir}/buildtypes/build.@{buildtype}.properties" />
 						</try>
 						<catch>
@@ -427,10 +425,11 @@
 
 	<macrodef name="load-properties-if-not-defined">
 		<attribute name="file" />
+		<attribute name="silent" default="false" />
 		<sequential>
-			<storeUserProperties silent="true"/>
+			<storeUserProperties silent="@{silent}"/>
 			<antcontrib:var file="@{file}" />
-			<restoreUserProperties silent="true" />
+			<restoreUserProperties silent="@{silent}" />
 		</sequential>
 	</macrodef>
 

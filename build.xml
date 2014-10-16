@@ -500,6 +500,7 @@
 		<antcontrib:if>
 			<equals arg1="${cfeclipsecall.install}" arg2="true" />
 			<then>
+				<echo message="installing cfeclipsecall error templates" />
 				<property name="cfmlengine.inspect.templates" value="always" />
 				<addlibs from="${cfdistro.basedir}/cfeclipse" />
 				<copy file="${cfdistro.basedir}/cfeclipse/cfeclipsecall.cfm" todir="${war.target.dir}" />
@@ -1032,7 +1033,8 @@
 			</else>
 		</antcontrib:if>
 		<mkdir dir="${temp.dir}" />
-		<echoproperties destfile="${temp.file}"/>
+		<delete file="${temp.file}" />
+		<echoproperties destfile="${temp.file}" />
 		<loadfile property="mappings.xml" srcFile="${mappings.file}">
 			<filterchain>
 				<replacetokens>
