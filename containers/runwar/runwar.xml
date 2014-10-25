@@ -1,6 +1,19 @@
+<?xml version="1.0" standalone="yes" ?>
+<!DOCTYPE project
+[
+    <!ENTITY launch4jexclusions '<exclusions><exclusion groupId="commons-logging" artifactId="commons-logging"/>
+	    <exclusion groupId="commons-beanutils" artifactId="commons-beanutils"/>
+	    <exclusion groupId="net.java.abeille" artifactId="abeille"/>
+	    <exclusion groupId="foxtrot" artifactId="foxtrot"/>
+	    <exclusion groupId="com.jgoodies" artifactId="jgoodies-common"/>
+	    <exclusion groupId="com.jgoodies" artifactId="forms"/>
+	    <exclusion groupId="com.jgoodies" artifactId="looks"/>
+	    <exclusion groupId="com.thoughtworks.xstream" artifactId="xstream"/>
+	    <exclusion groupId="org.apache.ant" artifactId="ant"/></exclusions>'>
+]>
 <project name="runwar" default="runwar.install" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
-	<property name="runwar.version" value="2.1.0" />
+	<property name="runwar.version" value="2.2.0" />
 	<property name="runwar.jar" value="runwar-${runwar.version}.jar" />
 	<property name="runwar.jar.file" value="${cfdistro.lib.dir}/${runwar.jar}" />
 	<dirname property="runwar.basedir" file="${ant.file.runwar}" />
@@ -352,29 +365,71 @@ __ARCHIVE_FOLLOWS__
 		<attribute name="headerType" default="gui" />
 		<attribute name="customProcName" default="true" />
 		<attribute name="mutexName" default="java.runner" />
+		<attribute name="launch4jversion" default="3.5.0" />
 		
 		<sequential>
-			<requires-ext resource="${ext.dir}/launch4j" />
+			<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
+				dest="${cfdistro.lib.dir}/launch4j" unzip="false"/>
+
+			<antcontrib:switch value="${os.family}">
+			  <case value="windows">
+				<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
+					dest="${cfdistro.lib.dir}/launch4j" unzip="true" classifier="workdir-win32">
+					    &launch4jexclusions;
+				</dependency>
+				<antcontrib:var name="launch4j.bindir" value="${cfdistro.lib.dir}/launch4j/launch4j-@{launch4jversion}-workdir-win32"/>
+			  </case>
+			  <case value="unix">
+				<antcontrib:switch value="${os.name}">
+				  <case value="Mac OS X">
+					<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
+						dest="${cfdistro.lib.dir}/launch4j" unzip="true" classifier="workdir-mac">
+					    &launch4jexclusions;
+					</dependency>
+					<antcontrib:var name="launch4j.bindir" value="${cfdistro.lib.dir}/launch4j/launch4j-@{launch4jversion}-workdir-mac"/>
+				  </case>
+				  <case value="Linux">
+					<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
+						dest="${cfdistro.lib.dir}/launch4j" unzip="true" classifier="workdir-linux">
+					    &launch4jexclusions;
+					</dependency>
+					<antcontrib:var name="launch4j.bindir" value="${cfdistro.lib.dir}/launch4j/launch4j-@{launch4jversion}-workdir-linux"/>
+				  </case>
+				  <default>
+				  	<fail message="Um, the os '${os.name}' is unknown to me, esse!" />
+				  </default>
+				</antcontrib:switch>
+			  </case>
+			  <default>
+			  	<fail message="Um, the os '${os.family}' is unknown to me, esse!" />
+			  </default>
+			</antcontrib:switch>
+
+			<move toDir="${cfdistro.lib.dir}/launch4j/">
+				<fileset dir="${launch4j.bindir}"/>
+			</move>
+			<antcontrib:var name="launch4j.bindir" value="${cfdistro.lib.dir}/launch4j/bin" />
+
 			<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask"
-			    classpath="${cfdistro.basedir}/ext/launch4j/launch4j.jar:${cfdistro.basedir}/ext/launch4j/lib/xstream.jar" />
+			    classpath="${cfdistro.lib.dir}/launch4j/launch4j-3.5.0.jar:${cfdistro.lib.dir}/launch4j/xstream-1.4.7.jar" />
+			
 			<echo message="EXE Type: @{headerType} for @{jar}"/>
-			<chmod dir="${cfdistro.basedir}/ext/launch4j/bin/" perm="ugo+rx" includes="*"/>
+			<chmod dir="${launch4j.bindir}" perm="ugo+rx" includes="*"/>
 			<antcontrib:if>
 				<equals arg1="@{headerType}" arg2="console" />
 				<then>
-					<launch4j>
+					<launch4j bindir="${launch4j.bindir}">
 						<config headerType="console"  outFile="@{exe}" jar="@{jar}" 
-							errTitle="Error initializing" chdir="." icon="@{icon}" customProcName="@{customProcName}">
-							<!-- <singleInstance mutexName="@{mutexName}" /> -->
-							<jre path="./jre/" minVersion="1.6.0" />
+							errTitle="Error initializing" chdir="." icon="@{icon}">
+							<jre path="./jre/" minVersion="1.7.0" />
 						</config>
 					</launch4j>
 				</then>
 				<else>
-					<launch4j>
-						<config dontWrapJar="false" headerType="@{headerType}" outFile="@{exe}" jar="@{jar}" errTitle="Install Error" cmdLine="" chdir="." downloadUrl="http://java.com/download" supportUrl="" customProcName="@{customProcName}" stayAlive="@{stayalive}" icon="@{icon}">
+					<launch4j bindir="${launch4j.bindir}">
+						<config dontWrapJar="false" headerType="@{headerType}" outFile="@{exe}" jar="@{jar}" errTitle="Install Error" cmdLine="" chdir="." downloadUrl="http://java.com/download" supportUrl="" stayAlive="@{stayalive}" icon="@{icon}">
 							<var>-Dappdir=&quot;&quot; </var>
-							<jre path="./jre/" minVersion="1.6.0" />
+							<jre path="./jre/" minVersion="1.7.0" />
 							<versionInfo fileVersion="${product.version}" txtFileVersion="${product.version.txt}" fileDescription="${product.name.short} Windows Install" copyright="2009" productVersion="${product.version}" txtProductVersion="${product.version.txt}" productName="${product.name.short}" companyName="${company.name}" internalName="${war.name}.jar" originalFilename="${war.name}.exe" />
 							<messages startupErr="An error occurred while starting the application." bundledJreErr="This application was configured to use a bundled Java Runtime Environment but the runtime is missing or corrupted." jreVersionErr="This application requires a Java Runtime Environment.\nAt least version" launcherErr="The registry refers to a nonexistent Java Runtime Environment installation or the runtime is corrupted." instanceAlreadyExistsMsg="An application instance is already running." />
 						</config>
