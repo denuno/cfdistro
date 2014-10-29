@@ -61,9 +61,13 @@
 		<attribute name="version" />
 		<attribute name="name" />
 		<attribute name="classname" />
+		<attribute name="dest" default="${cfdistro.lib.dir}/" />
+		<element name="exclusions" implicit="true" optional="true"/>
 		<sequential>
-			<dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" dest="${cfdistro.lib.dir}/" type="jar" unzip="false"/>
-			<taskdef name="@{name}" classname="@{classname}" classpath="${cfdistro.lib.dir}/@{artifactId}-@{version}.jar" />
+			<dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" dest="@{dest}" type="jar" unzip="false">
+				<exclusions/>
+			</dependency>
+			<taskdef name="@{name}" classname="@{classname}" classpath="@{dest}/@{artifactId}-@{version}.jar" />
 		</sequential>
 	</macrodef>
 
@@ -208,6 +212,7 @@
 	<import file="vm/build.xml" />
 	<import file="air/build.xml" />
 	<import file="rpm.xml" />
+	<import file="deb.xml" />
 	<import file="ci.xml" />
 	<import file="docgen.xml" />
 

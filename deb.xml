@@ -1,0 +1,79 @@
+<project name="deb" xmlns:antcontrib="antlib:net.sf.antcontrib" basedir=".">
+	
+	<macrodef name="deb-create">
+		<attribute name="todir" />
+		<attribute name="package"/>
+		<attribute name="version" default=""/>
+		<attribute name="section"/>
+		<attribute name="priority" default="extra"/>
+		<attribute name="arch" default="all"/>
+		<attribute name="depends" default=""/>
+		<attribute name="maintainer" default=""/>
+		<attribute name="description"/>
+		<attribute name="debname" default="@{package}_@{version}-1_@{arch}.deb"/>
+		<attribute name="key" default=""/>
+		<attribute name="passphrase" default=""/>
+		<attribute name="keyring" default=""/>
+		<attribute name="n" default="${line.separator}"/>
+		<element name="tarfilesets" implicit="true"/>
+		<sequential>
+			<delete dir="${temp.dir}/deb"/>
+			<mkdir dir="${temp.dir}/deb/control"/>
+			<echo file="${temp.dir}/deb/control/control" 
+			message="Package: @{package}@{n}Version: @{version}@{n}Section: @{section}@{n}Priority: @{priority}@{n}Architecture: @{arch}@{n}Depends: @{depends}@{n}Maintainer: @{maintainer}@{n}Description: @{description}@{n}"/>
+			<jdeb destfile="@{todir}/@{debname}" control="${temp.dir}/deb/control" verbose="true" 
+				key="@{key}" keyring="@{keyring}" passphrase="@{passphrase}">
+				<tarfilesets />
+		    </jdeb>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="jdeb">
+		<attribute name="destfile"/>
+		<attribute name="control"/>
+		<attribute name="key" default=""/>
+		<attribute name="passphrase" default=""/>
+		<attribute name="keyring" default=""/>
+		<attribute name="verbose" default="false"/>
+		<element name="tarfilesets" implicit="true"/>
+		<sequential>
+			<taskdef-dependency name="jdeb" classname="org.vafer.jdeb.ant.DebAntTask" groupId="org.vafer" artifactId="jdeb" version="1.3" dest="${cfdistro.lib.dir}/jdeb">
+				<exclusions>
+				<exclusion groupId="commons-io" artifactId="commons-io"/>
+				<exclusion groupId="org.apache.commons" artifactId="commons-compress"/>
+				<exclusion groupId="org.apache.maven" artifactId="maven-core"/>
+				<exclusion groupId="org.apache.maven" artifactId="maven-plugin-api"/>
+				<exclusion groupId="org.apache.ant" artifactId="ant"/>
+				<exclusion groupId="org.bouncycastle" artifactId="bcpg-jdk15on"/>
+				</exclusions>
+			</taskdef-dependency>
+			<jdeb destfile="@{destfile}" control="@{control}" verbose="@{verbose}" 
+				key="@{key}" keyring="@{keyring}" passphrase="@{passphrase}">
+				<tarfilesets />
+		    </jdeb>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="deb-repo">
+		<attribute name="dir" default="/opt/repo/debs/" />
+		<attribute name="key" default=""/>
+		<attribute name="passphrase" default=""/>
+		<attribute name="keyring" default=""/>
+		<attribute name="verbose" default="false"/>
+		<attribute name="origin" default=""/>
+		<attribute name="label" default=""/>
+		<attribute name="suite" default=""/>
+		<attribute name="version" default=""/>
+		<attribute name="codename" default=""/>
+		<attribute name="architectures" default=""/>
+		<attribute name="components" default=""/>
+		<attribute name="description" default=""/>
+		<sequential>
+			<taskdef-dependency name="debrepo" classname="debrepo.ant.DebRepoTask" artifactId="debrepo" groupId="org.cfmlprojects" version="1.0.0" />
+			<debrepo repoDir="@{dir}" verbose="@{verbose}" key="@{key}" passphrase="@{passphrase}" keyring="@{keyring}"
+				origin="@{origin}" label="@{label}" suite="@{suite}" version="@{version}" codename="@{codename}" 
+				architectures="@{architectures}" components="@{components}" description="@{description}"/>
+		</sequential>
+	</macrodef>
+		
+</project>

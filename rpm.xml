@@ -1,8 +1,6 @@
 <project name="rpm" default="rpm" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:redline="antlib:org.redline_rpm"  basedir=".">
 	
     <target name="bootstrap_redline">
-		<dependency artifactId="ant-deb-0-0-1" groupId="cfdistro.lib" version="1.0.0.0" dest="${cfdistro.lib.dir}" type="jar" unzip="false"/>
-		<taskdef-dependency name="deb" classname="com.googlecode.ant_deb_task.Deb" artifactId="ant-deb-0-0-1" version="1.0.0.0" />
 		<taskdef-dependency name="redline" classname="org.redline_rpm.RedlineTask" artifactId="redline-1-1-10-SNAPSHOT" version="1.0.0.0" />
     </target>
     
@@ -157,7 +155,7 @@ fi
 	enabled=1
 	gpgcheck=0" />
 	</target>
-	
+
 	<macrodef name="rpm-create">
 		<attribute name="rpm.user" default="cfml" />
 		<attribute name="rpm.source.dir" default="${dist.dir}" />
@@ -170,6 +168,7 @@ fi
 		<attribute name="rpm.release" default="1" />
 		<attribute name="rpm.url" default="http://cfmlprojects.org/cfdistro" />
 		<attribute name="rpm.repo" default="${cfdistro.basedir}/artifacts/RPMS/noarch" />
+		<attribute name="failonerror" default="true" />
 		<element name="tarfilesets" implicit="true"/>
 		<sequential>
 			<antcontrib:runtarget target="bootstrap_redline" />
@@ -180,14 +179,15 @@ fi
 				<depends name="java" version=""/>
 				<tarfilesets />
 			</redline>
-			<rpm-repo dir="${rpm.repo}" />
+			<rpm-repo dir="${rpm.repo}" failonerror="@{failonerror}"/>
 		</sequential>
 	</macrodef>
 
 	<macrodef name="rpm-repo">
 		<attribute name="dir" default="/opt/repo/RPMS/noarch" />
+		<attribute name="failonerror" default="true" />
 		<sequential>
-			<exec executable="createrepo">
+			<exec executable="createrepo" failonerror="@{failonerror}" failifexecutionfails="@{failonerror}">
 				<arg value="-v"/>
 				<arg value="-d"/>
 				<arg value="@{dir}"/>
@@ -195,18 +195,6 @@ fi
 		</sequential>
 	</macrodef>
 	
-	<macrodef name="deb-repo">
-		<attribute name="dir" default="/opt/repo/debs/noarch" />
-		<attribute name="dpkg-scanpackages" default="/usr/bin/dpkg-scanpackages" />
-		<sequential>
-			<property name="tmpdebrepo.sh" location="${temp.dir}/debrepo.sh" />
-			<echo file="${tmpdebrepo.sh}" message="@{dpkg-scanpackages} noarch | gzip -9c > @{dir}/../Packages.gz"/> 
-			<exec executable="/bin/sh" dir="@{dir}/../">
-				<arg line="${tmpdebrepo.sh}"/>
-			</exec>
-		</sequential>
-	</macrodef>
-
 	<macrodef name="cfdistro-rpm">
 		<attribute name="rpm.user" default="cfml" />
 		<attribute name="rpm.source.dir" default="${dist.dir}" />
