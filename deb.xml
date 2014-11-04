@@ -4,6 +4,7 @@
 		<attribute name="todir" />
 		<attribute name="package"/>
 		<attribute name="version" default=""/>
+		<attribute name="distribution" default="release"/>
 		<attribute name="section"/>
 		<attribute name="priority" default="extra"/>
 		<attribute name="arch" default="all"/>
@@ -18,10 +19,21 @@
 		<element name="tarfilesets" implicit="true"/>
 		<sequential>
 			<delete dir="${temp.dir}/deb"/>
-			<mkdir dir="${temp.dir}/deb/control"/>
-			<echo file="${temp.dir}/deb/control/control" 
-			message="Package: @{package}@{n}Version: @{version}@{n}Section: @{section}@{n}Priority: @{priority}@{n}Architecture: @{arch}@{n}Depends: @{depends}@{n}Maintainer: @{maintainer}@{n}Description: @{description}@{n}"/>
-			<jdeb destfile="@{todir}/@{debname}" control="${temp.dir}/deb/control" verbose="true" 
+			<mkdir dir="${temp.dir}/deb/debian"/>
+			<tstamp><format property="debchangedate" pattern="EEE, dd MMM yyyy HH:mm:ss Z" locale="en,GB"/></tstamp>
+<!--			<echo file="${temp.dir}/deb/debian/changelog" message="@{package} (@{version}) distribution(s); urgency=urgency
+* change details
+-&dash; maintainer @{maintainer}  ${debchangedate}" />
+-->
+			<echo file="${temp.dir}/deb/debian/changelog" message=" * changes for the next release
+@{distribution} date=${debchangedate}, version=@{version}, urgency=low, by=@{maintainer}
+release distribution=production
+ * change1
+ * change2
+" />
+			<echo file="${temp.dir}/deb/debian/control" 
+			message="Package: @{package}@{n}Distribution: @{distribution}@{n}Version: @{version}@{n}Section: @{section}@{n}Priority: @{priority}@{n}Architecture: @{arch}@{n}Depends: @{depends}@{n}Maintainer: @{maintainer}@{n}Description: @{description}@{n}"/>
+			<jdeb destfile="@{todir}/@{debname}" control="${temp.dir}/deb/debian" verbose="true" 
 				key="@{key}" keyring="@{keyring}" passphrase="@{passphrase}">
 				<tarfilesets />
 		    </jdeb>
@@ -35,6 +47,8 @@
 		<attribute name="passphrase" default=""/>
 		<attribute name="keyring" default=""/>
 		<attribute name="verbose" default="false"/>
+		<attribute name="changesIn" default="@{control}/changelog"/>
+		<attribute name="changesSave" default="@{control}/changelog2"/>
 		<element name="tarfilesets" implicit="true"/>
 		<sequential>
 			<taskdef-dependency name="jdeb" classname="org.vafer.jdeb.ant.DebAntTask" groupId="org.vafer" artifactId="jdeb" version="1.3" dest="${cfdistro.lib.dir}/jdeb">
@@ -47,7 +61,15 @@
 				<exclusion groupId="org.bouncycastle" artifactId="bcpg-jdk15on"/>
 				</exclusions>
 			</taskdef-dependency>
-			<jdeb destfile="@{destfile}" control="@{control}" verbose="@{verbose}" 
+			<antcontrib:if>
+				<equals arg1="@{keyring}" arg2=""/>
+				<then><antcontrib:var name="jdeb.signPackage" value="false"/></then>
+				<else><antcontrib:var name="jdeb.signPackage" value="true"/></else>
+			</antcontrib:if>
+			<echo message="@{changesIn} **********  " />
+			<echo message="@{changesSave}" />
+			<jdeb destfile="@{destfile}" control="@{control}" verbose="@{verbose}"
+				changesIn="@{changesIn}" changesSave="@{changesSave}"
 				key="@{key}" keyring="@{keyring}" passphrase="@{passphrase}">
 				<tarfilesets />
 		    </jdeb>

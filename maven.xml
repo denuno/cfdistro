@@ -253,7 +253,7 @@
 		</antcontrib:if>
 	        <antcontrib:var unset="true" name="_dependency.fileset" />
 	        <path id="maven.ant.tasks.classpath" path="${maven.ant.tasks.jar}" />
-	        <artifact:dependencies filesetId="_dependency.fileset" useScope="@{scope}">
+	        <artifact:dependencies filesetId="_dependency.fileset" pathId="classpath.@{groupId}.@{artifactId}" useScope="@{scope}">
 	            <dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" classifier="@{classifier}" type="@{type}">
 	            	<additional/>
 	            </dependency>

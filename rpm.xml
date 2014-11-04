@@ -1,160 +1,121 @@
-<project name="rpm" default="rpm" xmlns:antcontrib="antlib:net.sf.antcontrib" xmlns:redline="antlib:org.redline_rpm"  basedir=".">
+<project name="rpm" default="rpm" xmlns:antcontrib="antlib:net.sf.antcontrib" basedir=".">
 	
-    <target name="bootstrap_redline">
-		<taskdef-dependency name="redline" classname="org.redline_rpm.RedlineTask" artifactId="redline-1-1-10-SNAPSHOT" version="1.0.0.0" />
+    <property name="redline.version" value="1.2.1-SNAPSHOT" />
+    <property name="redline.version" value="1.1.16" />
+	<target name="bootstrap_redline" description="backwards compatibility">
     </target>
-    
-	<target name="rpm" depends="bootstrap_redline">
-		<mkdir dir="rpms" />
-		<!--  make RC rpm -->
-		<property name="rpm.user" value="railo" />
-		<echo file="${temp.dir}/preinstall.sh">
-		<![CDATA[if [ -e /home/${rpm.user} ]; then
-  echo "${rpm.user} user exists, thus not trying to add again" >&2
-else
-	mkdir -p /home/${rpm.user}
-	useradd -d /home/${rpm.user} ${rpm.user}
-fi
-]]>
-		</echo>
-		<property name="rpm.railo.dir" value="/opt/railo/${railo.build.version.major}" />
-		<property name="rpm.packager" value="Railo" />
-		<!--  make libs rpm -->
-		<redline destination="rpms" release="1"
-			group="org.getrailo" name="railo-libs" version="${railo.build.version.major}"
-			preinstallscript="${temp.dir}/preinstall.sh" packager="${rpm.packager}"
-			url="http://getrailo.org">
-			<tarfileset dir="${railo.lib.dir}" prefix="${rpm.railo.dir}/libs"
-				 filemode="644" username="railo" group="railo" excludes=".classpath, .project" />
-			<link path="/opt/railo/libs" target="${rpm.railo.dir}/libs" />
-		</redline>
-		<!--  make core rpm -->
-		<redline destination="rpms"  
-			provides="railo" release="1"
-			group="org.getrailo" name="railo-core" version="${railo.build.version.long}"
-			preinstallscript="${temp.dir}/preinstall.sh" packager="${rpm.packager}"
-			url="http://getrailo.org">
-			<tarfileset prefix="${rpm.railo.dir}/railo-server/patches" 
-					file="${railobuild.dist.dir}/rc/${railo.build.version.long}.rc"
-					filemode="644" username="${rpm.user}" group="${rpm.user}" />
-			<depends name="railo-libs" version="${railo.build.version.major}"/>
-			<link path="/opt/railo/railo-server" target="${rpm.railo.dir}/railo-server"/>
-		</redline>
-		<!--  make runner rpm -->
-		<echo file="${temp.dir}/postinstall.sh">
-		<![CDATA[echo "java -jar runwar.jar" > ${rpm.railo.dir}/railo.sh]]>
-		</echo>
-		<antcontrib:var name="runwar.jar.location" value="${temp.dir}/runwar.jar" />
-		<antcontrib:runtarget target="runwar.jetty.jar" />
-		<redline destination="rpms" release="1"
-			group="org.getrailo" name="railo-runner" version="${railo.build.version.long}"
-			postinstallscript="${temp.dir}/postinstall.sh" packager="${rpm.packager}"
-			url="http://getrailo.org">
-			<tarfileset file="${temp.dir}/runwar.jar" prefix="${rpm.railo.dir}/runner"
-				 filemode="644" username="railo" group="railo" excludes=".classpath, .project" />
-			<tarfileset dir="${basedir}/resource/railo-war-template" prefix="${rpm.railo.dir}/webroot"
-				 filemode="644" username="railo" group="railo"/>
-			<depends name="railo" version=""/>
-		</redline>
-	</target>
-	
-	<target name="cfdistro.rpm" depends="bootstrap_redline">
-		<property name="rpm.user" value="cfml" />
-		<property name="rpm.source.dir" value="${dist.dir}" />
-		<property name="rpm.target.dir" value="/opt/${distro.name}" />
-		<property name="rpm.packager" value="cfdistro" />
-		<property name="rpm.group" value="cfdistro" />
-		<property name="rpm.name" value="${distro.name}" />
-		<property name="rpm.version" value="1.0.0.0" />
-		<property name="rpm.url" value="http://cfmlprojects.org/cfdistro" />
-		<property name="rpm.repo" value="${basedir}/../RPMS/noarch" />
-		<cfdistro-rpm
-			rpm.user="${rpm.user}"
-			rpm.source.dir="${rpm.source.dir}"
-			rpm.target.dir="${rpm.target.dir}"
-			rpm.packager="${rpm.packager}"
-			rpm.group="${rpm.group}"
-			rpm.name="${rpm.name}"
-			rpm.version="${rpm.version}"
-			rpm.url="${rpm.url}"
-			rpm.repo="${rpm.repo}"
-		/>
-	</target>
-	
-	<target name="build.cfdistro.rpm" depends="bootstrap_redline">
-		<property name="rpm.user" value="root" />
-		<property name="rpm.source.dir" value="${cfdistro.basedir}" />
-		<property name="rpm.source.excludes" value="ext/**,artifacts/**,dist/**,**/.git/**,**/.svn/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**,lib/**" />
-		<property name="rpm.target.dir" value="/opt/cfdistro" />
-		<property name="rpm.packager" value="cfdistro" />
-		<property name="rpm.group" value="cfdistro" />
-		<property name="rpm.name" value="cfdistro" />
-		<property name="rpm.url" value="http://cfmlprojects.org/cfdistro" />
-		<property name="rpm.repo" value="${cfdistro.basedir}/artifacts/RPMS/noarch" />
-		<mkdir dir="${rpm.repo}"/>
 
-		<property name="cfdistro.version.bump" value="none" description="one of [major|minor|build|revision] or empty to not bump number."/>
-		<antcontrib:var file="cfdistro.properties" />
-		<version-splitter property="cfdistro.build.version" version="${cfdistro.version}" bump="${cfdistro.version.bump}"/>
-		<antcontrib:var name="cfdistro.version" value="${cfdistro.build.version.long}" />
-		<echoproperties>
-			<propertyset>
-				<propertyref prefix="build." />
-				<propertyref prefix="cfdistro." />
-			</propertyset>
-		</echoproperties>
-		<property name="rpm.version" value="${cfdistro.version}" />
-		<echo file="${temp.dir}/cfdistro">${rpm.target.dir}/bin/cfdistro $*</echo>
-		<echo message="using rpm.repo: ${rpm.repo}" />
-		<redline destination="${rpm.repo}" release="1"
-			group="${rpm.group}" name="${rpm.name}" version="${rpm.version}"
-			packager="${rpm.packager}"
-			url="${rpm.url}">
-			<tarfileset prefix="${rpm.target.dir}" 
-					dir="${rpm.source.dir}" excludes="${rpm.source.excludes},bin/**"
-					filemode="644" username="${rpm.user}" group="${rpm.user}" />
-			<tarfileset prefix="${rpm.target.dir}/bin/" 
-					file="${rpm.source.dir}/bin/*"
-					filemode="755" username="${rpm.user}" group="${rpm.user}" />
-			<tarfileset prefix="/bin/" 
-					file="${temp.dir}/cfdistro"
-					filemode="755" username="${rpm.user}" group="${rpm.user}" />
-		</redline>
-		<echo file="cfdistro.properties" message="cfdistro.version=${cfdistro.version}" />
-		<rpm-repo dir="${rpm.repo}" />
+	<macrodef name="rpm">
+		<attribute name="user" default="cfml" />
+		<attribute name="source.dir" default="${dist.dir}" />
+		<attribute name="source.excludes" default="" />
+		<attribute name="target.dir" default="/opt/${distro.name}" />
+		<attribute name="architecture" default="NOARCH" />
+		<attribute name="packager" default="cfdistro" />
+		<attribute name="vendor" default="cfmlprojects.org" />
+		<attribute name="group" default="cfdistro" />
+		<attribute name="name" default="${distro.name}" />
+		<attribute name="summary" default="@{name}" />
+		<attribute name="description" default="@{name}" />
+		<attribute name="version" default="1.0.0.0" />
+		<attribute name="release" default="1" />
+		<attribute name="url" default="http://cfmlprojects.org/cfdistro" />
+		<attribute name="repo" default="${cfdistro.basedir}/artifacts/RPMS/noarch" />
+		<attribute name="keyring" default="" />
+		<attribute name="key" default="" />
+		<attribute name="passphrase" default="" />
+		<attribute name="useV3Signature" default="false" />
+		<attribute name="verbose" default="false" />
+		<attribute name="failonerror" default="true" />
+		<element name="tarfilesets" implicit="true"/>
+		<sequential>
+	    	<taskdef-dependency name="redline" classname="org.redline_rpm.ant.RedlineTask" groupId="org.redline-rpm" artifactId="redline" version="${redline.version}"  dest="${cfdistro.lib.dir}/redline">
+				<exclusions>
+				<exclusion groupId="org.tukaani" artifactId="xz"/>
+				<!-- <exclusion groupId="org.slf4j" artifactId="slf4j-log4j12"/> -->
+				<exclusion groupId="org.apache.ant" artifactId="ant"/>
+				</exclusions>
+			</taskdef-dependency>
+			<antcontrib:if>
+				<equals arg1="@{keyring}" arg2="" />
+				<then>
+					<redline destination="@{repo}" release="@{release}" architecture="@{architecture}"
+						group="@{group}" name="@{name}" version="@{version}"
+						summary="@{summary}" description="@{description}"
+						packager="@{packager}" url="@{url}" vendor="@{vendor}">
+						<depends name="java" version=""/>
+						<tarfilesets />
+					</redline>
+				</then>
+				<else>
+					<echo message="signing RPM with key: @{key}"/>
+					<fail-if-not-available file="@{keyring}" message="no keyring: @{keyring}" />
+					<redline destination="@{repo}" release="@{release}" architecture="@{architecture}"
+						group="@{group}" name="@{name}" version="@{version}"
+						summary="@{summary}" description="@{description}"
+						packager="@{packager}" url="@{url}" vendor="@{vendor}"
+						privateKeyRingFile="@{keyring}" privateKeyId="@{key}"
+						privateKeyPassphrase="@{passphrase}" useV3Signature="@{useV3Signature}">
+						<depends name="java" version=""/>
+						<tarfilesets />
+					</redline>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
 
-		<property name="deb.repo" value="${cfdistro.basedir}/artifacts/debs/noarch" />
-		<mkdir dir="${deb.repo}"/>
-	   	<echo message="Creating debian .deb file from: ${rpm.source.dir}"/>
-	   	<delete file="${dist.dir}/${rpm.name}-${rpm.version}-1_all.deb" />
-	   	<deb
-	        todir="${deb.repo}"
-	        package="${rpm.name}"
-	        section="web"
-	        depends="java-common">
-	        <version upstream="${cfdistro.version}"/>
-	        <maintainer name="${rpm.packager}" email="cfml@cfmlprojects.org"/>
-	        <description synopsis="${rpm.group}.${rpm.name}">${rpm.name}</description>
-			<tarfileset prefix="${rpm.target.dir}" 
-					dir="${rpm.source.dir}" excludes="${rpm.source.excludes},bin/**"
-					filemode="644" username="${rpm.user}" group="${rpm.user}" />
-			<tarfileset prefix="${rpm.target.dir}/bin/" 
-					file="${rpm.source.dir}/bin/*"
-					filemode="755" username="${rpm.user}" group="${rpm.user}" />
-			<tarfileset prefix="/bin/" 
-					file="${temp.dir}/cfdistro"
-					filemode="755" username="${rpm.user}" group="${rpm.user}" />
-	   	</deb>
-		<deb-repo dir="${deb.repo}" />
-	</target>
-	
-	<target name="add.rpmrepo.cfmlprojects" depends="bootstrap_redline">
-		<echo file="/etc/yum.repos.d/cfmlprojects.conf" message="[cfmlprojects]
-	name=cfmlprojects
-	baseurl=http://cfmlprojects.org/artifacts/RPMS/noarch
-	enabled=1
-	gpgcheck=0" />
-	</target>
+	<macrodef name="rpm-sign">
+		<attribute name="dir"/>
+		<attribute name="gpgname"/>
+		<attribute name="passphrase"/>
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="@{gpgname}" arg2=""/>
+				<then><echo message="Not signing RPM files as no gpgname was specified"/></then>
+				<else><echo file="${temp.dir}/rpmsign.expect"><![CDATA[ #!/usr/bin/expect -f
+### rpm-sign.exp -- Sign RPMs by sending the passphrase.
+log_user 0
+set gpgname [lindex $argv 0]
+set passphrase [lindex $argv 1]
+set rpmfiles [lindex $argv 2]
+set files [glob $rpmfiles]
+foreach file $files {
+	log_user 1
+ 	puts "signing $file"
+	log_user 0
+	if [catch "spawn -noecho rpm --resign -D \"_signature gpg\" -D \"_gpg_name $gpgname\" -D \"_tmppath ${temp.dir}\" $file" reason] {
+		puts "failed to spawn program: $reason\n"
+		exit 1
+	}
+	expect {
+		-exact "Enter pass phrase: " {
+			send -- "$passphrase\r"
+			expect {
+			  "Pass phrase is good." {
+			   }
+			  "Pass phrase check failed" {
+				log_user 0
+		    	puts "Failed to sign, reaseon: $expect_out(buffer)"
+				exit 1
+			  }
+			}
+	    }
+	}
+	expect eof
+}
+## end of rpm-sign.exp]]></echo>
+			<echo message="Signing RPMS in @{dir} with @{gpgname}"/>
+			<exec executable="/usr/bin/expect" dir="../" errorproperty="rpm.sign.result">
+				<arg value="${temp.dir}/rpmsign.expect"/>
+				<arg value="@{gpgname}"/>
+				<arg value="@{passphrase}"/>
+				<arg value="@{dir}/*.rpm"/>
+			</exec>
+			<echo message="${rpm.sign.result}"/>
+		</else>
+		</antcontrib:if>
+		</sequential>
+	</macrodef>
 
 	<macrodef name="rpm-create">
 		<attribute name="rpm.user" default="cfml" />
@@ -164,26 +125,37 @@ fi
 		<attribute name="rpm.packager" default="cfdistro" />
 		<attribute name="rpm.group" default="cfdistro" />
 		<attribute name="rpm.name" default="${distro.name}" />
+		<attribute name="rpm.summary" default="@{rpm.name}" />
+		<attribute name="rpm.description" default="@{rpm.name}" />
 		<attribute name="rpm.version" default="1.0.0.0" />
 		<attribute name="rpm.release" default="1" />
 		<attribute name="rpm.url" default="http://cfmlprojects.org/cfdistro" />
 		<attribute name="rpm.repo" default="${cfdistro.basedir}/artifacts/RPMS/noarch" />
+		<attribute name="rpm.reponame" default="rpmrepo" />
+		<attribute name="rpm.baseurl" default="http://127.0.0.1:8088/artifacts/RPMS/noarch" />
+		<attribute name="rpm.keyring" default="" />
+		<attribute name="rpm.key" default="" />
+		<attribute name="rpm.passphrase" default="" />
 		<attribute name="failonerror" default="true" />
 		<element name="tarfilesets" implicit="true"/>
 		<sequential>
-			<antcontrib:runtarget target="bootstrap_redline" />
-			<redline destination="@{rpm.repo}" release="@{rpm.release}"
+			<rpm repo="@{rpm.repo}" release="@{rpm.release}"
 				group="@{rpm.group}" name="@{rpm.name}" version="@{rpm.version}"
+				summary="@{rpm.summary}" description="@{rpm.description}"
 				packager="@{rpm.packager}"
-				url="@{rpm.url}">
+				url="@{rpm.url}"
+				keyring="@{rpm.keyring}" key="@{rpm.key}"
+				passphrase="@{rpm.passphrase}">
 				<depends name="java" version=""/>
 				<tarfilesets />
-			</redline>
-			<rpm-repo dir="${rpm.repo}" failonerror="@{failonerror}"/>
+			</rpm>
+			<rpm-repo name="@{rpm.reponame}" baseurl="@{rpm.baseurl}" dir="${rpm.repo}" failonerror="@{failonerror}"/>
 		</sequential>
 	</macrodef>
 
 	<macrodef name="rpm-repo">
+		<attribute name="name" default="" />
+		<attribute name="baseurl" default="" />
 		<attribute name="dir" default="/opt/repo/RPMS/noarch" />
 		<attribute name="failonerror" default="true" />
 		<sequential>
@@ -192,6 +164,15 @@ fi
 				<arg value="-d"/>
 				<arg value="@{dir}"/>
 			</exec>
+			<echo message="creating @{dir}/@{name}.repo [@{name}]" />
+			<echo file="@{dir}/@{name}.repo">[@{name}]
+name=@{name} $releasever - $basearch
+failovermethod=priority
+baseurl=@{baseurl}
+enabled=1
+metadata_expire=7d
+gpgcheck=1
+</echo>
 		</sequential>
 	</macrodef>
 	
@@ -207,30 +188,189 @@ fi
 		<attribute name="rpm.url" default="http://cfmlprojects.org/cfdistro" />
 		<attribute name="rpm.repo" default="${basedir}/../RPMS/noarch" />
 		<sequential>
-			<antcontrib:runtarget target="bootstrap_redline" />
 			<mkdir dir="@{rpm.repo}" />
 			<!--  make RC rpm -->
 			<echo file="${temp.dir}/preinstall.sh">
 			<![CDATA[if [ -e /home/@{rpm.user} ]; then
-	  echo "@{rpm.user} user exists, thus not trying to add again" >&2
-	else
-		mkdir -p /home/@{rpm.user}
-		useradd -d /home/@{rpm.user} @{rpm.user}
-	fi
-	]]>
-			</echo>
+  echo "@{rpm.user} user exists, thus not trying to add again" >&2
+else
+	mkdir -p /home/@{rpm.user}
+	useradd -d /home/@{rpm.user} @{rpm.user}
+fi
+]]></echo>
 			<!--  make core rpm -->
-			<redline destination="@{rpm.repo}" release="1"
+			<rpm repo="@{rpm.repo}" release="1" url="@{rpm.url}"
 				group="@{rpm.group}" name="@{rpm.name}" version="@{rpm.version}"
 				preinstallscript="${temp.dir}/preinstall.sh" packager="@{rpm.packager}"
-				url="@{rpm.url}">
+	            key="${cfmlprojects.sign.key.id}" passphrase="${cfmlprojects.sign.key.passphrase}"
+	    		keyring="${cfmlprojects.sign.keyring}">
 				<tarfileset prefix="@{rpm.target.dir}" 
 						dir="@{rpm.source.dir}" excludes="@{rpm.source.excludes}"
 						filemode="644" username="@{rpm.user}" group="@{rpm.user}" />
-			</redline>
+			</rpm>
 
 		</sequential>
 
 	</macrodef>
+
+	<target name="rpm">
+			<mkdir dir="rpms" />
+			<!--  make RC rpm -->
+			<property name="rpm.user" value="railo" />
+			<echo file="${temp.dir}/preinstall.sh"><![CDATA[if [ -e /home/${rpm.user} ]; then
+  echo "${rpm.user} user exists, thus not trying to add again" >&2
+else
+  mkdir -p /home/${rpm.user}
+  useradd -d /home/${rpm.user} ${rpm.user}
+fi
+]]></echo>
+			<property name="rpm.railo.dir" value="/opt/railo/${railo.build.version.major}" />
+			<property name="rpm.packager" value="Railo" />
+			<!--  make libs rpm -->
+			<rpm repo="rpms" release="1"
+				group="org.getrailo" name="railo-libs" version="${railo.build.version.major}"
+				preinstallscript="${temp.dir}/preinstall.sh" packager="${rpm.packager}"
+				url="http://getrailo.org">
+				<tarfileset dir="${railo.lib.dir}" prefix="${rpm.railo.dir}/libs"
+					 filemode="644" username="railo" group="railo" excludes=".classpath, .project" />
+				<link path="/opt/railo/libs" target="${rpm.railo.dir}/libs" />
+			</rpm>
+			<!--  make core rpm -->
+			<rpm repo="rpms"  
+				provides="railo" release="1"
+				group="org.getrailo" name="railo-core" version="${railo.build.version.long}"
+				preinstallscript="${temp.dir}/preinstall.sh" packager="${rpm.packager}"
+				url="http://getrailo.org">
+				<tarfileset prefix="${rpm.railo.dir}/railo-server/patches" 
+						file="${railobuild.dist.dir}/rc/${railo.build.version.long}.rc"
+						filemode="644" username="${rpm.user}" group="${rpm.user}" />
+				<depends name="railo-libs" version="${railo.build.version.major}"/>
+				<link path="/opt/railo/railo-server" target="${rpm.railo.dir}/railo-server"/>
+			</rpm>
+			<!--  make runner rpm -->
+			<echo file="${temp.dir}/postinstall.sh"><![CDATA[echo "java -jar runwar.jar" > ${rpm.railo.dir}/railo.sh]]>
+			</echo>
+			<antcontrib:var name="runwar.jar.location" value="${temp.dir}/runwar.jar" />
+			<antcontrib:runtarget target="runwar.jetty.jar" />
+			<rpm repo="rpms" release="1"
+				group="org.getrailo" name="railo-runner" version="${railo.build.version.long}"
+				postinstallscript="${temp.dir}/postinstall.sh" packager="${rpm.packager}"
+				url="http://getrailo.org">
+				<tarfileset file="${temp.dir}/runwar.jar" prefix="${rpm.railo.dir}/runner"
+					 filemode="644" username="railo" group="railo" excludes=".classpath, .project" />
+				<tarfileset dir="${basedir}/resource/railo-war-template" prefix="${rpm.railo.dir}/webroot"
+					 filemode="644" username="railo" group="railo"/>
+				<depends name="railo" version=""/>
+			</rpm>
+		</target>
 		
+		<target name="cfdistro.rpm">
+			<property name="rpm.user" value="cfml" />
+			<property name="rpm.source.dir" value="${dist.dir}" />
+			<property name="rpm.target.dir" value="/opt/${distro.name}" />
+			<property name="rpm.packager" value="cfdistro" />
+			<property name="rpm.group" value="cfdistro" />
+			<property name="rpm.name" value="${distro.name}" />
+			<property name="rpm.version" value="1.0.0.0" />
+			<property name="rpm.url" value="http://cfmlprojects.org/cfdistro" />
+			<property name="rpm.repo" value="${basedir}/../RPMS/noarch" />
+			<cfdistro-rpm
+				rpm.summary="cfdistro"
+				rpm.description="ant-based build tool"
+				rpm.user="${rpm.user}"
+				rpm.source.dir="${rpm.source.dir}"
+				rpm.target.dir="${rpm.target.dir}"
+				rpm.packager="${rpm.packager}"
+				rpm.group="${rpm.group}"
+				rpm.name="${rpm.name}"
+				rpm.version="${rpm.version}"
+				rpm.url="${rpm.url}"
+				rpm.repo="${rpm.repo}"
+			/>
+		</target>
+		
+		<target name="build.cfdistro.rpm">
+			<property name="rpm.user" value="root" />
+			<property name="rpm.source.dir" value="${cfdistro.basedir}" />
+			<property name="rpm.source.excludes" value="ext/**,artifacts/**,dist/**,**/.git/**,**/.svn/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**,lib/**" />
+			<property name="rpm.target.dir" value="/opt/cfdistro" />
+			<property name="rpm.packager" value="cfdistro" />
+			<property name="rpm.group" value="cfdistro" />
+			<property name="rpm.name" value="cfdistro" />
+			<property name="rpm.url" value="http://cfmlprojects.org/cfdistro" />
+			<property name="rpm.baseurl" value="http://cfmlprojects.org/artifacts/RPMS/noarch" />
+			<property name="rpm.reponame" value="cfmlprojects" />
+			<property name="rpm.repo" value="${cfdistro.basedir}/artifacts/RPMS/noarch" />
+			<mkdir dir="${rpm.repo}"/>
+
+			<property name="cfdistro.version.bump" value="none" description="one of [major|minor|build|revision] or empty to not bump number."/>
+			<antcontrib:var file="cfdistro.properties" />
+			<version-splitter property="cfdistro.build.version" version="${cfdistro.version}" bump="${cfdistro.version.bump}"/>
+			<antcontrib:var name="cfdistro.version" value="${cfdistro.build.version.long}" />
+			<echoproperties>
+				<propertyset>
+					<propertyref prefix="build." />
+					<propertyref prefix="cfdistro." />
+				</propertyset>
+			</echoproperties>
+			<property name="rpm.version" value="${cfdistro.version}" />
+			<echo file="${temp.dir}/cfdistro">${rpm.target.dir}/bin/cfdistro $*</echo>
+			<echo message="using rpm.repo: ${rpm.repo}" />
+			<rpm repo="${rpm.repo}" release="1" verbose="false"
+				group="${rpm.group}" name="${rpm.name}" version="${rpm.version}"
+				packager="${rpm.packager}" url="${rpm.url}" useV3signature="true"
+				key="${cfmlprojects.sign.key.id}" passphrase="${cfmlprojects.sign.key.passphrase}"
+	    		keyring="${cfmlprojects.sign.keyring}">
+				<tarfileset prefix="${rpm.target.dir}" 
+						dir="${rpm.source.dir}" excludes="${rpm.source.excludes},bin/**"
+						filemode="644" username="${rpm.user}" group="${rpm.user}" />
+				<tarfileset prefix="${rpm.target.dir}/bin/" 
+						file="${rpm.source.dir}/bin/*"
+						filemode="755" username="${rpm.user}" group="${rpm.user}" />
+				<tarfileset prefix="/bin/" 
+						file="${temp.dir}/cfdistro"
+						filemode="755" username="${rpm.user}" group="${rpm.user}" />
+			</rpm>
+			<echo file="cfdistro.properties" message="cfdistro.version=${cfdistro.version}" />
+			<rpm-repo name="${rpm.reponame}" baseurl="${rpm.baseurl}" dir="${rpm.repo}"/>
+
+			<property name="deb.repo" value="${cfdistro.basedir}/artifacts/debs/noarch" />
+			<mkdir dir="${deb.repo}"/>
+		   	<echo message="Creating debian .deb file from: ${rpm.source.dir}"/>
+		   	<delete file="${dist.dir}/${rpm.name}-${rpm.version}-1_all.deb" />
+			<taskdef-dependency name="deb" classname="debrepo.ant.DebTask" artifactId="debrepo" groupId="org.cfmlprojects" version="1.0.0" />
+			<!-- <ant-set-log-level level="3"/> -->
+			<deb
+		        todir="${deb.repo}"
+		        package="${rpm.name}"
+		        section="web"
+		        depends="java-common"
+				key="${cfmlprojects.sign.key.id}" passphrase="${cfmlprojects.sign.key.passphrase}"
+	    		keyring="${cfmlprojects.sign.keyring}">
+		        <version upstream="${cfdistro.version}"/>
+		        <maintainer name="${rpm.packager}" email="cfml@cfmlprojects.org"/>
+		        <description synopsis="${rpm.group}.${rpm.name}">${rpm.name}</description>
+				<tarfileset prefix="${rpm.target.dir}" 
+						dir="${rpm.source.dir}" excludes="${rpm.source.excludes},bin/**"
+						filemode="644" username="${rpm.user}" group="${rpm.user}" />
+				<tarfileset prefix="${rpm.target.dir}/bin/" 
+						file="${rpm.source.dir}/bin/*"
+						filemode="755" username="${rpm.user}" group="${rpm.user}" />
+				<tarfileset prefix="/bin/" 
+						file="${temp.dir}/cfdistro"
+						filemode="755" username="${rpm.user}" group="${rpm.user}" />
+		   	</deb>
+			<deb-repo dir="${deb.repo}" key="${cfmlprojects.sign.key.id}" passphrase="${cfmlprojects.sign.key.passphrase}"
+	    		keyring="${cfmlprojects.sign.keyring}"/>
+		</target>
+		
+		<target name="add.rpmrepo.cfmlprojects">
+			<echo file="/etc/yum.repos.d/cfmlprojects.repo" message="[cfmlprojects]
+name=cfmlprojects
+baseurl=http://cfmlprojects.org/artifacts/RPMS/noarch
+enabled=1
+gpgcheck=0" />
+		</target>	
+	
+	
 </project>

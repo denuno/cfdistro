@@ -67,7 +67,7 @@
 			<dependency groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" dest="@{dest}" type="jar" unzip="false">
 				<exclusions/>
 			</dependency>
-			<taskdef name="@{name}" classname="@{classname}" classpath="@{dest}/@{artifactId}-@{version}.jar" />
+			<taskdef name="@{name}" classname="@{classname}" classpathref="classpath.@{groupId}.@{artifactId}" />
 		</sequential>
 	</macrodef>
 
