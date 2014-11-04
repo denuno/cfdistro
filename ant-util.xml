@@ -576,7 +576,18 @@
 		</sequential>
 	</macrodef>
 
-
+	<macrodef name="fail-if-not-available">
+		<attribute name="file"/>
+		<attribute name="message"/>
+		<sequential>
+			<antcontrib:if>
+			<available file="@{file}" />
+			<then/>
+			<else><fail message="@{message}" /></else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+		
 	<macrodef name="safestring">
 		<attribute name="value"/>
 		<attribute name="property"/>
