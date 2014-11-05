@@ -64,7 +64,20 @@
 			</antcontrib:if>
 		</sequential>
 	</macrodef>
-	
+
+	<macrodef name="git-local-branchname">
+		<attribute name="branch" />
+		<attribute name="remote" />
+		<attribute name="property" />
+		<sequential>
+			<antcontrib:if>
+				<contains string="@{branch}" substring="/" casesensitive="false" />
+				<then><antcontrib:var name="@{property}" value="@{branch}" /></then>
+				<else><antcontrib:var name="@{property}" value="@{remote}/@{branch}" /></else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>
+
 	<macrodef name="git-export">
 		<attribute name="repository" />
 		<attribute name="dest" />
@@ -147,15 +160,22 @@
 		<attribute name="use-jgit" default="${use.jgit}" />
 		<sequential>
 			<abspath path="@{gitdir}" property="__git.checkout.dir" />
+			<git-local-branchname property="_git.branch" branch="@{branch}" remote="@{remote}" />
 			<antcontrib:if>
 				<or>
 					<available file="${__git.checkout.dir}/HEAD"/>
 					<available file="${__git.checkout.dir}/.git"/>
 				</or>
 				<then>
-					<git command="fetch" dir="${__git.checkout.dir}" use-jgit="@{use-jgit}">
-						<args><arg value="@{remote}" /></args>
-					</git>
+					<antcontrib:if>
+						<equals arg1="@{use-jgit}" arg2="true"/>
+						<then><!-- jgit-checkout will fetch for us --></then>
+						<else>
+							<git command="fetch" dir="${__git.checkout.dir}" use-jgit="@{use-jgit}">
+								<args><arg value="@{remote}" /></args>
+							</git>
+						</else>
+					</antcontrib:if>
 				</then>
 				<else>
 					<antcontrib:if>
@@ -188,13 +208,13 @@
 			<antcontrib:if>
 				<equals arg1="@{use-jgit}" arg2="true"/>
 				<then>
-					<jgit-checkout gitdir="${__git.checkout.dir}" remote="@{remote}" branch="@{branch}" pristine="@{pristine}" />
+					<jgit-checkout gitdir="${__git.checkout.dir}" remote="@{remote}" branch="${_git.branch}" uri="@{uri}" pristine="@{pristine}" />
 				</then>
 				<else>
 					<git command="checkout" dir="${__git.checkout.dir}" use-jgit="@{use-jgit}">
 						<args>
 							<arg value="-f" />
-							<arg value="@{remote}/@{branch}" />
+							<arg value="${_git.branch}" />
 						</args>
 					</git>
 					<antcontrib:if>
@@ -238,6 +258,7 @@
 		<attribute name="branch" />
 	    <![CDATA[
 		try{ load("nashorn:mozilla_compat.js"); } catch (e) {}; //java8
+		if (typeof println == 'undefined') this.println = print;  //java8
 		importClass(org.eclipse.jgit.api.Git);
 		importClass(org.eclipse.jgit.storage.file.FileRepositoryBuilder);
 		importClass(java.io.File);
@@ -268,12 +289,14 @@
 	</scriptdef>
 	
 	<scriptdef name="jgit-checkout" language="javascript" classpathref="build.lib.path">
+		<attribute name="uri" />
 		<attribute name="gitdir" />
 		<attribute name="remote" />
 		<attribute name="branch" />
 		<attribute name="pristine" />
 	    <![CDATA[
 		try{ load("nashorn:mozilla_compat.js"); } catch (e) {}; //java8
+		if (typeof println == 'undefined') this.println = print;  //java8
 		importClass(org.eclipse.jgit.api.Git);
 		importClass(org.eclipse.jgit.storage.file.FileRepositoryBuilder);
 		importClass(org.eclipse.jgit.api.CreateBranchCommand);
@@ -281,14 +304,29 @@
 		importClass(org.eclipse.jgit.api.MergeResult);
 		importClass(org.eclipse.jgit.lib.Constants);
 		importClass(org.eclipse.jgit.revwalk.RevWalk);
+		importClass(org.eclipse.jgit.transport.RefSpec);
 		importClass(java.io.File);
 	    var gitdir = new File(attributes.get( "gitdir" ));
+	    var uri = attributes.get( "uri" ) ? attributes.get( "uri" ) : "";
 	    var remote = attributes.get( "remote" ) ? attributes.get( "remote" ) : "origin";
 	    var branch = attributes.get( "branch" ) ? attributes.get( "branch" ) : "master";
 	    var pristine = attributes.get( "pristine" ) ? attributes.get( "pristine" ) : "false";
 		var createBranch = true;
         var repository = new FileRepositoryBuilder().findGitDir(gitdir).build();
         var git = new Git(repository);
+		if(uri.length > 0) {
+			println(remote+" is at " + uri);
+			var config = git.getRepository().getConfig();
+			config.setString("remote", remote, "url", uri);
+			config.setString("remote", remote, "fetch", "+refs/heads/*:refs/remotes/"+remote+"/*");
+			config.save();
+		}
+		var specs=new java.util.ArrayList();
+		specs.add(new RefSpec("+refs/heads/*:refs/remotes/"+remote+"/*"));
+	    specs.add(new RefSpec("+refs/tags/*:refs/tags/*"));
+	    specs.add(new RefSpec("+refs/notes/*:refs/notes/*"));
+		println("Fetching " + branch + " from " + remote + " " + uri);
+		git.fetch().setRemote(remote).setRefSpecs(specs).call();
 		var branches = git.branchList().call().iterator();
 		while (branches.hasNext()){
 			var branchObj = branches.next();
@@ -301,15 +339,22 @@
 		} else {
 			println(branch + " branch exists locally");
 		}
-		println("checking out " + remote + "/" + branch);
+		println("checking out " + branch);
+		if(branch.contains("/")){
+			var startPoint = branch; 
+		} else {
+			var startPoint = remote + "/" + branch;
+		}
 	 	try {
 			git.checkout().
 				setForce(true).
-		        setCreateBranch(false).
-		        setName(remote + "/" + branch).
-		        setStartPoint(remote + "/" + branch).
+		        setCreateBranch(createBranch).
+		 		setUpstreamMode(org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode.TRACK).
+		        setName(branch).
+		        setStartPoint(startPoint).
 		        call();
         } catch (e) {
+		e.printStackTrace();
 			paths = e.javaException.getConflictingPaths().iterator();
             while (paths.hasNext()) {
 				var path = paths.next();
@@ -324,8 +369,8 @@
 			git.checkout().
 				setForce(true).
 		        setCreateBranch(false).
-		        setName(remote + "/" + branch).
-		        setStartPoint(remote + "/" + branch).
+		        setName(branch).
+		        setStartPoint(startPoint).
 		        call();
 		}
 		var HEAD = repository.resolve(org.eclipse.jgit.lib.Constants.HEAD);
@@ -363,6 +408,7 @@
         var repository = new FileRepositoryBuilder().findGitDir(gitdir).build();
         var git = new Git(repository);
 		var reset = git.reset();
+		if (typeof println == 'undefined') this.println = print;  //java8
 		if(remote != "") {
 			var ref = repository.getRefDatabase().getRef("refs/remotes/" + remote + "/" + branch);
 		} else {
@@ -474,21 +520,16 @@
 				<param name="remote" path="@remote" default="origin" />
 				<param name="sshkey" path="@sshkey" default="NONE" />
 				<actions>
+					<git-local-branchname property="_git.branch" branch="@{branch}" remote="@{remote}" />
 					<abspath path="@{dest}" property="__git.dir" />
 					<antcontrib:if>
 						<equals arg1="${project.overwrite}" arg2="true" />
 						<then>
 							<echo message="$${project.overwrite} is true, we're resetting it all to pristine condition." />
-							<git-checkout uri="@{uri}" gitdir="${__git.dir}" remote="@{remote}" branch="@{branch}" pristine="true" />
+							<git-checkout uri="@{uri}" gitdir="${__git.dir}" remote="@{remote}" branch="${_git.branch}" pristine="true" />
 						</then>
 						<else>
-							<echo message="updating src: ${__git.dir}" />
-							<git command="fetch" dir="${__git.dir}">
-								<args>
-									<arg value="@{remote}" />
-								</args>
-							</git>
-							<git-has-modifications dir="${__git.dir}" remote="@{remote}" branch="@{branch}" property="git.hasmods" />
+							<git-has-modifications dir="${__git.dir}" remote="@{remote}" branch="${_git.branch}" property="git.hasmods" />
 							<antcontrib:if>
 								<and>
 									<equals arg1="${git.hasmods}" arg2="true"/>
@@ -510,10 +551,10 @@
 									<git command="commit" dir="@{dest}">
 										<args><arg line="-a -m 'autocommit'" /></args>
 									</git>
-									<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="@{branch}" />
+									<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="${_git.branch}" />
 								</then>
 								<else>
-									<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="@{branch}" />
+									<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="${_git.branch}" />
 								</else>
 							</antcontrib:if>
 						</else>
@@ -538,10 +579,11 @@
 			<param name="branch" path="@branch" default="${branch}" />
 			<param name="sshkey" path="@sshkey" default="NONE" />
 			<actions>
-				<echo message="Diffing @{dest} with @{branch}"/>
+				<git-local-branchname property="_git.branch" branch="@{branch}" remote="@{remote}" />
+				<echo message="Diffing @{dest} with ${_git.branch}"/>
 				<git command="diff" dir="@{dest}/">
 					<args>
-						<arg value="@{branch}" />
+						<arg value="${_git.branch}" />
 					</args>
 				</git>
 				<echo message="${git.results}"/>
@@ -559,7 +601,8 @@
 				<param name="remote" path="@remote" default="origin" />
 				<param name="branch" path="@branch" default="master" />
 				<actions>
-					<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="@{branch}" />
+					<git-local-branchname property="_git.branch" branch="@{branch}" remote="@{remote}" />
+					<git-checkout uri="@{uri}" gitdir="@{dest}" remote="@{remote}" branch="${_git.branch}" />
 				</actions>
 			</call>
 		</xmltask>
@@ -602,9 +645,17 @@
 						</else>
 					</antcontrib:if> 
 					<!-- check for remote commits (defaults to origin) -->
-					<git command="fetch" dir="@{dest}">
-						<args><arg value="@{remote}" /></args>
-					</git>
+					<antcontrib:trycatch reference="fetcherr">
+					<try>
+						<git command="fetch" dir="@{dest}">
+							<args><arg value="@{remote}" /></args>
+						</git>
+					</try>
+					<catch>
+						<property name="fetcherr" refid="fetcherr" />
+						<echo message="${fetcherr}"/>
+					</catch>
+					</antcontrib:trycatch>
 					<git-commit-hash repository="${__git.dir}" remote="" property="post.fetch.commit.hash" />
 					<antcontrib:if>
 						<equals arg1="${pre.fetch.commit.hash}" arg2="${post.fetch.commit.hash}" />
@@ -658,22 +709,31 @@
 		<attribute name="remote" default="origin" />
 		<attribute name="branch" default="master" />
 		<sequential>
-			<git command="diff" dir="@{dir}/">
-				<args>
-					<arg value="--name-status" />
-					<arg value="@{remote}/@{branch}" />
-				</args>
-			</git>
-			<antcontrib:propertyregex override="yes" property="git.hasmodifications" input="${git.results}" 
-				regexp="(^[M|A])\s+.*" select="\1" />
-			<antcontrib:if>
-				<or>
-				<equals arg1="${git.hasmodifications}" arg2="M" />
-				<equals arg1="${git.hasmodifications}" arg2="A" />
-				</or>
-				<then><antcontrib:var name="@{property}" value="true"/></then>
-				<else><antcontrib:var name="@{property}" value="false"/></else>
-			</antcontrib:if>
+			<antcontrib:trycatch reference="fetcherr">
+			<try>
+				<git command="diff" dir="@{dir}/">
+					<args>
+						<arg value="--name-status" />
+						<arg value="@{remote}/@{branch}" />
+					</args>
+				</git>
+				<antcontrib:propertyregex override="yes" property="git.hasmodifications" input="${git.results}" 
+					regexp="(^[M|A])\s+.*" select="\1" />
+				<antcontrib:if>
+					<or>
+					<equals arg1="${git.hasmodifications}" arg2="M" />
+					<equals arg1="${git.hasmodifications}" arg2="A" />
+					</or>
+					<then><antcontrib:var name="@{property}" value="true"/></then>
+					<else><antcontrib:var name="@{property}" value="false"/></else>
+				</antcontrib:if>
+			</try>
+			<catch>
+				<property name="fetcherr" refid="fetcherr" />
+				<echo message="checking for modifications failed, setting @{property} to true : ${fetcherr}"/>
+				<antcontrib:var name="@{property}" value="true"/>
+			</catch>
+			</antcontrib:trycatch>
 		</sequential>
 	</macrodef>
 	

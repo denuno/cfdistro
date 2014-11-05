@@ -36,188 +36,6 @@
     </target>
 
 
-    <target name="mvn.deploy.jre" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
-		<property name="mvn.jre.dir" value="${basedir}/../jre" />
-		<pom-and-deploy pomid="jre.pom" packaging="pom" buildtype="${mvn.type}"
-		 groupId="oracle" artifactId="jre" version="${mvn.jre.version}" name="oracle.jre">
-			<attachments>
-        		<attach file="${mvn.jre.dir}/win32/jre${mvn.jre.version}.zip" type="zip" classifier="win32"/>
-        		<attach file="${mvn.jre.dir}/win64/jre${mvn.jre.version}.zip" type="zip" classifier="win64"/>
-        		<attach file="${mvn.jre.dir}/linux32/jre${mvn.jre.version}.zip" type="zip" classifier="linux32"/>
-        		<attach file="${mvn.jre.dir}/linux64/jre${mvn.jre.version}.zip" type="zip" classifier="linux64"/>
-        		<attach file="${mvn.jre.dir}/darwin64/jre${mvn.jre.version}.zip" type="zip" classifier="darwin64"/>
-			</attachments>
-		</pom-and-deploy>
-		<delete dir="${mvn.jre.tmp}" />
-	</target>	
-
-    <target name="pack2zip.jre" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="convert packed bins to zip">
-		<!-- only used to fill repo initially - put exploded JREs in arch subdirs -->
-		<property name="mvn.jre.tmp" location="${temp.dir}/jre" />
-		<antcontrib:var name="mvn.jre.version" value="1.6.0_41" />
-		<!--
-    	<antcontrib:var name="mvn.jre.version" value="1.7.0_15" />
-    	-->
-		<property name="mvn.jre.dir" location="${basedir}/../jre" />
-    	<delete dir="${temp.dir}" />
-    	<mkdir dir="${temp.dir}" />
-		<echo message="*** UNPACKING AND REPACKING LINUX PACKS ***" />    	
-    	<antcontrib:for param="file">
-			<path><fileset dir="${mvn.jre.dir}" includes="*.bin.sh" /></path>
-			<sequential>
-				<antcontrib:var name="basename" unset="true" />
-				<antcontrib:var name="__locdirr" unset="true" />
-				<basename file="@{file}" property="basename" suffix=".bin.sh" />
-				<antcontrib:propertyregex global="true" override="yes" 
-				 property="basename" input="${basename}" regexp="\." replace="-"/>
-				<echo message="${basename}"/>
-				<property name="__locdirr" location="${temp.dir}/jre/${basename}" />
-				<mkdir dir="${__locdirr}" />
-				<exec executable="unzip">
-				    <arg value="-qq"/>
-				    <arg value="@{file}"/>
-				    <arg value="-d"/>
-				    <arg value="${__locdirr}"/>
-				</exec>
-		    	<antcontrib:for param="pack">
-					<path><fileset dir="${__locdirr}" includes="**/*.pack" /></path>
-					<sequential>
-						<antcontrib:propertyregex property="jar" global="true" override="yes" 
-						input="@{pack}" regexp="pack" replace="jar"/>
-				        <exec executable="${java.home}/bin/unpack200">
-				            <arg value="@{pack}"/>
-				            <arg value="${jar}"/>
-				        </exec>
-						<delete file="@{pack}"/>
-					</sequential>
-		    	</antcontrib:for>
-				<delete file="${mvn.jre.dir}/${basename}.zip" />
-				<exec executable="/bin/sh">
-				    <arg line='-c "cd ${__locdirr}/jre${mvn.jre.version}; zip -9 -qq -r ${mvn.jre.dir}/${basename}.zip *"'/>
-				</exec>
-			</sequential>
-    	</antcontrib:for>
-		<echo message="*** UNPACKING AND REPACKING WINDOWS PACKS ***" />    	
-    	<antcontrib:for param="file">
-			<path><fileset dir="${mvn.jre.dir}" includes="*.exe" /></path>
-			<sequential>
-				<antcontrib:var name="basename" unset="true" />
-				<basename file="@{file}" property="basename" suffix=".exe" />
-				<antcontrib:propertyregex property="basename" global="true" override="yes" 
-				input="${basename}" regexp="\." replace="-"/>
-				<echo message="${basename}"/>
-				<exec executable="7z">
-				    <arg value="x"/><arg value="-y"/>
-				    <arg value="-o${temp.dir}/jre/${basename}"/>
-				    <arg value="@{file}"/><arg value="core.zip"/>
-				</exec>
-				<unzip src="${temp.dir}/jre/${basename}/core.zip" dest="${temp.dir}/jre/${basename}/core" />
-		    	<antcontrib:for param="pack">
-					<path><fileset dir="${temp.dir}/jre/${basename}/core/lib" includes="**/*.pack" /></path>
-					<sequential>
-						<antcontrib:propertyregex property="jar" global="true" override="yes" 
-						input="@{pack}" regexp="pack" replace="jar"/>
-				        <exec executable="${java.home}/bin/unpack200">
-				            <arg value="@{pack}"/>
-				            <arg value="${jar}"/>
-				        </exec>
-						<delete file="@{pack}"/>
-					</sequential>
-		    	</antcontrib:for>
-				<delete file="${mvn.jre.dir}/${basename}.zip" />
-				<zip destfile="${mvn.jre.dir}/${basename}.zip" level="9" update="false">
-					<fileset dir="${temp.dir}/jre/${basename}/core/" /> 
-				</zip>
-			</sequential>
-    	</antcontrib:for>    	
-    	<delete dir="${temp.dir}" />
-	</target>	
-		
-    <target name="jre.8.update" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="update Java 8 JREs">
-		<property name="jre.suffix" value="8u25" />
-		<property name="mvn.jre.oslist" value="macosx-x64:b17,linux-i586:b17,linux-x64:b17,windows-i586:b18,windows-x64:b18" />
-		<antcontrib:runtarget target="jre.7.update" />
-    </target>
-
-	<target name="jre.7.update" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="update Java 7 JREs">
-        <property name="jre.type" value="jre" />
-		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
-		<property name="jre.suffix" value="7u71" />
-		<property name="mvn.jre.oslist" value="macosx-x64:b14,linux-i586:b14,linux-x64:b14,windows-i586:b14,windows-x64:b14" />
-		<property name="mvn.jre.dir" location="${basedir}/../${jre.type}" />
-		<property name="jre.prefix" value="${jre.type}-${jre.suffix}" />
-		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/${jre.suffix}" />
-    	
-    	<echoproperties prefix="jre." />
-    	<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
-			input="${jre.prefix}" regexp="${jre.type}-(\d)u(\d+)" replace="1.\1.0_\2"/>
-    	<input message="Do you agree to the ${jre.version} license?" addproperty="jre.lic.agree" />
-    	<delete dir="${mvn.jre.tmp}" />
-    	<mkdir dir="${mvn.jre.tmp}" />
-		<echo message="*** GETTING ${jre.type} ${jre.version} ***" />
-    	<antcontrib:for list="${mvn.jre.oslist}" param="file">
-			<sequential>
-				<antcontrib:propertyregex property="jre.os" override="yes" 
-					input="@{file}" regexp="([^:]*)" select="\1"/>
-				<antcontrib:propertyregex property="jre.b.version" override="yes" 
-					input="@{file}" regexp=".*:(.*)" select="\1"/>
-				<echo message="*** GETTING ${jre.type} : ${jre.version} ${jre.prefix}-${jre.os} ${jre.b.version}***" />
-				<exec executable="wget" failonerror="true">
-					<arg value="--no-check-certificate"/>
-				    <arg line='--header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F"'/>
-				    <arg line='--header "Cookie: gpv_p24=no%20value"'/>
-				    <arg line='--header "Cookie: oraclelicense=accept-securebackup-cookie"'/>
-				    <arg value="-O"/><!-- only if newer is N -->
-				    <arg value="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar.gz"/>
-				    <arg value="${jre.baseurl}-${jre.b.version}/${jre.prefix}-${jre.os}.tar.gz"/>
-				</exec>
-				<delete dir="${mvn.jre.tmp}/${jre.os}"/>
-				<gunzip src="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar.gz" dest="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar"/>
-				<untar src="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar" dest="${mvn.jre.tmp}/${jre.os}"/>
-				<antcontrib:var unset="true" name="jre_dir_name"/>
-				<antcontrib:var unset="true" name="jre-dir-name"/>
-				<path id="jre_dir_name">
-					<dirset dir="${mvn.jre.tmp}/${jre.os}">
-						<include name="${jre.type}*"/>
-					</dirset>
-				</path>
-				<property name="jre-dir-name" refid="jre_dir_name" />
-				<antcontrib:if>
-		    		<available file="${jre-dir-name}/Contents/Home/" />
-		    		<then><!-- OS X -->
-						<move todir="${jre-dir-name}">
-						  <fileset dir="${jre-dir-name}/Contents/Home" defaultexcludes="false"/>
-						</move>
-						<move todir="${jre-dir-name}/lib">
-						  <fileset dir="${jre-dir-name}/Contents/MacOS" defaultexcludes="false"/>
-						</move>
-		    	    	<delete dir="${jre-dir-name}/Contents" />
-						<chmod file="${jre-dir-name}/lib/jspawnhelper" perm="+x"/>
-		    		</then>
-		    	</antcontrib:if>
-		    	<antcontrib:if>
-		    		<available file="${jre-dir-name}/bin" />
-		    		<then>
-						<chmod dir="${jre-dir-name}/bin" perm="+x" includes="*"/>
-		    		</then>
-		    	</antcontrib:if>
-				<zipdir destfile="${mvn.jre.tmp}/${jre.type}${jre.version}-${jre.os}.zip" sourcedir="${jre-dir-name}/" />
-			</sequential>
-    	</antcontrib:for>
-    	<echo message="*** POMN ***" />    	
-		<pom-and-deploy pomid="jre.pom" packaging="pom" buildtype="${mvn.type}"
-		 groupId="oracle" artifactId="${jre.type}" version="${jre.version}" name="oracle.${jre.type}">
-			<attachments>
-        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-linux-i586.zip" type="zip" classifier="linux32"/>
-        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-linux-x64.zip" type="zip" classifier="linux64"/>
-        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-macosx-x64.zip" type="zip" classifier="darwin64"/>
-        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-windows-i586.zip" type="zip" classifier="win32"/>
-        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-windows-x64.zip" type="zip" classifier="win64"/>
-			</attachments>
-		</pom-and-deploy>
-    	<delete dir="${temp.dir}" />
-	</target>	
-		
 	<macrodef name="mvn-repo">
 		<attribute name="id" />
 		<attribute name="url"/>
@@ -417,6 +235,7 @@
 		<attribute name="artifactId"/>
 		<attribute name="version"/>
 		<attribute name="packaging" default="jar" />
+		<attribute name="buildtype" default="${mvn.type}" />
 		<attribute name="repoId" default="${mvn.repo.id}" />
 		<sequential>
 		<property name="mvn.type" value="release"/>
@@ -428,7 +247,7 @@
 				<property name="wagon-ssh.installed" value="true"/>
 			</else>
 		</antcontrib:if>
-		<pom-and-deploy pomid="cfdistro.put.pom" artifact="@{artifact}" packaging="@{packaging}" buildtype="${mvn.type}"
+		<pom-and-deploy pomid="cfdistro.put.pom" artifact="@{artifact}" packaging="@{packaging}" buildtype="@{buildtype}"
 		 groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" repoId="@{repoId}"/>
 		</sequential>
 	</macrodef>
@@ -579,6 +398,190 @@
          groupId="${group}" artifactId="${artifactId}" version="${version}" name="${name}" classifier="${classifier}" />
 		</sequential>
 	</target>
+
+	<!-- JRE STUFF -->
+
+    <target name="mvn.deploy.jre" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+		<property name="mvn.jre.dir" value="${basedir}/../jre" />
+		<pom-and-deploy pomid="jre.pom" packaging="pom" buildtype="${mvn.type}"
+		 groupId="oracle" artifactId="jre" version="${mvn.jre.version}" name="oracle.jre">
+			<attachments>
+        		<attach file="${mvn.jre.dir}/win32/jre${mvn.jre.version}.zip" type="zip" classifier="win32"/>
+        		<attach file="${mvn.jre.dir}/win64/jre${mvn.jre.version}.zip" type="zip" classifier="win64"/>
+        		<attach file="${mvn.jre.dir}/linux32/jre${mvn.jre.version}.zip" type="zip" classifier="linux32"/>
+        		<attach file="${mvn.jre.dir}/linux64/jre${mvn.jre.version}.zip" type="zip" classifier="linux64"/>
+        		<attach file="${mvn.jre.dir}/darwin64/jre${mvn.jre.version}.zip" type="zip" classifier="darwin64"/>
+			</attachments>
+		</pom-and-deploy>
+		<delete dir="${mvn.jre.tmp}" />
+	</target>	
+
+    <target name="pack2zip.jre" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="convert packed bins to zip">
+		<!-- only used to fill repo initially - put exploded JREs in arch subdirs -->
+		<property name="mvn.jre.tmp" location="${temp.dir}/jre" />
+		<antcontrib:var name="mvn.jre.version" value="1.6.0_41" />
+		<!--
+    	<antcontrib:var name="mvn.jre.version" value="1.7.0_15" />
+    	-->
+		<property name="mvn.jre.dir" location="${basedir}/../jre" />
+    	<delete dir="${temp.dir}" />
+    	<mkdir dir="${temp.dir}" />
+		<echo message="*** UNPACKING AND REPACKING LINUX PACKS ***" />    	
+    	<antcontrib:for param="file">
+			<path><fileset dir="${mvn.jre.dir}" includes="*.bin.sh" /></path>
+			<sequential>
+				<antcontrib:var name="basename" unset="true" />
+				<antcontrib:var name="__locdirr" unset="true" />
+				<basename file="@{file}" property="basename" suffix=".bin.sh" />
+				<antcontrib:propertyregex global="true" override="yes" 
+				 property="basename" input="${basename}" regexp="\." replace="-"/>
+				<echo message="${basename}"/>
+				<property name="__locdirr" location="${temp.dir}/jre/${basename}" />
+				<mkdir dir="${__locdirr}" />
+				<exec executable="unzip">
+				    <arg value="-qq"/>
+				    <arg value="@{file}"/>
+				    <arg value="-d"/>
+				    <arg value="${__locdirr}"/>
+				</exec>
+		    	<antcontrib:for param="pack">
+					<path><fileset dir="${__locdirr}" includes="**/*.pack" /></path>
+					<sequential>
+						<antcontrib:propertyregex property="jar" global="true" override="yes" 
+						input="@{pack}" regexp="pack" replace="jar"/>
+				        <exec executable="${java.home}/bin/unpack200">
+				            <arg value="@{pack}"/>
+				            <arg value="${jar}"/>
+				        </exec>
+						<delete file="@{pack}"/>
+					</sequential>
+		    	</antcontrib:for>
+				<delete file="${mvn.jre.dir}/${basename}.zip" />
+				<exec executable="/bin/sh">
+				    <arg line='-c "cd ${__locdirr}/jre${mvn.jre.version}; zip -9 -qq -r ${mvn.jre.dir}/${basename}.zip *"'/>
+				</exec>
+			</sequential>
+    	</antcontrib:for>
+		<echo message="*** UNPACKING AND REPACKING WINDOWS PACKS ***" />    	
+    	<antcontrib:for param="file">
+			<path><fileset dir="${mvn.jre.dir}" includes="*.exe" /></path>
+			<sequential>
+				<antcontrib:var name="basename" unset="true" />
+				<basename file="@{file}" property="basename" suffix=".exe" />
+				<antcontrib:propertyregex property="basename" global="true" override="yes" 
+				input="${basename}" regexp="\." replace="-"/>
+				<echo message="${basename}"/>
+				<exec executable="7z">
+				    <arg value="x"/><arg value="-y"/>
+				    <arg value="-o${temp.dir}/jre/${basename}"/>
+				    <arg value="@{file}"/><arg value="core.zip"/>
+				</exec>
+				<unzip src="${temp.dir}/jre/${basename}/core.zip" dest="${temp.dir}/jre/${basename}/core" />
+		    	<antcontrib:for param="pack">
+					<path><fileset dir="${temp.dir}/jre/${basename}/core/lib" includes="**/*.pack" /></path>
+					<sequential>
+						<antcontrib:propertyregex property="jar" global="true" override="yes" 
+						input="@{pack}" regexp="pack" replace="jar"/>
+				        <exec executable="${java.home}/bin/unpack200">
+				            <arg value="@{pack}"/>
+				            <arg value="${jar}"/>
+				        </exec>
+						<delete file="@{pack}"/>
+					</sequential>
+		    	</antcontrib:for>
+				<delete file="${mvn.jre.dir}/${basename}.zip" />
+				<zip destfile="${mvn.jre.dir}/${basename}.zip" level="9" update="false">
+					<fileset dir="${temp.dir}/jre/${basename}/core/" /> 
+				</zip>
+			</sequential>
+    	</antcontrib:for>    	
+    	<delete dir="${temp.dir}" />
+	</target>	
+		
+    <target name="jre.8.update" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="update Java 8 JREs">
+		<property name="jre.suffix" value="8u25" />
+		<property name="mvn.jre.oslist" value="macosx-x64:b17,linux-i586:b17,linux-x64:b17,windows-i586:b18,windows-x64:b18" />
+		<antcontrib:runtarget target="jre.7.update" />
+    </target>
+
+	<target name="jre.7.update" xmlns:artifact="antlib:org.apache.maven.artifact.ant" description="update Java 7 JREs">
+        <property name="jre.type" value="jre" />
+		<property name="mvn.jre.tmp" location="${temp.dir}/${jre.type}" />
+		<property name="jre.suffix" value="7u71" />
+		<property name="mvn.jre.oslist" value="macosx-x64:b14,linux-i586:b14,linux-x64:b14,windows-i586:b14,windows-x64:b14" />
+		<property name="mvn.jre.dir" location="${basedir}/../${jre.type}" />
+		<property name="jre.prefix" value="${jre.type}-${jre.suffix}" />
+		<property name="jre.baseurl" value="http://download.oracle.com/otn-pub/java/jdk/${jre.suffix}" />
+    	
+    	<echoproperties prefix="jre." />
+    	<antcontrib:propertyregex property="jre.version" global="true" override="yes" 
+			input="${jre.prefix}" regexp="${jre.type}-(\d)u(\d+)" replace="1.\1.0_\2"/>
+    	<input message="Do you agree to the ${jre.version} license?" addproperty="jre.lic.agree" />
+    	<delete dir="${mvn.jre.tmp}" />
+    	<mkdir dir="${mvn.jre.tmp}" />
+		<echo message="*** GETTING ${jre.type} ${jre.version} ***" />
+    	<antcontrib:for list="${mvn.jre.oslist}" param="file">
+			<sequential>
+				<antcontrib:propertyregex property="jre.os" override="yes" 
+					input="@{file}" regexp="([^:]*)" select="\1"/>
+				<antcontrib:propertyregex property="jre.b.version" override="yes" 
+					input="@{file}" regexp=".*:(.*)" select="\1"/>
+				<echo message="*** GETTING ${jre.type} : ${jre.version} ${jre.prefix}-${jre.os} ${jre.b.version}***" />
+				<exec executable="wget" failonerror="true">
+					<arg value="--no-check-certificate"/>
+				    <arg line='--header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F"'/>
+				    <arg line='--header "Cookie: gpv_p24=no%20value"'/>
+				    <arg line='--header "Cookie: oraclelicense=accept-securebackup-cookie"'/>
+				    <arg value="-O"/><!-- only if newer is N -->
+				    <arg value="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar.gz"/>
+				    <arg value="${jre.baseurl}-${jre.b.version}/${jre.prefix}-${jre.os}.tar.gz"/>
+				</exec>
+				<delete dir="${mvn.jre.tmp}/${jre.os}"/>
+				<gunzip src="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar.gz" dest="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar"/>
+				<untar src="${mvn.jre.tmp}/${jre.prefix}-${jre.os}.tar" dest="${mvn.jre.tmp}/${jre.os}"/>
+				<antcontrib:var unset="true" name="jre_dir_name"/>
+				<antcontrib:var unset="true" name="jre-dir-name"/>
+				<path id="jre_dir_name">
+					<dirset dir="${mvn.jre.tmp}/${jre.os}">
+						<include name="${jre.type}*"/>
+					</dirset>
+				</path>
+				<property name="jre-dir-name" refid="jre_dir_name" />
+				<antcontrib:if>
+		    		<available file="${jre-dir-name}/Contents/Home/" />
+		    		<then><!-- OS X -->
+						<move todir="${jre-dir-name}">
+						  <fileset dir="${jre-dir-name}/Contents/Home" defaultexcludes="false"/>
+						</move>
+						<move todir="${jre-dir-name}/lib">
+						  <fileset dir="${jre-dir-name}/Contents/MacOS" defaultexcludes="false"/>
+						</move>
+		    	    	<delete dir="${jre-dir-name}/Contents" />
+						<chmod file="${jre-dir-name}/lib/jspawnhelper" perm="+x"/>
+		    		</then>
+		    	</antcontrib:if>
+		    	<antcontrib:if>
+		    		<available file="${jre-dir-name}/bin" />
+		    		<then>
+						<chmod dir="${jre-dir-name}/bin" perm="+x" includes="*"/>
+		    		</then>
+		    	</antcontrib:if>
+				<zipdir destfile="${mvn.jre.tmp}/${jre.type}${jre.version}-${jre.os}.zip" sourcedir="${jre-dir-name}/" />
+			</sequential>
+    	</antcontrib:for>
+    	<echo message="*** POMN ***" />    	
+		<pom-and-deploy pomid="jre.pom" packaging="pom" buildtype="${mvn.type}"
+		 groupId="oracle" artifactId="${jre.type}" version="${jre.version}" name="oracle.${jre.type}">
+			<attachments>
+        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-linux-i586.zip" type="zip" classifier="linux32"/>
+        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-linux-x64.zip" type="zip" classifier="linux64"/>
+        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-macosx-x64.zip" type="zip" classifier="darwin64"/>
+        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-windows-i586.zip" type="zip" classifier="win32"/>
+        		<attach file="${mvn.jre.tmp}/${jre.type}${jre.version}-windows-x64.zip" type="zip" classifier="win64"/>
+			</attachments>
+		</pom-and-deploy>
+    	<delete dir="${temp.dir}" />
+	</target>	
 	
 <!--
 NEXUS STUFF

@@ -17,7 +17,7 @@
 		<!-- TODO: something better -->
 		<sequential>
 			<mkdir dir="@{colddoc.tmp.dir}" />
-			<dependency artifactId="colddoc" version="1.0" mapping="/colddoc" groupId="org.riaforge" />
+			<dependency artifactId="colddoc" version="1.0-SNAPSHOT" mapping="/colddoc" groupId="com.ortussolutions" />
 			<echo file="@{colddoc.tmp.dir}/Application.cfc">component { 
 				this.name="docgen"; this.mappings["/@{packagenames}"] = "@{sourcepath}";
 				this.mappings["/colddoc"] = "${ext.mappings.dir}/org.riaforge/colddoc/1.0/";
