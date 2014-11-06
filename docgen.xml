@@ -14,20 +14,33 @@
 		<attribute name="excludepackagenames" default="unsupported"/>
 		<attribute name="destdir"/>
 		<attribute name="colddoc.tmp.dir" default="${war.target.dir}/_docgen"/>
+		<text name="text" optional="true" trim="true"/>
 		<!-- TODO: something better -->
 		<sequential>
+            <abspath path="@{destdir}" property="__doc.dir" />
+            <abspath path="@{sourcepath}" property="__doc.src" />
 			<mkdir dir="@{colddoc.tmp.dir}" />
 			<dependency artifactId="colddoc" version="1.0" mapping="/colddoc" groupId="com.ortussolutions" />
 			<echo file="@{colddoc.tmp.dir}/Application.cfc">component { 
-				this.name="docgen"; this.mappings["/@{packagenames}"] = "@{sourcepath}";
+				this.name="docgen"; this.mappings["/@{packagenames}"] = "${__doc.src}";
 				this.mappings["/colddoc"] = "${ext.mappings.dir}/com.ortussolutions/colddoc/1.0/";
 			}</echo>
+			<antcontrib:if>
+				<equals arg1="@{text}" arg2="" />
+				<then>
+					  <antcontrib:var name="__doc.sources" value='{ inputDir="${__doc.src}", inputMapping="@{packagenames}" }' />
+				</then>
+				<else>
+					  <antcontrib:var name="__doc.sources" value='@{text}' />
+				</else>
+			</antcontrib:if>
 			<echo file="@{colddoc.tmp.dir}/colddoc.cfm">&lt;cfscript&gt;
 try {
-colddoc = createObject("component", "colddoc.ColdDoc").init();
-strategy = createObject("component", "colddoc.strategy.api.HTMLAPIStrategy").init("@{destdir}", "@{title}");
-colddoc.setStrategy(strategy);
-colddoc.generate("@{sourcepath}", "@{packagenames}");
+  colddoc = createObject("component", "colddoc.ColdDoc").init();
+  strategy = createObject("component", "colddoc.strategy.api.HTMLAPIStrategy").init("${__doc.dir}", "@{title}");
+  colddoc.setStrategy(strategy);
+  source = [${__doc.sources}];
+  colddoc.generate( source );
 } catch (any e) {
 	writeOutput(e.message);
 	writeOutput(e.detail);
@@ -35,8 +48,8 @@ colddoc.generate("@{sourcepath}", "@{packagenames}");
 }
 gendate=now();
 &lt;/cfscript&gt;
-&lt;cfcontent reset="true"&gt;@{title} API from @{sourcepath} mapping: @{packagenames} 
-generated to @{destdir} on &lt;cfset writeOutput(gendate)/&gt;
+&lt;cfcontent reset="true"&gt;@{title} API from ${__doc.src} mapping: @{packagenames} 
+generated to ${__doc.dir} on &lt;cfset writeOutput(gendate)/&gt;
 			</echo>
 			<get dest="@{colddoc.tmp.dir}/colddoc.html" src="http://${server.host}:${server.port.http}${war.contextpath}/_docgen/colddoc.cfm" verbose="true"/>
 			<antcontrib:var unset="true" name="colddoc.return" />
@@ -51,11 +64,11 @@ generated to @{destdir} on &lt;cfset writeOutput(gendate)/&gt;
 		<attribute name="title"/>
 		<attribute name="excludepackagenames" default="unsupported"/>
 		<attribute name="destdir"/>
-		<!-- TODO: something better -->
+	    <text name="text" optional="true" trim="true"/>
 		<sequential>
 			<server-run>
 				<colddoc-get packagenames="@{packagenames}" excludepackagenames="@{excludepackagenames}"  
-					title="@{title}" sourcepath="@{sourcepath}" destdir="@{destdir}" />
+					title="@{title}" sourcepath="@{sourcepath}" destdir="@{destdir}">@{text}</colddoc-get>
 			</server-run>
 		</sequential>
 	</macrodef>
