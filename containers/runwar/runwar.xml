@@ -424,6 +424,7 @@ __ARCHIVE_FOLLOWS__
 
 	<macrodef name="l4j-workdir-artifact">
 		<attribute name="classifier" />
+        <attribute name="launch4jversion" default="3.5.0" />
 		<sequential>
             <dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
                 dest="${cfdistro.lib.dir}/launch4j" unzip="true" classifier="@{classifier}">
