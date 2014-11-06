@@ -53,7 +53,7 @@ generated to ${__doc.dir} on &lt;cfset writeOutput(gendate)/&gt;
 			</echo>
 			<get dest="@{colddoc.tmp.dir}/colddoc.html" src="http://${server.host}:${server.port.http}${war.contextpath}/_docgen/colddoc.cfm" verbose="true"/>
 			<antcontrib:var unset="true" name="colddoc.return" />
-			<loadfile property="colddoc.return" srcfile="@{colddoc.tmp.dir}/colddoc.html"/>
+            <loadfile property="colddoc.return" srcfile="@{colddoc.tmp.dir}/colddoc.html"><filterchain><trim/><ignoreblank/></filterchain></loadfile>
 	    	<echo message="Colddoc: ${colddoc.return}"></echo>
 		</sequential>
 	</macrodef>
