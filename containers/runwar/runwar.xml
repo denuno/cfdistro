@@ -1,16 +1,4 @@
 <?xml version="1.0" standalone="yes" ?>
-<!DOCTYPE project
-[
-    <!ENTITY launch4jexclusions '<exclusions><exclusion groupId="commons-logging" artifactId="commons-logging"/>
-	    <exclusion groupId="commons-beanutils" artifactId="commons-beanutils"/>
-	    <exclusion groupId="net.java.abeille" artifactId="abeille"/>
-	    <exclusion groupId="foxtrot" artifactId="foxtrot"/>
-	    <exclusion groupId="com.jgoodies" artifactId="jgoodies-common"/>
-	    <exclusion groupId="com.jgoodies" artifactId="forms"/>
-	    <exclusion groupId="com.jgoodies" artifactId="looks"/>
-	    <exclusion groupId="com.thoughtworks.xstream" artifactId="xstream"/>
-	    <exclusion groupId="org.apache.ant" artifactId="ant"/></exclusions>'>
-]>
 <project name="runwar" default="runwar.install" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
 	<property name="runwar.version" value="2.2.0" />
@@ -373,27 +361,22 @@ __ARCHIVE_FOLLOWS__
 
 			<antcontrib:switch value="${os.family}">
 			  <case value="windows">
-				<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
-					dest="${cfdistro.lib.dir}/launch4j" unzip="true" classifier="workdir-win32">
-					    &launch4jexclusions;
-				</dependency>
-				<antcontrib:var name="launch4j.bindir" value="${cfdistro.lib.dir}/launch4j/launch4j-@{launch4jversion}-workdir-win32"/>
+			     <l4j-workdir-artifact classifier="workdir-win32" />
 			  </case>
 			  <case value="unix">
 				<antcontrib:switch value="${os.name}">
 				  <case value="Mac OS X">
-					<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
-						dest="${cfdistro.lib.dir}/launch4j" unzip="true" classifier="workdir-mac">
-					    &launch4jexclusions;
-					</dependency>
-					<antcontrib:var name="launch4j.bindir" value="${cfdistro.lib.dir}/launch4j/launch4j-@{launch4jversion}-workdir-mac"/>
+                    <l4j-workdir-artifact classifier="workdir-mac" />
 				  </case>
 				  <case value="Linux">
-					<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
-						dest="${cfdistro.lib.dir}/launch4j" unzip="true" classifier="workdir-linux">
-					    &launch4jexclusions;
-					</dependency>
-					<antcontrib:var name="launch4j.bindir" value="${cfdistro.lib.dir}/launch4j/launch4j-@{launch4jversion}-workdir-linux"/>
+                    <antcontrib:switch value="${os.arch}">
+                      <case value="amd64">
+                        <l4j-workdir-artifact classifier="workdir-linux-amd64" />
+                      </case>
+                      <default>
+                        <l4j-workdir-artifact classifier="workdir-linux" />
+                      </default>
+                    </antcontrib:switch>
 				  </case>
 				  <default>
 				  	<fail message="Um, the os '${os.name}' is unknown to me, esse!" />
@@ -438,6 +421,27 @@ __ARCHIVE_FOLLOWS__
 			</antcontrib:if>
 		</sequential>
 	</macrodef>	
+
+	<macrodef name="l4j-workdir-artifact">
+		<attribute name="classifier" />
+		<sequential>
+            <dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
+                dest="${cfdistro.lib.dir}/launch4j" unzip="true" classifier="@{classifier}">
+                <exclusions>
+                <exclusion groupId="commons-logging" artifactId="commons-logging"/>
+                <exclusion groupId="commons-beanutils" artifactId="commons-beanutils"/>
+                <exclusion groupId="net.java.abeille" artifactId="abeille"/>
+                <exclusion groupId="foxtrot" artifactId="foxtrot"/>
+                <exclusion groupId="com.jgoodies" artifactId="jgoodies-common"/>
+                <exclusion groupId="com.jgoodies" artifactId="forms"/>
+                <exclusion groupId="com.jgoodies" artifactId="looks"/>
+                <exclusion groupId="com.thoughtworks.xstream" artifactId="xstream"/>
+                <exclusion groupId="org.apache.ant" artifactId="ant"/>
+                </exclusions>
+            </dependency>
+            <antcontrib:var name="launch4j.bindir" value="${cfdistro.lib.dir}/launch4j/launch4j-@{launch4jversion}-@{classifier}"/>
+		</sequential>
+	</macrodef>
 
 	<macrodef name="jar2app">
 		<attribute name="jar" />
