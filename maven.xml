@@ -35,7 +35,6 @@
         </artifact:dependencies>
     </target>
 
-
 	<macrodef name="mvn-repo">
 		<attribute name="id" />
 		<attribute name="url"/>
@@ -48,7 +47,6 @@
 		    </artifact:remoteRepository>
 		</sequential>
 	</macrodef>
-
 
 	<macrodef name="mvn-get" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
 		<attribute name="groupId" />
@@ -137,6 +135,34 @@
 		</sequential>
 	</macrodef>
 	
+	<macrodef name="dependency-location">
+		<attribute name="property" />
+		<attribute name="groupId" />
+		<attribute name="artifactId"/>
+		<attribute name="version"/>
+		<attribute name="classifier" default=""/>
+		<attribute name="type" default="zip"/>
+		<sequential>
+            <antcontrib:var name="dependency.location" value="@{groupId}"/>
+            <antcontrib:propertyregex 
+            property="dependency.location" 
+            input="@{groupId}" 
+            global="true" override="yes" 
+            regexp="\." 
+            replace="/" />
+            <antcontrib:if>
+                <equals arg1="@{classifier}" arg2="" />
+                <then>
+                    <antcontrib:var name="_dep.classifier" value=""/>
+                </then>
+                <else>
+                    <antcontrib:var name="_dep.classifier" value="-@{classifier}"/>
+                </else>
+            </antcontrib:if>
+            <antcontrib:var name="@{property}" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/"/>
+		</sequential>
+	</macrodef>
+	
 	<macrodef name="dependency">
 		<attribute name="groupId" />
 		<attribute name="artifactId"/>
@@ -151,24 +177,8 @@
 		<element name="exclusions" implicit="false" optional="true"/>
 		<sequential>
 			<property name="ext.mappings.dir" value="${user.home}/cfdistro/ext/mappings" />
-			<antcontrib:var name="dependency.location" value="@{groupId}"/>
-			<antcontrib:propertyregex 
-			property="dependency.location" 
-			input="@{groupId}" 
-			global="true" override="yes" 
-			regexp="\." 
-			replace="/" />
-			<antcontrib:if>
-				<equals arg1="@{classifier}" arg2="" />
-				<then>
-					<antcontrib:var name="_dep.classifier" value=""/>
-				</then>
-				<else>
-					<antcontrib:var name="_dep.classifier" value="-@{classifier}"/>
-				</else>
-			</antcontrib:if>
-			<antcontrib:var name="_dep.loc" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/"/>
-			<antcontrib:var name="_dep.file" value="${cfdistro.repo.local.path}/${dependency.location}/@{artifactId}/@{version}/@{artifactId}-@{version}${_dep.classifier}.@{type}"/>
+			<dependency-location property="_dep.loc" groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" classifier="@{classifier}"/>
+			<antcontrib:var name="_dep.file" value="${_dep.loc}/@{artifactId}-@{version}${_dep.classifier}.@{type}"/>
 			<mvn-get groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" type="@{type}" classifier="@{classifier}" toDir="@{dest}" repoId="@{repoId}">
 				<exclusions />
 			</mvn-get>
@@ -284,6 +294,7 @@
 		<attribute name="name" default="" />
 		<attribute name="packaging" default="jar" />
 		<attribute name="repoId" default="${mvn.repo.id}" />
+		<attribute name="deletesnapshots" default="true" />
 		<element name="dependencies" optional="true" />
 		<element name="attachments" optional="true" />
 		 <!-- <attach file="${basedir}/target/my-project-1.0-sources.jar" type="jar" classifier="sources"/> -->
@@ -306,6 +317,17 @@
 				</then>
 			</antcontrib:if>
     		<property name="__buildtype.suffix" value="" /> 
+            <antcontrib:if>
+            	<and>
+                <equals arg1="@{buildtype}" arg2="snapshot" />
+                <equals arg1="@{deletesnapshots}" arg2="true" />
+        		</and>
+                <then>
+                    <dependency-location property="_snapshot.loc" groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}${__buildtype.suffix}" type="@{type}" classifier="@{classifier}"/>
+                	<echo message="Deleting any previous snapshots" />
+                	<delete dir="${_snapshot.loc}" />
+                </then>
+            </antcontrib:if>
 			<antcontrib:if>
 				<equals arg1="@{file}" arg2="" />
 				<then>
