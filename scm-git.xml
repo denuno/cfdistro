@@ -95,7 +95,7 @@
 					<echo message="no .git dir, let us try to get one- this may take a bit..." />
 					<delete dir="${git.temp}"/>
 					<mkdir dir="${git.temp}"/>
-					<git-clone repository="@{repository}" tag="@{tag}" dest="${git.temp}" />
+                    <git-checkout uri="@{repository}" gitdir="${git.temp}" remote="origin" branch="@{tag}" />
 					<move todir="@{dest}">
 					    <fileset dir="${git.temp}/@{path}"/>
 					</move>
@@ -319,6 +319,7 @@
 			var config = git.getRepository().getConfig();
 			config.setString("remote", remote, "url", uri);
 			config.setString("remote", remote, "fetch", "+refs/heads/*:refs/remotes/"+remote+"/*");
+		// +refs/tags/*
 			config.save();
 		}
 		var specs=new java.util.ArrayList();
@@ -334,10 +335,18 @@
 				createBranch = false;
 			}
 		}
+        var tags = git.tagList().call().iterator();
+        while (tags.hasNext()){
+            var tagObj = tags.next();
+            if(tagObj.getName() == "refs/tags/" + branch
+		        || tagObj.getName() == "refs/tags/" + branch.split("/")[1]) {
+		        branch = tagObj.getName();
+            }
+        }
 		if(createBranch) {
-			println(branch + " branch will be created locally");
+			println(branch + " will be created locally");
 		} else {
-			println(branch + " branch exists locally");
+			println(branch + " exists locally");
 		}
 		println("checking out " + branch);
 		if(branch.contains("/")){
@@ -746,7 +755,7 @@
 		<sequential>
 			<delete dir="@{temp-dir}" />
 			<mkdir dir="@{temp-dir}" />
-			<git-clone dest="@{temp-dir}" repository="@{uri}" tag="@{tag}" />
+            <git-checkout uri="@{uri}" gitdir="@{temp-dir}" remote="origin" branch="@{tag}" />
 			<copy todir="@{temp-dir}" verbose="false" overwrite="true">
 				<fileset dir="@{source}" />
 			</copy>
