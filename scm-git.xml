@@ -263,7 +263,7 @@
 		importClass(org.eclipse.jgit.storage.file.FileRepositoryBuilder);
 		importClass(java.io.File);
 	    var gitdir = new File(attributes.get( "repository" ));
-	    var remote = attributes.get( "remote" ) ? attributes.get( "remote" ) : "origin";
+	    var remote = attributes.get( "remote" ) ? attributes.get( "remote" ) : "";
 	    var branch = attributes.get( "branch" ) ? attributes.get( "branch" ) : "master";
 	    var property = attributes.get( "property" );
         var repository = new FileRepositoryBuilder().findGitDir(gitdir).build();
@@ -275,10 +275,17 @@
 			var ref = repository.getRefDatabase().getRef("refs/heads/" + branch);
 		}
 		if(ref != null) {
-			log.add(ref.getObjectId());
+		    try{
+			    log.add(ref.getObjectId());
+		    } catch (er) {
+                ref = repository.peel(ref);
+		        log.add(ref.getPeeledObjectId());
+		    }
 			log.setMaxCount(1);
 			var commit = log.call().next();
 	        if (commit != null) {
+    		    //println(commit.getFullMessage());
+    		    println(commit.getName());
 				project.setProperty(property, commit.getName());
 	        }
 		} else {
@@ -335,26 +342,27 @@
 				createBranch = false;
 			}
 		}
-        var tags = git.tagList().call().iterator();
-        while (tags.hasNext()){
-            var tagObj = tags.next();
-            if(tagObj.getName() == "refs/tags/" + branch
-		        || tagObj.getName() == "refs/tags/" + branch.split("/")[1]) {
-		        branch = tagObj.getName();
-            }
-        }
 		if(createBranch) {
 			println(branch + " will be created locally");
 		} else {
 			println(branch + " exists locally");
 		}
 		println("checking out " + branch);
+        var tags = git.tagList().call().iterator();
 		if(branch.contains("/")){
 			var startPoint = branch; 
 		} else {
 			var startPoint = remote + "/" + branch;
 		}
-	 	try {
+        while (tags.hasNext()){
+            var tagObj = tags.next();
+            if(tagObj.getName() == "refs/tags/" + branch
+                || tagObj.getName() == "refs/tags/" + branch.split("/")[1]) {
+                startPoint = tagObj.getName();
+                println("reference: " + startPoint);
+            }
+        }
+		try {
 			git.checkout().
 				setForce(true).
 		        setCreateBranch(createBranch).
@@ -538,7 +546,7 @@
 							<git-checkout uri="@{uri}" gitdir="${__git.dir}" remote="@{remote}" branch="${_git.branch}" pristine="true" />
 						</then>
 						<else>
-							<git-has-modifications dir="${__git.dir}" remote="@{remote}" branch="${_git.branch}" property="git.hasmods" />
+							<git-has-modifications dir="${__git.dir}" remote="@{remote}" branch="@{branch}" property="git.hasmods" />
 							<antcontrib:if>
 								<and>
 									<equals arg1="${git.hasmods}" arg2="true"/>
@@ -627,13 +635,14 @@
 				<param name="remote" path="@remote" default="origin" />
 				<param name="branch" path="@branch" default="master" />
 				<actions>
+                    <git-local-branchname property="_git.branch" branch="@{branch}" remote="@{remote}" />
 					<antcontrib:var name="revisions.are.same" value="true"/>
 					<antcontrib:var name="desthash" unset="true"/>
 					<antcontrib:var name="pre.fetch.commit.hash" unset="true"/>
 					<abspath path="@{dest}" property="__git.dir" />
 					<safestring value="@{dest}" property="desthash"/>
 					<echo message="DestHash: ${desthash}"/>
-					<git-commit-hash repository="${__git.dir}" remote="" property="pre.fetch.commit.hash" />
+					<git-commit-hash repository="${__git.dir}" remote="" branch="${_git.branch}" property="pre.fetch.commit.hash" />
 					<propertyfile file="${basedir}/scm.cache" comment="source control management cache">
 						<entry key="${desthash}.last.commit.hash" default="${pre.fetch.commit.hash}" />
 						<entry key="${desthash}.current.commit.hash" value="${pre.fetch.commit.hash}" />
@@ -665,7 +674,7 @@
 						<echo message="${fetcherr}"/>
 					</catch>
 					</antcontrib:trycatch>
-					<git-commit-hash repository="${__git.dir}" remote="" property="post.fetch.commit.hash" />
+					<git-commit-hash repository="${__git.dir}" remote="" branch="${_git.branch}" property="post.fetch.commit.hash" />
 					<antcontrib:if>
 						<equals arg1="${pre.fetch.commit.hash}" arg2="${post.fetch.commit.hash}" />
 						<then>
