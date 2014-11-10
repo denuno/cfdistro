@@ -354,7 +354,9 @@ __ARCHIVE_FOLLOWS__
 		<attribute name="customProcName" default="true" />
 		<attribute name="mutexName" default="java.runner" />
 		<attribute name="launch4jversion" default="3.5.0" />
-		
+		<attribute name="certfile" default="" description="try to sign the exe if specified"/>
+		<attribute name="keyfile" default="" />
+		<attribute name="keypass" default="" />
 		<sequential>
 			<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
 				dest="${cfdistro.lib.dir}/launch4j" unzip="false"/>
@@ -419,6 +421,15 @@ __ARCHIVE_FOLLOWS__
 					</launch4j>
 				</else>
 			</antcontrib:if>
+            <antcontrib:if>
+                <equals arg1="@{certfile}" arg2="" />
+                <then/>
+            	<else>
+                    <taskdef-dependency name="jsign" classname="net.jsign.PESignerTask" groupId="net.jsign" artifactId="jsign" version="1.2" dest="${cfdistro.lib.dir}/jsign" />
+			        <jsign file="@{exe}" certfile="@{certfile}" keyfile="@{keyfile}"  keypass="@{keypass}"/>
+                    <!-- openssl rsa -in project.key -outform PVK -pvk-strong -out project.pvk -->
+                </else>
+            </antcontrib:if>
 		</sequential>
 	</macrodef>	
 
