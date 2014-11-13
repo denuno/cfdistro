@@ -41,6 +41,9 @@
 	<property name="dist.root.dir.abs" location="${dist.root.dir}" />
 	<antcontrib:var name="dist.root.dir" value="${dist.root.dir.abs}" />
 
+	<property name="distro.build.dir.abs" location="${basedir}" />
+	<antcontrib:var name="distro.build.dir" value="${distro.build.dir.abs}" />
+
     <antcontrib:if>
       <available file="${user.cfdistrorc}" /><then/>
       <else>

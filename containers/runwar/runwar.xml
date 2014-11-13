@@ -357,7 +357,45 @@ __ARCHIVE_FOLLOWS__
 		<attribute name="certfile" default="" description="try to sign the exe if specified"/>
 		<attribute name="keyfile" default="" />
 		<attribute name="keypass" default="" />
+        <element name="config-element" implicit="false" optional="true"/>
+        <element name="jre-element" implicit="false" optional="true"/>
 		<sequential>
+            <xml-to-property property="l4j.config"><config-element/></xml-to-property>
+            <xml-to-property property="l4j.jre"><jre-element/></xml-to-property>
+            <antcontrib:if>
+                <equals arg1="${l4j.jre}" arg2="" />
+                <then><antcontrib:var name="l4j.jre" value='&lt;jre path="./jre/" minVersion="1.6.0"/>'/></then>
+            </antcontrib:if>
+            <antcontrib:if>
+                <equals arg1="${l4j.config}" arg2="" />
+                <then>
+                    <antcontrib:if>
+                        <equals arg1="@{headerType}" arg2="console" />
+                        <then>
+                        	<xml-to-property property="l4j.config">
+                            <launch4j bindir="${launch4j.bindir}">
+                                <config headerType="console"  outFile="@{exe}" jar="@{jar}" errTitle="Error initializing" chdir="." icon="@{icon}">
+                                    ${l4j.jre}
+                                </config>
+                            </launch4j>
+                            </xml-to-property>
+                        </then>
+                        <else>
+                            <xml-to-property property="l4j.config">
+                            <launch4j bindir="${launch4j.bindir}">
+                                <config dontWrapJar="false" headerType="@{headerType}" outFile="@{exe}" jar="@{jar}" errTitle="Install Error" cmdLine="" chdir="." downloadUrl="http://java.com/download" supportUrl="" stayAlive="@{stayalive}" icon="@{icon}">
+                                    <var>-Dappdir=&quot;&quot; </var>
+                                    ${l4j.jre}
+                                    <versionInfo fileVersion="${product.version}" txtFileVersion="${product.version.txt}" fileDescription="${product.name.short} Windows Install" copyright="2009" productVersion="${product.version}" txtProductVersion="${product.version.txt}" productName="${product.name.short}" companyName="${company.name}" internalName="${war.name}.jar" originalFilename="${war.name}.exe" />
+                                    <messages startupErr="An error occurred while starting the application." bundledJreErr="This application was configured to use a bundled Java Runtime Environment but the runtime is missing or corrupted." jreVersionErr="This application requires a Java Runtime Environment.\nAt least version" launcherErr="The registry refers to a nonexistent Java Runtime Environment installation or the runtime is corrupted." instanceAlreadyExistsMsg="An application instance is already running." />
+                                </config>
+                            </launch4j>
+                            </xml-to-property>
+                        </else>
+                    </antcontrib:if>
+                </then>
+            </antcontrib:if>
+
 			<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
 				dest="${cfdistro.lib.dir}/launch4j" unzip="false"/>
 
@@ -400,27 +438,7 @@ __ARCHIVE_FOLLOWS__
 			
 			<echo message="EXE Type: @{headerType} for @{jar}"/>
 			<chmod dir="${launch4j.bindir}" perm="ugo+rx" includes="*"/>
-			<antcontrib:if>
-				<equals arg1="@{headerType}" arg2="console" />
-				<then>
-					<launch4j bindir="${launch4j.bindir}">
-						<config headerType="console"  outFile="@{exe}" jar="@{jar}" 
-							errTitle="Error initializing" chdir="." icon="@{icon}">
-							<jre path="./jre/" minVersion="1.7.0" />
-						</config>
-					</launch4j>
-				</then>
-				<else>
-					<launch4j bindir="${launch4j.bindir}">
-						<config dontWrapJar="false" headerType="@{headerType}" outFile="@{exe}" jar="@{jar}" errTitle="Install Error" cmdLine="" chdir="." downloadUrl="http://java.com/download" supportUrl="" stayAlive="@{stayalive}" icon="@{icon}">
-							<var>-Dappdir=&quot;&quot; </var>
-							<jre path="./jre/" minVersion="1.7.0" />
-							<versionInfo fileVersion="${product.version}" txtFileVersion="${product.version.txt}" fileDescription="${product.name.short} Windows Install" copyright="2009" productVersion="${product.version}" txtProductVersion="${product.version.txt}" productName="${product.name.short}" companyName="${company.name}" internalName="${war.name}.jar" originalFilename="${war.name}.exe" />
-							<messages startupErr="An error occurred while starting the application." bundledJreErr="This application was configured to use a bundled Java Runtime Environment but the runtime is missing or corrupted." jreVersionErr="This application requires a Java Runtime Environment.\nAt least version" launcherErr="The registry refers to a nonexistent Java Runtime Environment installation or the runtime is corrupted." instanceAlreadyExistsMsg="An application instance is already running." />
-						</config>
-					</launch4j>
-				</else>
-			</antcontrib:if>
+            <ant-gen-run>${l4j.config}</ant-gen-run>			
             <antcontrib:if>
                 <equals arg1="@{certfile}" arg2="" />
                 <then/>

@@ -518,25 +518,12 @@
 		<attribute name="namespacePolicy" default="ignore" />
 		<element name="xml" implicit="true" optional="true" />
 		<sequential>
-			<antcontrib:var unset="true" name="@{property}" />
-			<tempfile property="__xml_file.temp" deleteonexit="true" prefix="xml-to-property" suffix=".xml"/>
-			<echoxml file="${__xml_file.temp}" namespacePolicy="@{namespacePolicy}">
-				<placeholderbrah>
-				<xml />
-				</placeholderbrah>
-			</echoxml>
-			<loadfile property="@{property}" srcFile="${__xml_file.temp}">
-				<filterchain>
-					<LineContainsRegexp negate="yes">
-						<regexp pattern=".xml version=.1.0. encoding=.UTF-8..." />
-					</LineContainsRegexp>
-					<LineContainsRegexp negate="yes">
-						<regexp pattern="..?placeholderbrah." />
-					</LineContainsRegexp>
-				</filterchain>
-			</loadfile>
+            <echoxml-noencode property="@{property}">
+				<rawxml><xml /></rawxml>
+        	</echoxml-noencode>
 			<antcontrib:propertyregex property="@{property}" override="true" input="${@{property}}" 
 				regexp="^[\s]+|[\s]+$" replace="" casesensitive="false" />
+            <antcontrib:if><isset property="@{property}"/><then/><else><antcontrib:var name="@{property}" value="" /></else></antcontrib:if>
 		</sequential>
 	</macrodef>
 
@@ -551,6 +538,144 @@
 			<zip destfile="${dist.dir}/checksums.zip" basedir="${temp.dir}" />
 		</sequential>
 	</macrodef>
+
+	<macrodef name="ant-gen-run">
+		<element name="xml" implicit="true" optional="true"/>
+		<text name="text" optional="true"/>
+		<sequential>
+            <echoxml-noencode property="ant-gen-xml">
+                <rawxml>
+                    <project basedir="${distro.build.dir}"><import file="${distro.build.dir}/build.xml"/>
+                    <target name="antgen">
+                        <xml/>@{text}
+                    </target></project>
+                </rawxml>
+            </echoxml-noencode>
+    		<echo message="${ant-gen-xml}" />
+	        <echo file="${temp.dir}/ant-gen.xml" message="${ant-gen-xml}" append="false"/>
+			<xmltask source="${temp.dir}/ant-gen.xml" dest="${temp.dir}/ant-gen.xml" outputter="simple:2" />
+	        <ant antfile="${temp.dir}/ant-gen.xml" inheritAll="true" target="antgen" />
+	        <delete file="${temp.dir}/ant-gen.xml"/>
+		</sequential>
+	</macrodef>
+
+    <scriptdef name="set-macrodef-element" language="javascript" classpathref="build.lib.path">
+        <attribute name="task" />
+        <attribute name="element" />
+        <attribute name="value" />
+        <![CDATA[
+	        try{ load("nashorn:mozilla_compat.js"); } catch (e) {}; //java8
+	        if (typeof println == 'undefined') this.println = print;  //java8
+            var taskname = attributes.get( "task" );
+            var value = attributes.get( "value" );
+         	printf(self.getRuntimeConfigurableWrapper().getElementTag());
+         	printf(self.getRuntimeConfigurableWrapper().getProxy().getRuntimeConfigurableWrapper().getElementTag());
+         	var tasks = self.getOwningTarget().getTasks();
+         	for(var i in tasks) {
+                var task = tasks[i];
+    			print(task.getRuntimeConfigurableWrapper().getElementTag() + " = " + taskname);
+             	if(task.getRuntimeConfigurableWrapper().getElementTag() == taskname){
+                	println("EQUALS");
+                   // task.getRuntimeConfigurableWrapper().reconfigure(project);
+                    println("kid");
+                	task.getRuntimeConfigurableWrapper().addText(value)
+                	println(task.getRuntimeConfigurableWrapper().getText());
+                	task.init();
+                }
+		    }
+     	]]>
+	</scriptdef>
+
+	<scriptdef name="echoxml-noencode" language="javascript" classpathref="build.lib.path">
+        <attribute name="property"/>
+        <element name="rawxml" className="org.apache.tools.ant.util.XMLFragment" />
+        <![CDATA[
+	        try{ load("nashorn:mozilla_compat.js"); } catch (e) {}; //java8
+	        if (typeof println == 'undefined') this.println = print;  //java8
+	        importClass(Packages.net.sf.antcontrib.property.Variable);
+            importClass(org.w3c.dom.Node);
+            importClass(org.apache.tools.ant.util.DOMElementWriter);
+            function write(element, out, indent, indentWith) {
+        		if(element == null) return;
+                // Write child elements and text
+                var children = element.getChildNodes();
+                var hasChildren = (children.getLength() > 0);
+                var hasChildElements = false;
+        	    var lSep = java.lang.System.getProperty("line.separator");
+        	    var domWriter = new DOMElementWriter(false);
+        	    domWriter.openElement(element, out, indent, indentWith, hasChildren);
+                if (hasChildren) {
+                    for (var i = 0; i < children.getLength(); i++) {
+                        var child = children.item(i);
+                        switch (child.getNodeType()) {
+                        case Node.ELEMENT_NODE:
+                            hasChildElements = true;
+                            if (i == 0) {
+                                out.write(lSep);
+                            }
+                            write(child, out, indent + 1, indentWith);
+                            break;
+                        case Node.TEXT_NODE:
+                            out.write(child.getNodeValue());
+                            break;
+                        case Node.COMMENT_NODE:
+                            out.write("<!--");
+                            out.write(child.getNodeValue());
+                            out.write("-->");
+                            break;
+                        case Node.CDATA_SECTION_NODE:
+                            out.write( child.getData() );
+                            break;
+                        case Node.ENTITY_REFERENCE_NODE:
+                            out.write('&');
+                            out.write(child.getNodeName());
+                            out.write(';');
+                            break;
+                        case Node.PROCESSING_INSTRUCTION_NODE:
+                            out.write("<?");
+                            out.write(child.getNodeName());
+                            var data = child.getNodeValue();
+                            if (data != null && data.length() > 0) {
+                                out.write(' ');
+                                out.write(data);
+                            }
+                            out.write("?>");
+                            break;
+                        default:
+                            // Do nothing
+                        }
+                    }
+                    domWriter.closeElement(element, out, indent, indentWith, hasChildElements);
+                }
+            }    	
+    	
+        	function dumpFuncs(object){
+                var tClass = object.getClass();
+                 var methods = tClass.getMethods();
+                 for (var i = 0; i < methods.length; i++) {
+                     java.lang.System.out.println("public method: " + methods[i]);
+                 }
+        	}
+            //importClass(Packages.org.apache.commons.lang3.builder.ReflectionToStringBuilder);
+            var property = attributes.get( "property" );
+		    if(elements.get( "rawxml" ) != null) {
+        		var xml = elements.get( "rawxml" ).iterator().next();
+                var elements = xml.getFragment();
+            	var out = new java.io.ByteArrayOutputStream();
+            	var writer = new java.io.OutputStreamWriter(out,"UTF-8");
+            	write(elements.getFirstChild(),writer,1," ");
+		    }
+    		if(property != null) {
+                varvar = new Variable();
+                varvar.project = project;
+                varvar.setName(property);
+                varvar.setValue(out.toString());
+                varvar.execute();           
+    		} else {
+		        print(out.toString());
+		    }
+     	]]>
+	</scriptdef>
 
 	<macrodef name="hash">
 		<attribute name="value"/>
