@@ -959,21 +959,35 @@
 		</sequential>
 	</macrodef>
 	
-	<macrodef name="ant-set-log-level">
- 		<attribute name="level" />
-		<sequential>
-			<property name="___antloglevel" value="@{level}"/>
-			<script language="javascript" classpathref="build.lib.path">
-			    var logger = project.getBuildListeners().firstElement();
-			    var verboseMode = project.getProperty( "___antloglevel" );
-				try {
-		        	logger.setMessageOutputLevel( verboseMode );
-				} catch (e) {
-				}
-			</script>
-			<antcontrib:var name="___antloglevel" unset="true"/>
-		</sequential>
-	</macrodef>
+	<scriptdef name="ant-set-log-level" language="javascript" classpathref="build.lib.path">
+		  <attribute name="level"/>
+		  <![CDATA[
+	        try{ load("nashorn:mozilla_compat.js"); } catch (e) {}; //java8
+	        if (typeof println == 'undefined') this.println = print;  //java8
+			importClass(org.apache.tools.ant.types.LogLevel);
+			importClass(org.apache.tools.ant.BuildLogger);
+			var level = attributes.get("level");
+			if(!isNaN(parseFloat(level)) && isFinite(level)){
+				if(level == 0) level = 'error';
+				if(level == 1) level = 'warn';
+				if(level == 2) level = 'info';
+				if(level == 3) level = 'verbose';
+				if(level == 3) level = 'debug';
+			}
+	        var logLevel = new LogLevel();
+			logLevel.setValue(level);
+		    if (logLevel.getLevel() == -1) {
+	           throw new BuildException("You must specify a log level");
+	        }
+			var listeners = project.getBuildListeners().iterator();
+	        while (listeners.hasNext()) {
+	            var logger = listeners.next();
+		 		if (logger instanceof BuildLogger) {
+	                logger.setMessageOutputLevel(logLevel.getLevel());
+	            }
+	        }
+		]]>
+	</scriptdef>
 	
 	<macrodef name="silent">
  		<element name="stuff" implicit="true" optional="false"/>

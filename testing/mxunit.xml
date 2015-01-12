@@ -82,6 +82,8 @@
 
 		<result2text dir="${mxunit.tests.results.dir}" />
 		-->
+		<mapping physical="@src.dir@/tests" virtual="/tests" scmurl="${sc.scmurl}"/>
+		<mapping physical="@src.dir@/framework" virtual="/framework" scmurl="${sc.scmurl}"/>
 		<result2html dir="${mxunit.tests.results.dir}" />
 	</target>
 
@@ -161,12 +163,14 @@
 			<mkdir dir="@{dir}/html"/>
 			<xslt in="${temp.dir}/html/testsuites.xml" out="@{dir}/html/index.html" 
 			   style="${mxunit.basedir}/junit-noframes.xsl" failOnTransformationError="false"/>
-			<antcontrib:runtarget target="exists.mappings.xml" />
+			<silent>
+				<antcontrib:runtarget target="set.mappings" />
+			</silent>
 			<xmltask sourcebuffer="mappings.buff">
 				<call path="mappings/mapping[@scmurl and string(@scmurl)]">
 					<param name="virtual" path="@virtual" default="NONE" />
 					<param name="physical" path="@physical" default="NONE" />
-					<param name="scmurl" path="@scmurl" default="" />
+					<param name="scmurl" path="@scmurl" default="${sc.scmurl}" />
 					<actions>
 						<antcontrib:var name="physical.dir.abs" unset="true"/>
 						<property name="physical.dir.abs" location="@{physical}"/>
@@ -178,10 +182,10 @@
 						<replace-windows-slashes property="___src.dir.esc" input="${src.dir}"/>						
 						<antcontrib:propertyregex property="projectRelativePath" input="${physical.dir.abs}" 
 						 regexp="${___src.dir.esc}" replace="" global="true" override="yes"/>
-<!--<echo message="${projectRelativePath} : @{virtual} (@{physical} ${src.dir} @{scmurl}"/> -->
+<!--<echo message="${projectRelativePath} : @{virtua l} (@{physical} ${src.dir} @{scmurl}"/> -->
 						<replaceregexp 
-						        file="@{dir}/html/index.html" 
-								match="@{virtual}(\/[^&quot;&apos;?()]+\/.*?\.cf[mc])\:?(\d+)?" flags="gi"
+						        file="@{dir}/html/index.html"  
+								match="${___src.dir.esc}${projectRelativePath}+(\/.*?\.cf[mc])\:?(\d+)?" flags="gi"
 						        replace='&lt;a title="View Source Code" target="_blank" href="@{scmurl}${projectRelativePath}\1#L\2"&gt;@{virtual}\1:\2&lt;/a&gt;'
 						        byline="false" 
 						/>

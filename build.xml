@@ -218,6 +218,7 @@
 	<import file="deb.xml" />
 	<import file="ci.xml" />
 	<import file="docgen.xml" />
+	<import file="module.xml" />
 
 <!--
  	<delete dir="${temp.dir}" />
@@ -602,7 +603,41 @@
 
 	<target name="set.mappings" depends="exists.mappings.xml">
 		<antcontrib:runtarget target="set.mappings.list" />
+		<antcontrib:runtarget target="set.mapping.properties" />
 		<antcontrib:runtarget target="${default.cfengine}.mappings.xml.build" />
+	</target>
+
+	<target name="set.mapping.properties">
+		<propertyset id="mappings-properties">
+	  		<propertyref prefix="mapping."/>
+		</propertyset>
+		<antcontrib:for list="${toString:mappings-properties}" param="mapping">
+		<sequential>
+			<antcontrib:propertyregex property="mapping"
+			              input="@{mapping}" regexp="mapping\.(.*)="
+			              select="\1" casesensitive="false" override="true" />
+			<antcontrib:propertyregex property="mapping"
+			              input="${mapping}" regexp="\."
+			              replace="/" casesensitive="false" override="true" />
+
+			<antcontrib:propertyregex property="mappingval"
+			              input="@{mapping}" regexp=".+?=(.*)"
+			              select="\1" casesensitive="false" override="true" />
+		  	<antcontrib:var unset="true" name="mapping.physical" />
+		  	<antcontrib:propertyregex override="yes"
+		  	      property="mapping.physical"  input="${mappingval}"
+		  	      regexp="([^:]+)" select="\1"/>
+		  	<antcontrib:var name="mapping.scmurl" value="" />
+		  	<antcontrib:propertyregex override="yes"
+		  	      property="mapping.scmurl"  input="${mappingval}"
+		  	      regexp="[^:]+:(.+)" select="\1"/>
+
+		  	<mapping virtual="/${mapping}" physical="${mapping.physical}" scmurl="${mapping.scmurl}"/>
+		  	<antcontrib:var unset="true" name="mapping.physical" />
+		  	<antcontrib:var unset="true" name="mapping.scmurl" />
+		  	<antcontrib:var unset="true" name="mapping" />
+		</sequential>
+		</antcontrib:for>
 	</target>
 
 	<target name="set.mappings.list" if="mappings.list">
@@ -614,15 +649,18 @@
 		  	      regexp="([^:]+):.*" select="\1"/>
 		  	<antcontrib:propertyregex override="yes"
 		  	      property="mapping.physical"  input="@{mapping}"
-		  	      regexp="[^:]+:(.*)" select="\1"/>
+		  	      regexp="[^:]+:([^:]+)" select="\1"/>
+		  	<antcontrib:propertyregex override="yes"
+		  	      property="mapping.scmurl"  input="@{mapping}"
+		  	      regexp="[^:]+:[^:]+:(.*)" select="\1"/>
 		  	<sanitizePath property="mapping.physical" input="${mapping.physical}" />
-		  	<mapping virtual="${mapping.virtual}" physical="${mapping.physical}"/>
+		  	<mapping virtual="${mapping.virtual}" physical="${mapping.physical}" scmurl="${mapping.scmurl}"/>
+		  	<echo message="URL: ${mapping.scmurl}"/>
 		  </sequential>
 		</antcontrib:for>
-		<echo message="${mappings.list} ${mapping.virtual} : ${mapping.physical}"/>
+		<echo message="${mappings.list} ${mapping.virtual} : ${mapping.physical} ${mapping.scmurl}"/>
 		<antcontrib:var name="mapping.virtual" unset="true" />
 		<antcontrib:var name="mapping.physical" unset="true" />
-		<antcontrib:runtarget target="exists.mappings.xml" />
 	</target>
 
 	<macrodef name="addlibs">
@@ -803,6 +841,7 @@
 -->					
 				</then>
 			</antcontrib:if>
+			<antcontrib:var name="mapping.exists" unset="true" />
 
 </sequential>
 </macrodef>

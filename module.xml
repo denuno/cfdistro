@@ -1,0 +1,33 @@
+<project name="module" xmlns:antcontrib="antlib:net.sf.antcontrib" basedir=".">
+	
+	<target name="build.module">
+	</target>
+
+	<macrodef name="module">
+		<attribute name="buildtype" default="release" />
+		<attribute name="artifact" default="" />
+		<attribute name="file" default="" />
+		<attribute name="groupId" default="" />
+		<attribute name="artifactId" default="" />
+		<attribute name="version" default="" />
+		<attribute name="name" default="@{artifactId}" />
+		<attribute name="packaging" default="jar" />
+		<attribute name="repoId" default="${mvn.repo.id}" />
+		<attribute name="deletesnapshots" default="true" />
+		<element name="fileset" implicit="true"/>
+		<sequential>
+			<local name="zipFile"/>
+			<property name="zipFile" value="${dist.dir}/@{groupId}.@{artifactId}-@{version}.@{packaging}" />
+			<zip destfile="${zipFile}">
+		        <fileset/>
+			</zip>
+			<pom-and-deploy pomid="module.pom" packaging="pom" buildtype="@{buildtype}" repoId="@{repoId}"
+			 groupId="@{groupId}" artifactId="@{artifactId}" version="@{version}" name="@{name}">
+				<attachments>
+	        		<attach file="${zipFile}" type="@{packaging}" />
+				</attachments>
+			</pom-and-deploy>
+		</sequential>
+	</macrodef>
+		
+</project>

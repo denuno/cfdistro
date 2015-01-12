@@ -4,6 +4,9 @@
 	<import file="${cfdistro.build.file}"/>
 
 	<target name="build" depends="cfdistro.build">
+		<!-- dependency example
+		<dependency groupId="org.mxunit" artifactId="core" version="${mxunit.version}" mapping="/mxunit" />
+		-->
 		<!-- add mappings -->
 		<!--
 		<mapping physical="${basedir}/../../docs" virtual="/docs"/>

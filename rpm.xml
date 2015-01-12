@@ -360,7 +360,8 @@ fi
 						file="${temp.dir}/cfdistro"
 						filemode="755" username="${rpm.user}" group="${rpm.user}" />
 		   	</deb>
-			<deb-repo dir="${deb.repo}" key="${cfmlprojects.sign.key.id}" passphrase="${cfmlprojects.sign.key.passphrase}"
+			<deb-repo dir="${deb.repo}"  label="cfmlprojects" description="cfmlprojects debian repository"
+				key="${cfmlprojects.sign.key.id}" passphrase="${cfmlprojects.sign.key.passphrase}"
 	    		keyring="${cfmlprojects.sign.keyring}"/>
 		</target>
 		

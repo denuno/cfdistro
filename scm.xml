@@ -126,6 +126,19 @@
 			</then>
 			<else>
 				<echo message="No src file to import : ${src.xml.file} does not exist." />
+				<antcontrib:if>
+					<not><equals arg1="${sc}" arg2="$${sc}" /></not>
+					<then>
+						<antcontrib:var name="exists.src.xml" value="true" />
+						<echo message="Using sc:${sc}"/>
+						<xmltask destbuffer="src.buff" outputter="simple" failWithoutMatch="true">
+							<insert path="/">
+								<![CDATA[<src><project><src branch="${sc.branch}" dest="${sc.dest}" user="${sc.user}" password="${sc.password}" 
+						          remote="${sc.remote}" type="${sc.type}" uri="${sc.uri}" scmurl="${sc.scmurl}"/></project></src>]]>
+							</insert>
+						</xmltask>
+					</then>
+				</antcontrib:if>
 			</else>
 		</antcontrib:if>
 		<property name="src.dir.absolute" location="${src.dir}" />
@@ -302,33 +315,6 @@
 		</else>
 	</antcontrib:if>
 
-    <macrodef name="sc-persist">
-		<attribute name="dest" />
-		<attribute name="type" />
-		<attribute name="uri" />
-		<attribute name="branch" default="" />
-		<attribute name="user" default="" />
-		<attribute name="password" default="" />
-		<attribute name="path" default="" />
-        <sequential>
-			<xmltask source="${basedir}/src.xml" dest="${basedir}/src.xml">
-				<copy path="src/project/src[@dest='@{dest}']/@dest" attrValue="true" property="sc.exists" />
-				<replace path="src/project/src[@dest='@{dest}']/text()" if="sc.exists">
-					<![CDATA[
-					<src uri="@{uri}" dest="@{dest}" type="@{type}" 
-					user="@{user}" password="@{password}" />
-  					]]>
-					</replace>
-				<insert path="src/project" position="under" unless="sc.exists">
-					<![CDATA[
-					<src uri="@{uri}" dest="@{dest}" type="@{type}" 
-					user="@{user}" password="@{password}" />
-  					]]>
-					</insert>
-			</xmltask>
-    	</sequential>
-	</macrodef>
-	
 	<antcontrib:if>
 		<equals arg1="${sc}" arg2="$${sc}" />
 		<then/>
@@ -336,9 +322,6 @@
 			<fail message="undefined!  sc.type ${sc.type}" unless="sc.type" />
 			<fail message="undefined!  sc.uri ${sc.uri}" unless="sc.uri" />
 			<fail message="undefined!  sc.dest ${sc.dest}" unless="sc.dest" />
-			<sc-persist 
-				dest="${sc.dest}" type="${sc.type}" uri="${sc.uri}"
-				branch="${sc.branch}" user="${sc.user}" password="${sc.password}" />
 		</else>
 	</antcontrib:if>
 	

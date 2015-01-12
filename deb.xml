@@ -90,7 +90,7 @@ release distribution=production
 		<attribute name="architectures" default=""/>
 		<attribute name="components" default=""/>
 		<attribute name="description" default=""/>
-		<attribute name="confline" default="deb http://${server.host}:${server.port.http}/debs/noarch /"/>
+		<attribute name="confline" default="deb http://${server.host}:${server.port.http}/artifacts/debs/noarch /"/>
 		<sequential>
 			<taskdef-dependency name="debrepo" classname="debrepo.ant.DebRepoTask" artifactId="debrepo" groupId="org.cfmlprojects" version="1.0.0" />
 			<debrepo repoDir="@{dir}" verbose="@{verbose}" key="@{key}" passphrase="@{passphrase}" keyring="@{keyring}"
