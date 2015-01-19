@@ -356,12 +356,14 @@
 		}
         while (tags.hasNext()){
             var tagObj = tags.next();
+		print(tagObj.getName());
             if(tagObj.getName() == "refs/tags/" + branch
                 || tagObj.getName() == "refs/tags/" + branch.split("/")[1]) {
                 startPoint = tagObj.getName();
                 println("reference: " + startPoint);
             }
         }
+
 		try {
 			git.checkout().
 				setForce(true).
@@ -371,7 +373,6 @@
 		        setStartPoint(startPoint).
 		        call();
         } catch (e) {
-		e.printStackTrace();
 			paths = e.javaException.getConflictingPaths().iterator();
             while (paths.hasNext()) {
 				var path = paths.next();

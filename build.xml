@@ -135,7 +135,6 @@
 
 	<property name="cfdistro.debug" value="false" />
 	<property name="default.cfengine" value="railo" />
-	<property name="cfdistro.dist.excludes" value="ext/**,lib/**,dist/**,artifacts/**,**/.git/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**" />
 
 	<property name="src.dir" location="../src" />
 	<property name="dist.dir" location="./dist" />
@@ -219,6 +218,7 @@
 	<import file="ci.xml" />
 	<import file="docgen.xml" />
 	<import file="module.xml" />
+	<import file="build-self.xml" />
 
 <!--
  	<delete dir="${temp.dir}" />
@@ -1439,225 +1439,13 @@
 	<echoproperties />
 </target>
 
-<target name="cfdistro.dist" description="creates a minimal build">
-<property name="dist.type" value="minimal" />
-<antcontrib:propertyregex property="creds.token.filename" input="${creds.token.file}" global="true" override="yes" regexp=".*[\\|/](.+)" select="\1" />
-<delete dir="${dist.dir}/${distro.name}/build/cfdistro/"/>
-<antcontrib:switch value="${dist.type}">
-	<case value="minimal">
-		<echo message="miminal dist, build and cfdistro only ${creds.token.file}" />
-		<antcontrib:if>
-			<and>
-				<available file="${basedir}/requires.txt"/>
-				<equals arg1="add.requires" arg2="true" />
-			</and>
-			<then>
-				<loadfile property="ext.requires" srcFile="${basedir}/requires.txt" />
-				<copy todir="${dist.dir}/${distro.name}/build/cfdistro/ext/" verbose="true">
-					<filelist id="ext_requires" dir="${ext.dir}" files="${ext.requires}"/>
-				</copy>
-			</then>
-		</antcontrib:if>
-		<copy todir="${dist.dir}/${distro.name}/" file="${basedir}/../${distro.name}"/>
-		<copy todir="${dist.dir}/${distro.name}/" file="${basedir}/../${distro.name}.bat"/>
-		<copy todir="${dist.dir}/${distro.name}/build" verbose="false">
-			<fileset dir="${basedir}/">
-				<exclude name="**/.git/**" />
-				<exclude name="cfdistro/**" />
-				<exclude name="${temp.dir}" />
-				<exclude name="${creds.token.filename}" />
-				<exclude name="*.key" />
-			</fileset>
-		</copy>
-		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
-		</copy>
-	</case>
-	<case value="src">
-		<echo message="Everything except requirements in the cfdistro ext/ resource repository (medium zip)" />
-		<antcontrib:if>
-			<available file="${basedir}/requires.txt"/>
-			<then>
-				<loadfile property="ext.requires" srcFile="${basedir}/requires.txt" />
-				<copy todir="${dist.dir}/${distro.name}/build/cfdistro/ext/" verbose="true">
-					<filelist id="ext_requires" dir="${ext.dir}" files="${ext.requires}"/>
-				</copy>
-			</then>
-		</antcontrib:if>
-		<copy todir="${dist.dir}/${distro.name}" verbose="false">
-			<fileset dir="${basedir}/../">
-				<exclude name="${temp.dir}" />
-				<exclude name="**/.git/**" />
-				<exclude name="build/cfdistro/**" />
-				<exclude name="build/${creds.token.filename}" />
-				<exclude name="build/*.key" />
-			</fileset>
-		</copy>
-		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
-		</copy>
-	</case>
-	<case value="all">
-		<echo message="Adding all project files" />
-		<copy todir="${dist.dir}/${distro.name}" verbose="false">
-			<fileset dir="${basedir}/../">
-				<exclude name="**/.git/**" />
-				<exclude name="build/${creds.token.filename}" />
-				<exclude name="build/*.key" />
-			</fileset>
-		</copy>
-		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
-		</copy>
-	</case>
-	<default>
-		<fail message="Um, the dist include type '${dist.type}' is unknown to me, esse!" />
-	</default>
-</antcontrib:switch>
-<antcontrib:switch value="${dist.type}">
-	<case value="minimal">
-	</case>
-	<default>
-		<copy todir="${dist.dir}/${distro.name}/build/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
-		</copy>
-		<chmod file="${dist.dir}/${distro.name}/build/cfdistro/ant/bin/ant" perm="ugo+rx" />
-		<!-- set the cfdistro file path to included cfdistro -->
-		<loadfile property="project.build.file" srcFile="${dist.dir}/${distro.name}/build/build.properties" />
-		<property name="dist.cfdistro.build.file" value="cfdistro/build.xml" />
-		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)cfdistro.build.file=.*" replace="\1cfdistro.build.file=${dist.cfdistro.build.file}" />
-		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)build.type=.*" replace="\1build.type=${build.type}" />
-		<echo file="${dist.dir}/${distro.name}/build/build.properties" message="${project.build.file}" />
-	</default>
-</antcontrib:switch>
-<!--
-<antcontrib:var name="dist.script.sh" value="${dist.dir}/${distro.name}/${distro.name}.sh" />
-<antcontrib:var name="dist.script.bat" value="${dist.dir}/${distro.name}/${distro.name}.bat" />
-<antcontrib:var name="startscripts.create" value="true" />
-<antcontrib:runtarget target="startscripts.create" />
--->
-<fixcrlf srcdir="${dist.dir}" includes="**/*.bat" eol="crlf" />
-<fixcrlf srcdir="${dist.dir}/${distro.name}/build" includes="**/*.xml" eol="crlf" />
-<chmod file="${dist.dir}/${distro.name}/${distro.name}" perm="ugo+rx" />
-<chmod file="${dist.dir}/${distro.name}/build/cfdistro.sh" perm="ugo+rx" />
-<!-- use our macrodef that uses OS zip executable so we retain file permissions -->
-<delete file="${dist.dir}/${distro.name}.zip" />
-<zipdir destfile="${dist.dir}/${distro.name}.zip" sourcedir="${dist.dir}/" />
-<length file="${dist.dir}/${distro.name}.zip" property="distro.length" />
-<formatfilesize kilobytes="${distro.length}" />
-<echo message="Created ${dist.dir}/${distro.name}.zip : ${file.size.megs} MiB" />
-</target>
-
-<target name="cfdistro.rpm" depends="startscripts.create">
-	<property name="distro.name" value="cfdistro" />
-	<property name="distro.version" value="3.33" />
-	<property name="rpm.user" value="cfml" />
-	<property name="rpm.prefix" value="/home/cfml" />
-	
-	<delete dir="${temp.dir}/rpmbuild"/>
-	<mkdir dir="${temp.dir}/rpmbuild" />
-	<mkdir dir="${temp.dir}/rpmbuild/SOURCES/" />
-	<mkdir dir="${temp.dir}/rpmbuild/SPECS/" />
-	<mkdir dir="${temp.dir}/rpmbuild/SRPMS/" />
-	<mkdir dir="${temp.dir}/rpmbuild/BUILD/" />
-	<mkdir dir="${temp.dir}/rpmbuild/RPMS" />
-	<mkdir dir="${temp.dir}/rpmbuild/RPMS/noarch" />
-
-	<echo file="${dist.dir}/${distro.name}/postinst.sh" message='cd $(dirname $0);echo "fart" > fartrock.txt' />
-	<property name="rpm.post" value="sh /home/cfml/${distro.name}/postinst.sh" />
-	
-	<tar destfile="${temp.dir}/rpmbuild/SOURCES/release.tar.gz" compression="gzip">
-		<tarfileset dir="${dist.dir}" excludes="${cfdistro.dist.excludes}" prefix="${distro.name}-${distro.version}" />
-	</tar>
-	<copy file="${cfdistro.basedir}/rpmbuild/cfdistro.spec" tofile="${temp.dir}/rpmbuild/SPECS/${distro.name}.spec" overwrite="true">
-		<filterchain>
-			<expandproperties />
-		</filterchain>
+<target name="cfdistro.install" description="installs cfdistro into user home and sets build.property cfdistro path">
+	<copy todir="${user.home}/cfdistro" verbose="false" overwrite="true">
+		<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
 	</copy>
-	<!-- command="-bb -vv" for verbose -->
-    <rpm 
-        specFile="${distro.name}.spec"
-        topDir="${temp.dir}/rpmbuild/"
-        cleanBuildDir="true"
-    	failOnError="true"/>
+	<loadfile property="project.build.file" srcFile="build.properties" />
+	<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)cfdistro.build.file=.*" replace="\1cfdistro.build.file=${user.home}/cfdistro/build.xml" />
+	<echo file="build.properties" message="${project.build.file}" />
 </target>
-
-	<target name="cfdistro.rpm.repo">
-		<property name="rpm.repo.dir" value="/opt/repo/RPMS/noarch" />
-		<copy todir="${rpm.repo.dir}" overwrite="true">
-			<fileset dir="${temp.dir}/rpmbuild/RPMS/noarch" />
-		</copy>
-		<rpm-repo dir="${rpm.repo.dir}" />
-	</target>
-	
-	
- <target name="cfdistro.deb" description="builds a .deb file for debian-based systems">
-	<antcontrib:var name="distro.name" value="cfdistro" />
-	<property name="distro.version" value="${cfdistro.version}" />
-	<taskdef-dependency name="deb" classname="com.googlecode.ant_deb_task.Deb" artifactId="ant-deb-0-0-1" version="1.0.0.0" />
-
-   	<echo message="Creating debian ${distro.name}:${distro.version} .deb file from: ${dist.dir}"/>
-   	<echo file="${temp.dir}/${distro.name}.sh"><![CDATA[set -e; echo "cd $(dirname $0); cd ${distro.name}; sh ./${distro.name}.sh $*" > /usr/local/bin/${distro.name}.sh;chmod +x /usr/local/bin/${distro.name}.sh]]></echo>
-   	<delete file="${dist.dir}/${distro.name}_${distro.version}-1_all.deb" />
-   	<!--
-   		xe sr-create name-label=CentOS-5.6-x86_64-LiveCD.iso type=iso device-config:location=/var/opt/xen/iso_import/CentOS-5.6-x86_64-LiveCD.iso device-config:legacy_mode=true content-type=iso
-	-->
-   	<deb
-        todir="${dist.dir}"
-        package="${distro.name}"
-        section="web"
-        postinst="postinst"
-        depends="sun-java6-jre | openjdk-6-jre | sun-java7-jre | openjdk-7-jre">
-        <version upstream="${distro.version}"/>
-        <maintainer name="Denny Valliant" email="valliantster@gmail.com"/>
-        <description synopsis="cfdistro does nifty cfml-ish stuff">
-cfdistro is freaking insane
-        </description>
-   		<tarfileset file="${temp.dir}/${distro.name}.sh" prefix="usr/local/bin" filemode="755"/>
-        <tarfileset dir="${dist.dir}" prefix="usr/local/bin/${distro.name}">
-        	<exclude name="${distro.name}.sh"/>
-        </tarfileset>
-   		<tarfileset file="${dist.dir}/${distro.name}.sh" prefix="usr/local/bin/${distro.name}/" filemode="755"/>
-   	</deb>
-    </target>
-	
-	<target name="cfdistro.mvn.release" description="builds and adds to mvn repo">
-		<delete file="${dist.dir}/cfdistro.zip" />
-		<delete dir="${dist.dir}/cfdistro" />
-		<mkdir dir="${dist.dir}/cfdistro" />
-		<copy todir="${dist.dir}/cfdistro" verbose="false">
-			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
-		</copy>
-		<zipdir destfile="${dist.dir}/cfdistro.zip" sourcedir="${dist.dir}/cfdistro" />
-		<mkdir dir="${cfdistro.repo.local.path}/cfdistro/latest" />
-		<copy file="${dist.dir}/cfdistro.zip" todir="${cfdistro.repo.local.path}/cfdistro/latest" overwrite="true" />
-		<mvn-put artifact="${dist.dir}/cfdistro.zip" packaging="zip" repoId="cfdistro.repo.local"
-		 groupId="cfdistro" artifactId="core" version="${cfdistro.version}"/>
-	</target>
-	
-	<target name="cfdistro.lib.mvn.release">
-		<antcontrib:for param="file">
-			<path>
-				<fileset dir="${cfdistro.lib.dir}" includes="*.jar" />
-			</path>
-			<sequential>
-				<antcontrib:var name="basename" unset="true" />
-				<basename file="@{file}" property="basename" suffix=".jar" />
-				<antcontrib:propertyregex property="basename" input="${basename}" 
-				 regexp="\." replace="-" global="true" override="yes"/>
-				<mvn-put artifact="@{file}" packaging="jar" repoId="cfdistro.repo.local"
-				 groupId="cfdistro.lib" artifactId="${basename}" version="1.0.0.0"/>
-			</sequential>
-		</antcontrib:for>
-	</target>
-
-	<target name="cfdistro.install" description="installs cfdistro into user home and sets build.property cfdistro path">
-		<copy todir="${user.home}/cfdistro" verbose="false" overwrite="true">
-			<fileset dir="${cfdistro.basedir}/" excludes="${cfdistro.dist.excludes}" />
-		</copy>
-		<loadfile property="project.build.file" srcFile="build.properties" />
-		<antcontrib:propertyregex property="project.build.file" input="${project.build.file}" global="true" override="yes" regexp="(\s)cfdistro.build.file=.*" replace="\1cfdistro.build.file=${user.home}/cfdistro/build.xml" />
-		<echo file="build.properties" message="${project.build.file}" />
-	</target>
 
 </project>

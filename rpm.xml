@@ -289,89 +289,57 @@ fi
 			/>
 		</target>
 		
-		<target name="build.cfdistro.rpm">
-			<property name="rpm.user" value="root" />
-			<property name="rpm.source.dir" value="${cfdistro.basedir}" />
-			<property name="rpm.source.excludes" value="ext/**,artifacts/**,dist/**,**/.git/**,**/.svn/**,**/temp/**,rpmbuild/SOURCES/**,rpmbuild/RPMS/**,buckminster/director*.zip,java/cfmlengcrypt/lib/**,lib/**" />
-			<property name="rpm.target.dir" value="/opt/cfdistro" />
-			<property name="rpm.packager" value="cfdistro" />
-			<property name="rpm.group" value="cfdistro" />
-			<property name="rpm.name" value="cfdistro" />
-			<property name="rpm.url" value="http://cfmlprojects.org/cfdistro" />
-			<property name="rpm.baseurl" value="http://cfmlprojects.org/artifacts/RPMS/noarch" />
-			<property name="rpm.reponame" value="cfmlprojects" />
-			<property name="rpm.repo" value="${cfdistro.basedir}/artifacts/RPMS/noarch" />
-			<mkdir dir="${rpm.repo}"/>
-
-			<property name="cfdistro.version.bump" value="none" description="one of [major|minor|build|revision] or empty to not bump number."/>
-			<antcontrib:var file="cfdistro.properties" />
-			<version-splitter property="cfdistro.build.version" version="${cfdistro.version}" bump="${cfdistro.version.bump}"/>
-			<antcontrib:var name="cfdistro.version" value="${cfdistro.build.version.long}" />
-			<echoproperties>
-				<propertyset>
-					<propertyref prefix="build." />
-					<propertyref prefix="cfdistro." />
-				</propertyset>
-			</echoproperties>
-			<property name="rpm.version" value="${cfdistro.version}" />
-			<echo file="${temp.dir}/cfdistro">${rpm.target.dir}/bin/cfdistro $*</echo>
-			<echo message="using rpm.repo: ${rpm.repo}" />
-			<rpm repo="${rpm.repo}" release="1" verbose="false"
-				group="${rpm.group}" name="${rpm.name}" version="${rpm.version}"
-				packager="${rpm.packager}" url="${rpm.url}" useV3signature="true"
-				key="${cfmlprojects.sign.key.id}" passphrase="${cfmlprojects.sign.key.passphrase}"
-	    		keyring="${cfmlprojects.sign.keyring}">
-				<tarfileset prefix="${rpm.target.dir}" 
-						dir="${rpm.source.dir}" excludes="${rpm.source.excludes},bin/**"
-						filemode="644" username="${rpm.user}" group="${rpm.user}" />
-				<tarfileset prefix="${rpm.target.dir}/bin/" 
-						file="${rpm.source.dir}/bin/*"
-						filemode="755" username="${rpm.user}" group="${rpm.user}" />
-				<tarfileset prefix="/bin/" 
-						file="${temp.dir}/cfdistro"
-						filemode="755" username="${rpm.user}" group="${rpm.user}" />
-			</rpm>
-			<echo file="cfdistro.properties" message="cfdistro.version=${cfdistro.version}" />
-			<rpm-repo name="${rpm.reponame}" baseurl="${rpm.baseurl}" dir="${rpm.repo}"/>
-
-			<property name="deb.repo" value="${cfdistro.basedir}/artifacts/debs/noarch" />
-			<mkdir dir="${deb.repo}"/>
-		   	<echo message="Creating debian .deb file from: ${rpm.source.dir}"/>
-		   	<delete file="${dist.dir}/${rpm.name}-${rpm.version}-1_all.deb" />
-			<taskdef-dependency name="deb" classname="debrepo.ant.DebTask" artifactId="debrepo" groupId="org.cfmlprojects" version="1.0.0" />
-			<!-- <ant-set-log-level level="3"/> -->
-			<deb
-		        todir="${deb.repo}"
-		        package="${rpm.name}"
-		        section="web"
-		        depends="java-common"
-				key="${cfmlprojects.sign.key.id}" passphrase="${cfmlprojects.sign.key.passphrase}"
-	    		keyring="${cfmlprojects.sign.keyring}">
-		        <version upstream="${cfdistro.version}"/>
-		        <maintainer name="${rpm.packager}" email="cfml@cfmlprojects.org"/>
-		        <description synopsis="${rpm.group}.${rpm.name}">${rpm.name}</description>
-				<tarfileset prefix="${rpm.target.dir}" 
-						dir="${rpm.source.dir}" excludes="${rpm.source.excludes},bin/**"
-						filemode="644" username="${rpm.user}" group="${rpm.user}" />
-				<tarfileset prefix="${rpm.target.dir}/bin/" 
-						file="${rpm.source.dir}/bin/*"
-						filemode="755" username="${rpm.user}" group="${rpm.user}" />
-				<tarfileset prefix="/bin/" 
-						file="${temp.dir}/cfdistro"
-						filemode="755" username="${rpm.user}" group="${rpm.user}" />
-		   	</deb>
-			<deb-repo dir="${deb.repo}"  label="cfmlprojects" description="cfmlprojects debian repository"
-				key="${cfmlprojects.sign.key.id}" passphrase="${cfmlprojects.sign.key.passphrase}"
-	    		keyring="${cfmlprojects.sign.keyring}"/>
-		</target>
-		
 		<target name="add.rpmrepo.cfmlprojects">
 			<echo file="/etc/yum.repos.d/cfmlprojects.repo" message="[cfmlprojects]
 name=cfmlprojects
 baseurl=http://cfmlprojects.org/artifacts/RPMS/noarch
 enabled=1
 gpgcheck=0" />
-		</target>	
+		</target>
+
+
+	<target name="cfdistro.rpm.repo">
+		<property name="rpm.repo.dir" value="/opt/repo/RPMS/noarch" />
+		<copy todir="${rpm.repo.dir}" overwrite="true">
+			<fileset dir="${temp.dir}/rpmbuild/RPMS/noarch" />
+		</copy>
+		<rpm-repo dir="${rpm.repo.dir}" />
+	</target>
 	
+	
+<!--
+	<target name="cfdistro.rpm" depends="startscripts.create">
+		<property name="distro.name" value="cfdistro" />
+		<property name="distro.version" value="3.33" />
+		<property name="rpm.user" value="cfml" />
+		<property name="rpm.prefix" value="/home/cfml" />
+		
+		<delete dir="${temp.dir}/rpmbuild"/>
+		<mkdir dir="${temp.dir}/rpmbuild" />
+		<mkdir dir="${temp.dir}/rpmbuild/SOURCES/" />
+		<mkdir dir="${temp.dir}/rpmbuild/SPECS/" />
+		<mkdir dir="${temp.dir}/rpmbuild/SRPMS/" />
+		<mkdir dir="${temp.dir}/rpmbuild/BUILD/" />
+		<mkdir dir="${temp.dir}/rpmbuild/RPMS" />
+		<mkdir dir="${temp.dir}/rpmbuild/RPMS/noarch" />
+
+		<echo file="${dist.dir}/${distro.name}/postinst.sh" message='cd $(dirname $0);echo "fart" > fartrock.txt' />
+		<property name="rpm.post" value="sh /home/cfml/${distro.name}/postinst.sh" />
+		
+		<tar destfile="${temp.dir}/rpmbuild/SOURCES/release.tar.gz" compression="gzip">
+			<tarfileset dir="${dist.dir}" excludes="${cfdistro.dist.excludes}" prefix="${distro.name}-${distro.version}" />
+		</tar>
+		<copy file="${cfdistro.basedir}/rpmbuild/cfdistro.spec" tofile="${temp.dir}/rpmbuild/SPECS/${distro.name}.spec" overwrite="true">
+			<filterchain>
+				<expandproperties />
+			</filterchain>
+		</copy>
+	    <rpm 
+	        specFile="${distro.name}.spec"
+	        topDir="${temp.dir}/rpmbuild/"
+	        cleanBuildDir="true"
+	    	failOnError="true"/>
+	</target>
+	-->			
 	
 </project>
