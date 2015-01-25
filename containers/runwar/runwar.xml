@@ -1,7 +1,7 @@
 <?xml version="1.0" standalone="yes" ?>
 <project name="runwar" default="runwar.install" xmlns:antcontrib="antlib:net.sf.antcontrib">
 
-	<property name="runwar.version" value="2.2.0" />
+	<property name="runwar.version" value="2.3.1" />
 	<property name="runwar.jar" value="runwar-${runwar.version}.jar" />
 	<property name="runwar.jar.file" value="${cfdistro.lib.dir}/${runwar.jar}" />
 	<dirname property="runwar.basedir" file="${ant.file.runwar}" />
@@ -19,6 +19,7 @@
 			<property name="server.port.http" value="${server.port}"/>
 			<property name="server.port.ajp" value="8009"/>
 			<property name="server.ajp.enable" value="false"/>
+			<property name="server.http.enable" value="true"/>
 			<property name="server.url" value="http://127.0.0.1:${server.port.http}${war.contextpath}/index.cfm"/>
 			<property name="server.memory.max" value="256M"/>
 			<property name="server.host.max" value="256M"/>
@@ -176,13 +177,14 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${runwar.jar} -jar
 				<arg value="-host" /><arg value="${runwar.host}" />
 				<arg value="-port" /><arg value="${runwar.port}" />
 				<arg value="-stop-port" /><arg value="${runwar.stop.socket}" />
-				<arg value="-enable-ajp" /><arg value="${server.ajp.enable}" />
+				<arg value="-http-enable" /><arg value="${server.http.enable}" />
+				<arg value="-ajp-enable" /><arg value="${server.ajp.enable}" />
 				<arg value="-ajp-port" /><arg value="${server.port.ajp}" />
 				<arg value="-log-dir" /><arg value="${runwar.log.dir}" />
-				<arg value="-loglevel" /><arg value="${runwar.log.level}" />
+				<arg value="-log-level" /><arg value="${runwar.log.level}" />
 				<arg value="-dirs" /><arg value="${runwar.cfml.dirlist}" />
 				<arg value="-background" /><arg value="${background}" />
-				<arg value="-requestlog" /><arg value="${runwar.keeprequestlog}" />
+				<arg value="-request-log" /><arg value="${runwar.keeprequestlog}" />
 				<arg value="-open-browser" /><arg value="${runwar.openbrowser}" />
 				<arg value="-open-url" /><arg value="${open.url}" />
 				<arg value="-processname" /><arg value="${distro.name}" />
@@ -345,6 +347,51 @@ __ARCHIVE_FOLLOWS__
 		</sequential>
 	</macrodef>	
 
+	<macrodef name="launch4j-init">
+		<attribute name="launch4jversion" default="3.5.0" />
+		<sequential>
+			<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
+				dest="${cfdistro.lib.dir}/launch4j" unzip="false"/>
+
+			<antcontrib:switch value="${os.family}">
+			  <case value="windows">
+			     <l4j-workdir-artifact classifier="workdir-win32" />
+			  </case>
+			  <case value="unix">
+				<antcontrib:switch value="${os.name}">
+				  <case value="Mac OS X">
+                    <l4j-workdir-artifact classifier="workdir-mac" />
+				  </case>
+				  <case value="Linux">
+                    <antcontrib:switch value="${os.arch}">
+                      <case value="amd64">
+                        <l4j-workdir-artifact classifier="workdir-linux-amd64" />
+                      </case>
+                      <default>
+                        <l4j-workdir-artifact classifier="workdir-linux" />
+                      </default>
+                    </antcontrib:switch>
+				  </case>
+				  <default>
+				  	<fail message="Um, the os '${os.name}' is unknown to me, esse!" />
+				  </default>
+				</antcontrib:switch>
+			  </case>
+			  <default>
+			  	<fail message="Um, the os '${os.family}' is unknown to me, esse!" />
+			  </default>
+			</antcontrib:switch>
+
+			<move toDir="${cfdistro.lib.dir}/launch4j/">
+				<fileset dir="${launch4j.bindir}"/>
+			</move>
+			<antcontrib:var name="launch4j.bindir" value="${cfdistro.lib.dir}/launch4j/bin" />
+
+			<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask"
+			    classpath="${cfdistro.lib.dir}/launch4j/launch4j-3.5.0.jar:${cfdistro.lib.dir}/launch4j/xstream-1.4.7.jar" />
+		</sequential>
+	</macrodef>	
+		
 	<macrodef name="jar2exe">
 		<attribute name="jar" />
 		<attribute name="exe" />
@@ -396,45 +443,7 @@ __ARCHIVE_FOLLOWS__
                 </then>
             </antcontrib:if>
 
-			<dependency groupId="net.sf.launch4j" artifactId="launch4j" version="@{launch4jversion}" type="jar" 
-				dest="${cfdistro.lib.dir}/launch4j" unzip="false"/>
-
-			<antcontrib:switch value="${os.family}">
-			  <case value="windows">
-			     <l4j-workdir-artifact classifier="workdir-win32" />
-			  </case>
-			  <case value="unix">
-				<antcontrib:switch value="${os.name}">
-				  <case value="Mac OS X">
-                    <l4j-workdir-artifact classifier="workdir-mac" />
-				  </case>
-				  <case value="Linux">
-                    <antcontrib:switch value="${os.arch}">
-                      <case value="amd64">
-                        <l4j-workdir-artifact classifier="workdir-linux-amd64" />
-                      </case>
-                      <default>
-                        <l4j-workdir-artifact classifier="workdir-linux" />
-                      </default>
-                    </antcontrib:switch>
-				  </case>
-				  <default>
-				  	<fail message="Um, the os '${os.name}' is unknown to me, esse!" />
-				  </default>
-				</antcontrib:switch>
-			  </case>
-			  <default>
-			  	<fail message="Um, the os '${os.family}' is unknown to me, esse!" />
-			  </default>
-			</antcontrib:switch>
-
-			<move toDir="${cfdistro.lib.dir}/launch4j/">
-				<fileset dir="${launch4j.bindir}"/>
-			</move>
-			<antcontrib:var name="launch4j.bindir" value="${cfdistro.lib.dir}/launch4j/bin" />
-
-			<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask"
-			    classpath="${cfdistro.lib.dir}/launch4j/launch4j-3.5.0.jar:${cfdistro.lib.dir}/launch4j/xstream-1.4.7.jar" />
+			<launch4j-init launch4jversion="3.5.0" />
 			
 			<echo message="EXE Type: @{headerType} for @{jar}"/>
 			<chmod dir="${launch4j.bindir}" perm="ugo+rx" includes="*"/>

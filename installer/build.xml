@@ -40,17 +40,12 @@
 
 	<target name="izpack-xml">
 		<loadproperties srcFile="${install.root.dir}/install.properties" />
-		<requires-ext resource="${ext.dir}/ant-lib" />
-		<requires-ext resource="${ext.dir}/launch4j" />
 		<requires-ext resource="${ext.dir}/izpack" />
-		<dependency artifactId="izpack-compiler" groupId="org.codehaus.izpack" version="5.0.0-beta11" dest="${cfdistro.lib.dir}/izpack" type="jar" unzip="false"/>
-		<dependency artifactId="izpack-ant" groupId="org.codehaus.izpack" version="5.0.0-beta11" dest="${cfdistro.lib.dir}/izpack" type="jar" unzip="false"/>
+		<dependency artifactId="izpack-compiler" groupId="org.codehaus.izpack" version="5.0.0-rc4" dest="${cfdistro.lib.dir}/izpack" type="jar" unzip="false"/>
+		<dependency artifactId="izpack-ant" groupId="org.codehaus.izpack" version="5.0.0-rc4" dest="${cfdistro.lib.dir}/izpack" type="jar" unzip="false"/>
 
 		<taskdef name="izpack" classname="com.izforge.izpack.ant.IzPackTask" classpathref="izpack.lib.path" />
-		<taskdef name="launch4j"
-		    classname="net.sf.launch4j.ant.Launch4jTask"
-		    classpath="${cfdistro.basedir}/ext/launch4j/launch4j.jar
-		        :${cfdistro.basedir}/ext/launch4j/lib/xstream.jar" />
+		<launch4j-init launch4jversion="3.5.0" />
 		
 		<delete dir="${installer.temp.dir}" />
 		<mkdir dir="${installer.temp.dir}" />
@@ -210,6 +205,7 @@
 
 	<target name="buildInstallJar" description="build the install izpack jar" depends="izpack-xml">
 		<delete file="${output.dir}/${install.file.name}.jar" />
+		<property name="jetty-runner.jar.file" value="${cfdistro.lib.dir}/runwar-2.2.0.jar" />
 		<!--	run the install build task	-->
 		<izpack input="${parsedInstallXMLfile}" output="${installer.temp.dir}/${install.file.name}.jar" basedir="${installBaseDir}" inheritAll="true" installerType="standard" compression="deflate" compressionlevel="9" />
 		<!--    <delete file="${parsedInstallXMLfile}"/>-->
