@@ -4,5 +4,7 @@
 /artifacts
 /temp
 /lib
+/dist
+/ant/lib
 cfdistro.zip
 .svn

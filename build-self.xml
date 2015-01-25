@@ -8,7 +8,9 @@
 		<mkdir dir="${dist.dir}/cfdistro" />
 		<dependency groupId="org.apache.ant" artifactId="ant" version="${cfdistro.ant.version}" dest="${dist.dir}/cfdistro/ant/lib" unzip="false" type="jar"/>
 		<dependency groupId="org.apache.ant" artifactId="ant-jsch" version="${cfdistro.ant.version}" dest="${dist.dir}/cfdistro/ant/lib" unzip="false" type="jar"/>
+<!--
 		<dependency groupId="rhino" artifactId="js" version="1.7R2" dest="${dist.dir}/cfdistro/ant/lib" unzip="false" type="jar"/>
+-->
 		<dependency groupId="ant-contrib" artifactId="ant-contrib" version="1.0b3" dest="${dist.dir}/cfdistro/ant/lib" unzip="false" type="jar">
 			<exclusions><exclusion groupId="ant" artifactId="ant"/></exclusions>
 		</dependency>
