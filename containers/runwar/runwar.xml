@@ -238,9 +238,10 @@ exec $JAVA_EXE ${server.jvm.args} -cp ${war.name}.war/WEB-INF/${runwar.jar} -jar
 		<echo message="stopping runner (using stop listener on port ${runwar.stop.socket})."/>
 		<antcontrib:trycatch property="foo" reference="bar">
 			<try>
-			<java classname="runwar.Stop" classpathref="runwar.lib.path">
-				<arg value="${runwar.stop.socket}" />
-			</java>
+	  			<java jar="${runwar.jar.file}" fork="true" spawn="false" maxmemory="${runwar.maxmemory}" failonerror="false" resultproperty="runwarstatus">
+					<arg value="-stop" />
+					<arg value="-stop-port" /><arg value="${runwar.stop.socket}" />
+				</java>
 			</try>
 			<catch>
 				<fail message="Could not stop the server. Might not have been running." />
