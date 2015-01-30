@@ -17,7 +17,7 @@
 	<makeurl file="${base.target.dir}" property="base.target.url" />
 	<property name="product.checkout" value="${file.path.prefix}${product.checkout.unprefixed}" />
 	<property name="build.dir" location="${product.checkout}/build/" />
-	<property name="director.dir" location="${build.dir}/director/" />
+	<property name="director.dir" location="${bucky.build.dir}/director/" />
 
 	<target name="install.p2.director">
 		<condition property="p2.director.installed">
@@ -27,7 +27,7 @@
 	</target>
 
 	<target name="install.p2.director.internal" unless="p2.director.installed">
-		<unzip dest="${build.dir}" src="director_latest.zip" />
+		<unzip dest="${bucky.build.dir}" src="director_latest.zip" />
 	</target>
 
 	<target name="build.mirror">

@@ -7,20 +7,20 @@
 	<makeurl file="${build.feature.dir}" property="build.feature.dir.url" validate="false" />
 
 	<property name="buckminster.ext.dir" location="${ext.dir}/buckminster/" />
-	<property name="build.dir" location="${buckminster.ext.dir}" />
-	<property name="director.dir" location="${build.dir}/director/" />
-	<property name="buckminster-headless.dir" location="${build.dir}/buckminster-headless/" />
+	<property name="bucky.build.dir" location="${buckminster.ext.dir}" />
+	<property name="director.dir" location="${bucky.build.dir}/director/" />
+	<property name="buckminster-headless.dir" location="${bucky.build.dir}/buckminster-headless/" />
 	<property name="workspace.dir" location="${basedir}/workspace" />
 	<property name="target.platform.dir" location="${basedir}/target-platform" />
 	<property name="workspace.target.platform.dir" location="${basedir}/workspace-target-platform" />
 
 	<property name="buckminster.output.root.dir" location="${dist.dir}/buckminster-out" />
-	<property name="buckminster.temp.root.dir" location="${build.dir}/buckminster-tmp" />
+	<property name="buckminster.temp.root.dir" location="${bucky.build.dir}/buckminster-tmp" />
 	<property name="dist.dir" location="${basedir}/../dist/" />
-	<property name="test.product.build.dir" location="${build.dir}/test-product/" />
+	<property name="test.product.build.dir" location="${bucky.build.dir}/test-product/" />
 	<property name="test.workspace" location="${basedir}/test-workspace" />
-	<property name="junit-report-output" value="${build.dir}/test-results" />
-	<property name="raw-junit-report-output" value="${build.dir}/raw-test-results" />
+	<property name="junit-report-output" value="${bucky.build.dir}/test-results" />
+	<property name="raw-junit-report-output" value="${bucky.build.dir}/raw-test-results" />
 	<property name="log.level" value="INFO" />
 	<property name="buckminster.loglevel" value="${log.level}" />
 
@@ -70,7 +70,7 @@
 		<get dest="${buckminster.cfd.basedir}/director_latest.zip" src="http://download.eclipse.org/tools/buckminster/headless-3.7/" />
 		-->
 		<get dest="${buckminster.cfd.basedir}/director_latest.zip" src="http://www.eclipse.org/downloads/download.php?file=/tools/buckminster/products/director_latest.zip&amp;r=1" />
-		<unzip dest="${build.dir}" src="${buckminster.cfd.basedir}/director_latest.zip" />
+		<unzip dest="${bucky.build.dir}" src="${buckminster.cfd.basedir}/director_latest.zip" />
 	</target>
 
 	<target name="install-buckminster-headless">
@@ -368,7 +368,7 @@
 	</target>
 
 	<target name="clean">
-		<delete dir="${build.dir}" />
+		<delete dir="${bucky.build.dir}" />
 	</target>
 
 	<target name="test-clean">

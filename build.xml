@@ -134,7 +134,7 @@
 
 
 	<property name="cfdistro.debug" value="false" />
-	<property name="default.cfengine" value="railo" />
+	<property name="default.cfengine" value="lucee" />
 
 	<property name="src.dir" location="../src" />
 	<property name="dist.dir" location="./dist" />
@@ -190,6 +190,7 @@
 	<import file="testing/jmeter.xml" />
 	<import file="startscripts.xml" />
 	<import file="${cfdistro.basedir}/build-railo.xml" />
+	<import file="${cfdistro.basedir}/build-lucee.xml" />
 	<import file="build-acf.xml" />
 	<import file="java/cfmlengcrypt/build.xml" />
 	<import file="java/cfmlportlet/build.xml" />
@@ -241,6 +242,10 @@
 	-->
 
 	<antcontrib:switch value="${default.cfengine}">
+		<case value="lucee">
+			<property name="cfmlServletName" value="CFMLServlet" />
+			<property name="cfml.engine.war" value="${ext.lucee.war}" />
+		</case>
 		<case value="railo">
 			<property name="cfmlServletName" value="CFMLServlet" />
 			<property name="cfml.engine.war" value="${ext.railo.war}" />
@@ -796,6 +801,9 @@
 				<then>
 					<replace-attributes string="@{physical}" propertyname="mapping.physical" />
 					<antcontrib:switch value="${default.cfengine}">
+						<case value="lucee">
+							<lucee-mapping archive="@{archive}" physical="${mapping.physical}" virtual="@{virtual}" />
+						</case>
 						<case value="railo">
 							<railo-mapping archive="@{archive}" physical="${mapping.physical}" virtual="@{virtual}" />
 						</case>
@@ -898,6 +906,9 @@
 		<available file="${war.target.dir}" />
 		<then>
 			<antcontrib:switch value="${default.cfengine}">
+				<case value="lucee">
+					<lucee-customtag physical="@{physical}" virtual="@{virtual}" />
+				</case>
 				<case value="railo">
 					<railo-customtag physical="@{physical}" virtual="@{virtual}" />
 				</case>
@@ -949,6 +960,9 @@
 		<case value="railo">
 			<railo-error-template path="@{path}" type="@{type}" />
 		</case>
+		<case value="lucee">
+			<railo-error-template path="@{path}" type="@{type}" />
+		</case>
 		<case value="acf">
 			<acf-error-template path="@{path}" type="@{type}" />
 		</case>
@@ -966,6 +980,9 @@
 <attribute name="when" />
 <sequential>
 	<antcontrib:switch value="${default.cfengine}">
+		<case value="lucee">
+			<lucee-inspect-template when="@{when}" />
+		</case>
 		<case value="railo">
 			<railo-inspect-template when="@{when}" />
 		</case>
@@ -985,6 +1002,9 @@
 	<attribute name="builtin" default="false" />
 	<sequential>
 		<antcontrib:switch value="${default.cfengine}">
+			<case value="lucee">
+				<lucee-extension-install extension-zip="@{extension-zip}" extension-tag="@{extension-tag}" builtin="@{builtin}" />
+			</case>
 			<case value="railo">
 				<railo-extension-install extension-zip="@{extension-zip}" extension-tag="@{extension-tag}" builtin="@{builtin}" />
 			</case>

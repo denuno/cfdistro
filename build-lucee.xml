@@ -1,0 +1,1641 @@
+<project name="build-lucee" basedir="./" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+	<dirname property="build-lucee.basedir" file="${ant.file.build-lucee}" />
+	<property file="${build-lucee.basedir}/build-lucee.properties" />
+	
+	<target name="lucee.requires">
+		<antcontrib:if>
+			<or>
+				<equals arg1="${lucee.patch.version}" arg2="" />
+				<equals arg1="${lucee.patch.version}" arg2="$${lucee.patch.version}" />
+			</or>
+			<then/>
+			<else>
+				<antcontrib:var name="lucee.version" value="${lucee.patch.version}" />
+			</else>
+		</antcontrib:if>
+		
+		<version-splitter property="lucee.version" version="${lucee.version}"/>
+
+		<echo message="Railo version: Major ${lucee.version.major} Minor ${lucee.version.minor} Build ${lucee.version.build} Revision ${lucee.version.revision}"/>
+
+		<property name="ext.lucee.dir" value="${ext.dir}/lucee/${lucee.version.major}" />
+		<property name="ext.lucee.war" value="${ext.lucee.dir}/lucee-${lucee.version}.war" />
+		<antcontrib:var name="cfml.engine.war" value="${ext.lucee.war}" />
+		<antcontrib:if>
+			<available file="${ext.lucee.war}" /><then/>
+			<else>
+				<dependency groupId="org.lucee" artifactId="lucee" version="${lucee.version}" type="jar" dest="${war.target.dir}/WEB-INF/lib" unzip="false" />
+				<dependency groupId="org.lucee" artifactId="lucee.optional" version="${lucee.version}" type="pom" dest="${war.target.dir}/WEB-INF/lib" unzip="false" />
+				<mvn-get groupId="org.lucee" artifactId="lucee-web-xml" version="${lucee.version}" type="xml" tofile="${war.target.dir}/WEB-INF/web.xml" />
+				<zip destfile="${ext.lucee.war}" basedir="${war.target.dir}">
+					<fileset dir="${war.target.dir}" />
+				</zip>
+			</else>
+		</antcontrib:if>
+	</target>
+
+	<target name="lucee.war.init" depends="lucee.requires">		
+		<unzip src="${ext.lucee.war}" dest="${war.target.dir}"/>
+		<antcontrib:runtarget target="lucee.war.config" />
+	</target>
+
+	<target name="lucee.war.config">
+    <property name="extracted" location="${temp.dir}/luceeconfigs" />
+    <delete dir="${extracted}"/> 
+    <dependency groupId="org.lucee" artifactId="lucee.config" version="${lucee.version.long}" dest="${temp.dir}/luceeconfigs" unzip="true" type="zip" />
+    <copy file="${extracted}/server.xml" tofile="${lucee.server.config.file}" overwrite="true" />
+    <copy file="${extracted}/web.xml" tofile="${lucee.web.config.dir}/lucee-web.xml.cfm" overwrite="true" />
+		<antcontrib:if>
+			<equals arg1="${server.sharedlibs}" arg2="true" />
+			<then>
+				<delete>
+					<fileset dir="${war.target.dir}/WEB-INF">
+						 <include name="lib/**"/>
+						 <exclude name="**/lib/lucee-server/**"/>
+						 <exclude name="**/WEB-INF/lucee/**"/>
+					</fileset>
+				</delete>
+			</then>
+		</antcontrib:if>
+		<property name="war.keep.welcome" value="false" />
+		<antcontrib:if>
+			<equals arg1="${war.keep.welcome}" arg2="false" />
+			<then>
+				<delete>
+					<fileset dir="${war.target.dir}">
+						 <exclude name="WEB-INF/**"/>
+					</fileset>
+				</delete>
+			</then>
+		</antcontrib:if>
+		<!-- remove lucee file servlet as it causes trouble -->
+		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+			<xmlcatalog refId="commonDTDs" />
+			<remove path="web-app/servlet[servlet-class/text()='lucee.loader.servlet.FileServlet']" />
+			<remove path="web-app/servlet-mapping[servlet-name/text()='FileServlet']" />
+		</xmltask>
+		<!-- set the WAR relative lucee config dirs for server and web -->
+		<relpath from="${war.target.dir}" to="${lucee.web.config.dir}" property="lucee.initparam.web-config" />
+		<relpath from="${war.target.dir}" to="${lucee.server.config.dir}" property="lucee.initparam.server-config" />
+		<xmltask source="${war.target.dir}/WEB-INF/web.xml" dest="${war.target.dir}/WEB-INF/web.xml">
+			<xmlcatalog refId="commonDTDs" />
+			<replace path="web-app/servlet[servlet-class/text()='lucee.loader.servlet.CFMLServlet']/init-param[param-value/text()='/WEB-INF/lucee/']/param-value/text()" withText="{web-root-directory}/${lucee.initparam.web-config}" />
+			<!-- TODO: lucee-server-root must be an absolute path if set at all, basically.
+			<insert path="web-app/servlet[servlet-class/text()='lucee.loader.servlet.CFMLServlet']" position="under">
+			<![CDATA[<init-param><param-name>lucee-server-root</param-name><param-value>${lucee.initparam.server-config}</param-value></init-param>]]></insert>
+			-->
+		</xmltask>
+		<!-- needed if deployed to jboss 6
+		<mkdir dir="${ext.dir}/jboss" />
+		<requires-ext-file file="${ext.dir}/jboss/jboss-classloading.xml"/>
+		<copy file="${ext.dir}/jboss/jboss-classloading.xml" tofile="${war.target.dir}/WEB-INF/jboss-classloading.xml" overwrite="true" />
+		-->
+
+		<cfmlengcrypt engine="lucee" plaintext="${cfadmin.password}" property="lucee.password.encrypted" />
+		<xmltask source="${lucee.server.config.file}" dest="${lucee.server.config.file}">
+			<attr path="/*[1]" attr="password" value="${lucee.password.encrypted}" />
+			<attr path="/*[1]" attr="default-password" value="${lucee.password.encrypted}" />
+		</xmltask>
+		<xmltask source="${lucee.web.config.file}" dest="${lucee.web.config.file}">
+			<attr path="/*[1]" attr="password" value="${lucee.password.encrypted}" />
+		</xmltask>
+		<xmltask source="${lucee.web.config.file}" dest="${lucee.web.config.file}">
+			<insert path="//*[1]" position="under" xml="&lt;charset/&gt;" />
+			<attr path="/*[1]/charset" attr="resource-charset" value="${lucee.charset.resource}" />
+			<attr path="/*[1]/charset" attr="template-charset" value="${lucee.charset.template}" />
+			<attr path="/*[1]/charset" attr="web-charset" value="${lucee.charset.web}" />
+		</xmltask>
+		<lucee-scope setting="session-type" value="${cfml.session.type}" configfile="${lucee.server.config.file}" />
+		<lucee-scope setting="session-type" value="${cfml.session.type}"/>
+		<property name="lucee.function.dir" value="" />
+		<antcontrib:if>
+			<not><equals arg1="${lucee.function.dir}" arg2="" /></not>
+			<then>
+				<xmltask source="${lucee.web.config.file}" dest="${lucee.web.config.file}">
+					<attr path="/*[1]/file-system" attr="function-directory" value="${lucee.function.dir}" />
+				</xmltask>
+			</then>
+		</antcontrib:if>
+		<antcontrib:runtarget target="lucee.ra.install" />
+	</target>
+
+	<target name="lucee.build">
+		<antcontrib:runtarget target="war.init" />
+	</target>
+	
+	<target name="lucee.build.binary">
+		<antcontrib:runtarget target="lucee.build" />
+		<antcontrib:runtarget target="lucee.compile-cf" />
+	</target>
+
+	<target name="lucee.add.libs" if="add.libs.dir" unless="dont.add.libs">
+		<echo message="Copying libs: ${add.libs.dir} to: ${war.target.dir}/WEB-INF/lib/lucee-server/context/lib" />
+		<addlibs from="${add.libs.dir}"/>
+		<!--
+		<copy todir="${war.target.dir}/WEB-INF/lib/lucee-server/context/lib" overwrite="true">
+			<fileset dir="${add.libs.dir}"/>
+		</copy>
+-->
+	</target>
+
+	<target name="lucee.build.war.ra" depends="exists.archives.xml,lucee.archives.build" if="exists.archives.xml">
+		<antcontrib:runtarget target="war.init" />
+		<antcontrib:for param="file">
+			<path>
+				<fileset dir="${lucee.archive.dir}">
+					<include name="*.ra" />
+				</fileset>
+			</path>
+			<sequential>
+				<antcontrib:propertyregex override="yes" property="mappingName" input="@{file}" regexp=".*/([^\.]+).ra|.*\\([^\.]+).ra" replace="\1" />
+				<echo message="Adding mapping for archive - /${mappingName} - @{file}" />
+				<copy file="@{file}" todir="${war.target.dir}" overwrite="true" />
+				<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+					<insert path="/*[1]/mappings" position="under">
+						<![CDATA[
+					<mapping
+						readonly="yes"
+						toplevel="true" 
+						trusted="false"
+						virtual="/${mappingName}"
+						archive="{web-root-directory}/${mappingName}.ra"
+						primary="archive"
+					/>
+					]]>
+					</insert>
+				</xmltask>
+			</sequential>
+		</antcontrib:for>
+		<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+			<attr path="/*[1]/java" attr="inspect-template" value="never" />
+		</xmltask>
+	</target>
+
+	<target name="lucee.ra.install">
+		<antcontrib:for param="file">
+			<path>
+				<fileset dir="${basedir}/ra" erroronmissingdir="false">
+					<include name="*.ra" />
+				</fileset>
+			</path>
+			<sequential>
+				<antcontrib:propertyregex override="yes" property="mappingName" input="@{file}" regexp=".*/([^\.]+).ra|.*\\([^\.]+).ra" replace="\1" />
+				<echo message="Adding mapping for archive - /${mappingName} - @{file}" />
+				<copy file="@{file}" todir="${war.target.dir}" overwrite="true" />
+				<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+					<insert path="/*[1]/mappings" position="under">
+						<![CDATA[
+					<mapping
+						readonly="yes"
+						toplevel="true" 
+						trusted="false"
+						virtual="/${mappingName}"
+						archive="{web-root-directory}/${mappingName}.ra"
+						primary="archive"
+					/>
+					]]>
+					</insert>
+				</xmltask>
+			</sequential>
+		</antcontrib:for>
+	</target>
+
+	<target name="src.to.lucee.archives.xml">
+		<echo file="${basedir}/lucee.archives.${build.type}.xml" message="&lt;archives&gt;&lt;/archives&gt;" />
+		<abspath path="${lucee.archive.dir}" property="lucee.archive.dir" />
+		<antcontrib:for param="file">
+			<path>
+				<dirset dir="${src.dir}">
+					<include name="*" />
+				</dirset>
+			</path>
+			<sequential>
+				<antcontrib:propertyregex override="yes" property="mappingName" input="@{file}" regexp=".*/|.*\\([^\.]*)" replace="\1" />
+				<echo message="archive - ${mappingName} - @{file} ${lucee.archive.dir}/${mappingName}.ra" />
+				<xmltask source="${basedir}/lucee.archives.${build.type}.xml" dest="${basedir}/lucee.archives.${build.type}.xml">
+					<insert path="archives" position="under">
+						<![CDATA[
+					<archive 
+						archive="${lucee.archive.dir}/${mappingName}.ra"
+						mapping="/${mappingName}"
+						physical="@{file}"
+					/>
+					]]>
+					</insert>
+				</xmltask>
+			</sequential>
+		</antcontrib:for>
+	</target>
+
+	<target name="exists.archives.xml">
+		<available file="${basedir}/archives.xml" type="file" property="exists.archives.xml" />
+		<antcontrib:if>
+			<equals arg1="${exists.archives.xml}" arg2="true" />
+			<then>
+				<echo message="Archives file exists : ${basedir}/archives.xml " />
+			</then>
+			<else>
+				<echo message="No archives.xml file to import : ${basedir}/archives.xml does not exist.  Run the 'src.to.lucee.archives.xml' task to generate one from everything in ${src.dir}" />
+			</else>
+		</antcontrib:if>
+	</target>
+
+	<target name="lucee.mappings.xml.build" depends="exists.mappings.xml" if="exists.mappings.xml">
+		<xmltask sourcebuffer="mappings.buff">
+			<call path="mappings/*">
+				<param name="virtual" path="@virtual" default="NONE" />
+				<param name="physical" path="@physical" default="NONE" />
+				<param name="trusted" path="@trusted" default="false" />
+				<param name="readonly" path="@readonly" default="true" />
+				<actions>
+					<lucee-mapping physical="@{physical}" virtual="@{virtual}" readonly="@{readonly}" trusted="@{trusted}" />
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+	<target name="lucee.customtags.xml.build" depends="exists.customtags.xml" if="exists.customtags.xml">
+		<xmltask sourcebuffer="customtags.buff">
+			<call path="mappings/*">
+				<param name="virtual" path="@virtual" default="NONE" />
+				<param name="physical" path="@physical" default="NONE" />
+				<actions>
+					<lucee-customtag physical="@{physical}" virtual="@{virtual}" />
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+
+	<target name="lucee.mail.xml.build" depends="exists.mail.xml" if="exists.mail.xml">
+		<xmltask sourcebuffer="mail.buff" outputter="simple">
+			<call path="mail/settings">
+				<param name="log" path="@log" default="./temp/logs/mail.log" />
+				<param name="spool-enable" path="@spool-enable" default="yes" />
+				<param name="spool-interval" path="@spool-interval" default="5" />
+				<param name="timeout" path="@timeout" default="30" />
+				<actions>
+					<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+						<attr path="/*[1]/mail" attr="log" value="@{log}" />
+						<attr path="/*[1]/mail" attr="spool-enable" value="@{spool-enable}" />
+						<attr path="/*[1]/mail" attr="spool-interval" value="@{spool-interval}" />
+						<attr path="/*[1]/mail" attr="timeout" value="@{timeout}" />
+					</xmltask>
+				</actions>
+			</call>
+		</xmltask>
+
+		<xmltask sourcebuffer="mail.buff">
+			<call path="mail/servers/*">
+				<param name="smtp" path="@smtp" default="smtp.gmail.com" />
+				<param name="port" path="@port" default="587" />
+				<param name="username" path="@username" default="" />
+				<param name="password" path="@password" default="" />
+				<param name="ssl" path="@ssl" default="false" />
+				<param name="tls" path="@tls" default="true" />				
+				<actions>
+					<antcontrib:var name="mailserver.exists" unset="true" />
+					<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+						<copy path="/*[1]/mail/server[@smtp='@{smtp}']/@smtp" attrValue="true" property="mailserver.exists" />
+						<replace path="/*[1]/mail/server[@smtp=@{smtp}]/text()" if="mailserver.exists">
+							<![CDATA[
+							<server 
+								smtp="@{smtp}" 
+								port="@{port}" 
+								username="@{username}"
+								password="@{password}" 
+								ssl="@{ssl}" 
+								tls="@{tls}" 
+							/>
+		  					]]>
+	  					</replace>
+						<insert path="/*[1]/mail" position="under" unless="mailserver.exists">
+							<![CDATA[
+							<server 
+								smtp="@{smtp}" 
+								port="@{port}" 
+								username="@{username}"
+								password="@{password}" 
+								ssl="@{ssl}" 
+								tls="@{tls}" 
+							/>
+		  					]]>
+	  					</insert>
+					</xmltask>
+					<antcontrib:switch value="${mailserver.exists}">
+						<case value="@{smtp}">
+							<echo message="Updated mail server - @{smtp}	 @{username}" />
+						</case>
+						<default>
+							<echo message="Added mail server - @{smtp} 	@{username}" />
+						</default>
+					</antcontrib:switch>
+				</actions>
+			</call>
+		</xmltask>
+	</target>
+
+
+	<target name="lucee.datasources.build" depends="exists.datasources.xml" if="exists.datasources.xml">
+
+		<xmltask sourcebuffer="datasources.buff">
+			<call path="datasources/*">
+				<param name="name" path="@name" default="datasource" />
+				<param name="blob" path="@blob" default="false" />
+				<param name="clob" path="@clob" default="false" />
+				<param name="class" path="@class" default="org.gjt.mm.mysql.Driver" />
+				<param name="host" path="@host" default="localhost" />
+				<param name="port" path="@port" default="3306" />
+				<param name="database" path="@database" default="database" />
+				<param name="username" path="@username" default="sa" />
+				<param name="password" path="@password" default="" />
+				<param name="sqlstoredprocedures" path="@sqlstoredprocedures" default="true" />
+				<param name="sqlinsert" path="@sqlinsert" default="true" />
+				<param name="sqlselect" path="@sqlselect" default="true" />
+				<param name="sqlupdate" path="@sqlupdate" default="true" />
+				<param name="sqldelete" path="@sqldelete" default="true" />
+				<param name="maintainconnection" path="@maintainconnection" default="true" />
+				<param name="logintimeout" path="@logintimeout" default="120" />
+				<param name="connectionretries" path="@connectionretries" default="0" />
+				<param name="connectionlimit" path="@connectionlimit" default="-1" />
+				<param name="connectiontimeout" path="@connectiontimeout" default="120" />
+				<param name="storage" path="@storage" default="false" />
+				<param name="custom" path="@custom" default="" />
+				<param name="jdbc" path="@jdbc" default="mysql" />
+				<param name="jdbcstring" path="@jdbcstring" default="jdbc:mysql://{host}:{port}/{database}" />
+				<actions>
+					<antcontrib:var name="datasource.exists" unset="true" />
+					<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+						<copy path="/*[1]/data-sources/data-source[@name='@{name}']/@name" attrValue="true" property="datasource.exists" />
+						<replace path="/*[1]/data-sources/data-source[@name='@{name}']" if="datasource.exists">
+							<![CDATA[
+	  						<data-source allow="415" blob="@{blob}" 
+	  							name="@{name}" 
+	  							class="@{class}" 
+	  							host="@{host}" port="@{port}"
+	  							database="@{database}"
+	  							password="@{password}" 
+	  							username="@{username}"
+	  							clob="@{clob}" connectionLimit="@{connectionlimit}" connectionTimeout="@{connectiontimeout}" 
+	  							custom="@{custom}" 
+								storage="@{storage}" 
+	  							dsn="@{jdbcstring}" 
+	  						/>	  					    
+	  					]]>
+	  					</replace>
+						<insert path="/*[1]/data-sources" position="under" unless="datasource.exists">
+							<![CDATA[
+	  						<data-source allow="415" blob="@{blob}" 
+	  							name="@{name}" 
+	  							class="@{class}" 
+	  							host="@{host}" port="@{port}"
+	  							database="@{database}"
+	  							password="@{password}" 
+	  							username="@{username}"
+	  							clob="@{clob}" connectionLimit="@{connectionlimit}" connectionTimeout="@{connectiontimeout}" 
+	  							custom="@{custom}" 
+								storage="@{storage}" 
+  								dsn="@{jdbcstring}" 
+	  						/>	  					    
+	  					]]>
+	  					</insert>
+					</xmltask>
+					<antcontrib:switch value="${datasource.exists}">
+						<case value="@{name}">
+							<echo message="Updated Datasource - @{name}" />
+						</case>
+						<default>
+							<echo message="Added Datasource - @{name}" />
+						</default>
+					</antcontrib:switch>
+				</actions>
+			</call>
+		</xmltask>
+		<echo message="configured datasources" />
+	</target>
+	
+	<target name="lucee.scheduledtasks.build" depends="exists.scheduledtasks.xml" if="exists.scheduledtasks.xml">
+		<mkdir dir="${war.target.dir}/WEB-INF/lucee/scheduler"/>
+		<xmltask sourcebuffer="scheduledtasks.buff" dest="${war.target.dir}/WEB-INF/lucee/scheduler/scheduler.xml" outputter="simple" />
+	</target>
+	
+	<target name="lucee.compile-cf">
+		<antcontrib:runtarget target="lucee.mappings.xml.build" />
+		<property name="build.cfc.url" value="http://${server.host}:${server.port.http}${war.contextpath}/_cfd_compile_temp/Build.cfc" />
+		<property name="compile.results.file" location="compile-results.txt" />
+		<mkdir dir="${war.target.dir}/_cfd_compile_temp" />
+		<lucee-mapping virtual="/_cfd_compile_temp" physical="${war.target.dir}/_cfd_compile_temp" />
+		<copy file="${cfdistro.basedir}/Build.cfc" todir="${war.target.dir}/_cfd_compile_temp" />
+		<sequential>
+			<antcontrib:runtarget target="runwar.start" />
+			<echo file="${compile.results.file}" message="Compile results (${todays.date}): ${line.separator}${line.separator}"/>
+			<xmltask sourcebuffer="mappings.buff">
+			<call path="mappings/*">
+				<param name="virtual" path="@virtual" default="NONE" />
+				<param name="physical" path="@physical" default="NONE" />
+				<actions>
+					<sequential>
+						<echo message="@{virtual} @{physical}/"/>
+						<copy todir="${war.target.dir}@{virtual}" verbose="${cfdistro.debug}">
+							<fileset dir="@{physical}" />
+						</copy>
+						<echo message="Compiling mapping - @{virtual} - @{physical}" />
+						<get src="${build.cfc.url}?method=compile-mapping&amp;mapping=@{virtual}&amp;cfadminpassword=${cfadmin.password}" 
+							dest="compile.results.temp" retries="1" verbose="true" ignoreerrors="true" />
+						<antcontrib:var name="compile.results" unset="true" />
+						<loadfile srcFile="compile.results.temp" property="compile.results" failonerror="false"/>
+						<property name="compile.results" value="&lt;a href=&quot;${build.cfc.url}?method=compile-mapping&amp;mapping=@{virtual}&amp;cfadminpassword=${cfadmin.password}&quot;&gt;Compile /@{virtual}&lt;/a&gt;" />
+						<echo file="${compile.results.file}" append="true" message="${line.separator}${line.separator}*** mapping @{virtual} compile results: ${compile.results}"/>
+						<delete file="compile.results.temp"/>
+						<antcontrib:propertyregex override="yes" property="mappingName" input="@{virtual}" regexp=".*/|.*\\([^\.]*)" replace="\1" />
+						<copy todir="${war.target.dir}" verbose="${cfdistro.debug}" overwrite="true">
+							<fileset dir="${war.target.dir}/WEB-INF/lucee/cfclasses/" />
+							<chainedmapper>
+								<regexpmapper from="^CF_.+_(${mappingName})\d{4}/+(.*)" to="\1/\2" />
+								<regexpmapper from="(.*)_cf(.).+\.class$$" to="\1.cf\2" />
+							</chainedmapper>
+						</copy>
+					</sequential>
+				</actions>
+			</call>
+			</xmltask>
+			<open-url url="${build.cfc.url}?method=show-results&amp;resultsfile=${compile.results.file}" />
+			<sleep seconds="3" />
+			<!-- remove the mappings now that they're compiled -->
+			<xmltask sourcebuffer="mappings.buff">
+				<call path="mappings/*">
+					<param name="virtual" path="@virtual" default="NONE" />
+					<param name="physical" path="@physical" default="NONE" />
+					<actions>
+						<lucee-mapping-remove virtual="@{virtual}" />
+					</actions>
+				</call>
+			</xmltask>
+			<antcontrib:runtarget target="runwar.stop" />
+			<delete file="${war.target.dir}/Build.cfc" />
+			<delete dir="${war.target.dir}/_cfd_compile_temp"/>
+			<lucee-mapping-remove virtual="/_cfd_compile_temp" />
+		</sequential>
+	</target>
+
+	<target name="lucee.archives.build" depends="exists.archives.xml" if="exists.archives.xml">
+		<copy todir="${runwar.war.path}">
+			<fileset dir="${cfdistro.basedir}" includes="Build.cfc"/>
+			<filterchain>
+				<expandproperties />
+			</filterchain>
+		</copy>
+		<copy file="${cfdistro.basedir}/cfadminpassword.txt" todir="${runwar.war.path}" />
+		<delete dir="${lucee.archive.dir}" />
+		<antcontrib:var name="runwar.stop.socket" value="10923" />
+		<antcontrib:var name="runwar.port" value="10921" />
+		<sequential>
+			<antcontrib:runtarget target="runwar.start" />
+			<xmltask source="lucee.archives.${build.type}.xml">
+				<call path="archives/*">
+					<param name="archive" path="@archive" default="NONE" />
+					<param name="physical" path="@physical" default="NONE" />
+					<param name="mapping" path="@mapping" default="NONE" />
+					<actions>
+						<echo message="Creating Railo Archive - @{archive} - @{physical} @ @{mapping}" />
+						<get src="http://127.0.0.1:${runwar.port}${runwar.war.contextpath}Build.cfc?method=compile-archive&amp;mapping=@{mapping}&amp;toFile=@{archive}" dest="${lucee.archive.dir}/@{mapping}.archive.results.properties" verbose="true" ignoreerrors="true" />
+					</actions>
+				</call>
+			</xmltask>
+			<antcontrib:runtarget target="runwar.stop" />
+		</sequential>
+		<echo message="created archives from ${basedir}/lucee.archives.${build.type}.xml" />
+		<delete file="${runwar.war.path}/Build.cfc" />
+		<delete file="${runwar.war.path}/cfadminpassword.txt" />
+	</target>
+
+	<target name="copy-to-bin">
+		<delete dir="${temp.dir}/bin" />
+		<mkdir dir="${temp.dir}/bin" />
+		<copy todir="${temp.dir}/bin" verbose="true">
+			<fileset dir="${basedir}/WEB-INF/lucee/cfclasses/" />
+			<chainedmapper>
+				<regexpmapper from="^CF_.+_(.+)\d{4}/+(.*)" to="\1/\2" />
+				<regexpmapper from="(.*)_cf(.).+\.class$$" to="\1.cf\2" />
+			</chainedmapper>
+		</copy>
+	</target>
+
+	<target name="lucee.set.log.dir">
+		<!-- <mkdir dir="${log.dir}" /> -->
+		<relpath property="log.dir" to="${log.dir}" from="${war.target.dir}/WEB-INF/lucee/logs"/>
+		<echo message="setting logging dir to ${log.dir}"/>
+		<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+			<attr path="/*[1]/remote-clients" attr="log" value="${log.dir}" />
+			<attr path="/*[1]/remote-clients" attr="log-level" value="info" />
+			<attr path="/*[1]/scope" attr="requesttimeout-log" value="${log.dir}requesttimeout.log" />
+			<attr path="/*[1]/scope" attr="requesttimeout" value="${cfml.request.timeout}" />
+			<attr path="/*[1]/scope" attr="applicationtimeout" value="${cfml.application.timeout}" />
+			<attr path="/*[1]/mail" attr="log" value="${log.dir}mail.log" />
+			<attr path="/*[1]/debugging" attr="memory-log" value="${log.dir}memory.log" />
+			<attr path="/*[1]/debugging" attr="debug" value="no" />
+			<attr path="/*[1]/application" attr="application-log" value="${log.dir}application.log" />
+			<attr path="/*[1]/application" attr="application-log-level" value="${log.level}" />
+			<attr path="/*[1]/application" attr="trace-log" value="${log.dir}trace.log" />
+			<attr path="/*[1]/application" attr="trace-log-level" value="${log.level}" />
+			<attr path="/*[1]/application" attr="exception-log" value="${log.dir}exception.log" />
+		</xmltask>
+	</target>
+
+	<target name="lucee.set.debug">
+		<echo message="setting logging dir to ${log.dir}"/>
+		<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+			<attr path="/*[1]/debugging" attr="debug" value="${debugging.enabled}" />
+		</xmltask>
+	</target>
+
+	
+	<target name="lucee.set.inspect.templates">
+		<echo message="Will inspect each template ${cfmlengine.inspect.templates}"/>
+		<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+			<attr path="/*[1]/java" attr="inspect-template" value="${cfmlengine.inspect.templates}" />
+		</xmltask>
+	</target>
+
+	<target name="lucee.set.security">
+		<echo message="Setting security options"/>
+		<antcontrib:var name="datasource.exists" unset="true" />
+		<xmltask source="${lucee.server.config.file}" dest="${lucee.server.config.file}">
+			<copy path="/*[1]/security" attrValue="true" property="security.exists" />
+			<replace path="/*[1]/security']" if="security.exists">
+				<![CDATA[
+				<security access_read="${lucee.security.access_read}" access_write="${lucee.security.access_write}" 
+				cache="${lucee.security.cache}" cfx_setting="${lucee.security.cfx_setting}" cfx_usage="${lucee.security.cfx_usage}"
+				custom_tag="${lucee.security.custom_tag}" datasource="${lucee.security.datasource}" debugging="${lucee.security.debugging}"
+				direct_java_access="${lucee.security.direct_java_access}" file="yes" gateway="yes" mail="yes" mapping="yes" 
+				remote="yes" scheduled_task="yes" search="yes" setting="yes" 
+				tag_execute="yes" tag_import="yes" tag_object="yes" tag_registry="yes"/>
+				]]>
+				</replace>
+			<insert path="/*[1]" position="under" unless="security.exists">
+				<![CDATA[
+				<security access_read="${lucee.security.access_read}" access_write="${lucee.security.access_write}" 
+				cache="${lucee.security.cache}" cfx_setting="${lucee.security.cfx_setting}" cfx_usage="${lucee.security.cfx_usage}"
+				custom_tag="${lucee.security.custom_tag}" datasource="${lucee.security.datasource}" debugging="${lucee.security.debugging}"
+				direct_java_access="${lucee.security.direct_java_access}" file="yes" gateway="yes" mail="yes" mapping="yes" 
+				remote="yes" scheduled_task="yes" search="yes" setting="yes" 
+				tag_execute="yes" tag_import="yes" tag_object="yes" tag_registry="yes"/>
+				]]>
+				</insert>
+		</xmltask>
+	</target>
+
+
+	<target name="lucee.add.build.cfc">
+		<mkdir dir="${war.target.dir}/_cfd_compile_temp" />
+		<lucee-mapping virtual="/_cfd_compile_temp" physical="${war.target.dir}/_cfd_compile_temp" />
+		<copy file="${cfdistro.basedir}/Build.cfc" todir="${war.target.dir}/_cfd_compile_temp" />
+	</target>
+
+	<macrodef name="lucee-mapping">
+		<attribute name="physical" />
+		<attribute name="virtual" />
+		<attribute name="archive" default=""/>
+		<attribute name="readonly" default="true"/>
+		<attribute name="trusted" default="false"/>
+		<sequential>
+			<antcontrib:var name="___physical" value="@{physical}" />
+			<antcontrib:if>
+				<equals arg1="${copy.mappings.to.war}" arg2="true" />
+				<then>
+					<echo message="copying @{physical} to ${war.target.dir}/@{virtual}" />
+					<copy todir="${war.target.dir}/@{virtual}" verbose="false">
+						<fileset dir="@{physical}"/>
+					</copy>
+				</then>
+				<else>
+					<antcontrib:if>
+						<equals arg1="${mappings.relative}" arg2="true" />
+						<then>
+							<antcontrib:var name="___physical" unset="true" />
+							<relpath from="${war.target.dir}" to="@{physical}" property="___physical"/>
+						</then>
+					</antcontrib:if>
+					<antcontrib:var name="mapping.exists" unset="true" />
+					<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+						<copy path="/*[1]/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
+						<replace path="/*[1]/mappings/mapping[@virtual='@{virtual}']" if="mapping.exists">
+							<![CDATA[
+							<mapping
+								readonly="@{readonly}"
+								trusted="@{trusted}"
+								virtual="@{virtual}"
+								physical="${___physical}"
+								archive="@{archive}"
+								primary="physical"
+							/>
+							]]>
+							</replace>
+						<insert path="/*[1]/mappings" position="under" unless="mapping.exists">
+							<![CDATA[
+							<mapping
+								readonly="@{readonly}"
+								trusted="@{trusted}"
+								virtual="@{virtual}"
+								physical="${___physical}"
+								archive="@{archive}"
+								primary="physical"
+							/>
+							]]>
+							</insert>
+					</xmltask>
+					<antcontrib:switch value="${mapping.exists}">
+						<case value="@{virtual}">
+							<echo message="Updated Mapping - @{virtual}	 ${___physical}" />
+						</case>
+						<default>
+							<echo message="Added Mapping - @{virtual} 	${___physical}" />
+						</default>
+					</antcontrib:switch>
+					</else>
+				</antcontrib:if>
+			<antcontrib:var name="___physical" unset="true" />
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="lucee-rest-mapping">
+		<attribute name="physical" />
+		<attribute name="virtual" />
+		<attribute name="servletMapping" default="@{virtual}/*"/>
+		<attribute name="default" default="true"/>
+		<sequential>
+			<servlet-mapping rest="true" virtual="@{servletMapping}" physical="@{physical}" />
+			<antcontrib:var name="___physical" value="@{physical}" />
+			<antcontrib:if>
+				<equals arg1="${mappings.relative}" arg2="true" />
+				<then>
+					<antcontrib:var name="___physical" unset="true" />
+					<relpath from="${war.target.dir}" to="@{physical}" property="___physical"/>
+				</then>
+			</antcontrib:if>
+			<antcontrib:var name="mapping.exists" unset="true" />
+			<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+				<copy path="/*[1]/rest/mapping/@virtual" attrValue="true" property="mapping.exists" />
+				<insert path="/*[1]" position="under" unless="mapping.exists">
+				<![CDATA[<rest></rest>]]>
+				</insert>
+			</xmltask>
+			<antcontrib:var name="mapping.exists" unset="true" />
+			<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+				<copy path="/*[1]/rest/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
+				<replace path="/*[1]/rest/mapping[@virtual='@{virtual}']" if="mapping.exists">
+					<![CDATA[
+					<mapping
+						virtual="@{virtual}"
+						physical="${___physical}"
+						default="@{default}"
+					/>
+					]]>
+					</replace>
+				<insert path="/*[1]/rest" position="under" unless="mapping.exists">
+					<![CDATA[
+					<mapping
+						virtual="@{virtual}"
+						physical="${___physical}"
+						default="@{default}"
+					/>
+					]]>
+					</insert>
+			</xmltask>
+			<antcontrib:switch value="${mapping.exists}">
+				<case value="@{virtual}">
+					<echo message="Updated REST Mapping - @{virtual}	 ${___physical}" />
+				</case>
+				<default>
+					<echo message="Added REST Mapping - @{virtual} 	${___physical}" />
+				</default>
+			</antcontrib:switch>
+			<antcontrib:var name="___physical" unset="true" />
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="lucee-customtag">
+		<attribute name="physical" />
+		<attribute name="virtual" />
+		<attribute name="contextType" default="web" />
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="@{contextType}" arg2="web" />
+				<then>
+					<antcontrib:var name="lucee.customtags.dir" value="${lucee.web.customtags.dir}"/>
+				</then>
+				<else>
+					<antcontrib:var name="lucee.customtags.dir" value="${lucee.server.customtags.dir}"/>
+				</else>
+			</antcontrib:if>
+			<relpath property="customtag.physical" from="${war.target.dir}" to="@{physical}" />
+			<antcontrib:if>
+				<equals arg1="${copy.mappings.to.war}" arg2="true" />
+				<then>
+					<echo message="Copying Custom Tag @{physical} to ${lucee.customtags.dir}@{virtual}" />
+					<copy todir="${lucee.customtags.dir}@{virtual}">
+						<fileset dir="@{physical}"/>
+					</copy>
+					<antcontrib:var name="customtag.physical" unset="true"/>
+					<relpath property="customtag.physical" from="${war.target.dir}" to="${lucee.customtags.dir}@{virtual}" />
+				</then>
+			</antcontrib:if>
+			<antcontrib:var name="mapping.exists" unset="true" />
+			<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+				<copy path="/*[1]/custom-tag/mapping[@physical='${customtag.physical}']/@physical" attrValue="true" property="mapping.exists" />
+				<replace path="/*[1]/custom-tag/mapping[@physical='${customtag.physical}']/text()" if="mapping.exists">
+					<![CDATA[
+				<mapping
+					trusted="false"
+					physical="${customtag.physical}"
+				/>
+				]]>
+				</replace>
+				<insert path="/*[1]/custom-tag" position="under" unless="mapping.exists">
+					<![CDATA[
+				<mapping
+					trusted="false"
+					physical="${customtag.physical}"
+				/>
+				]]>
+				</insert>
+			</xmltask>
+			<antcontrib:switch value="${mapping.exists}">
+				<case value="${customtag.physical}">
+					<echo message="Updated Custom Tag Mapping - ${customtag.physical}" />
+				</case>
+				<default>
+					<echo message="Added Custom Tag Mapping - ${customtag.physical}" />
+				</default>
+			</antcontrib:switch>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="lucee-datasource">
+		<attribute name="name"/>
+		<attribute name="blob" default="false" />
+		<attribute name="clob" default="false" />
+		<attribute name="class" default="org.h2.Driver" />
+		<attribute name="host" default="127.0.0.1" />
+		<attribute name="port" default="3306" />
+		<attribute name="database" default="lucee-db" />
+		<attribute name="username" default="sa" />
+		<attribute name="password" default="" />
+		<attribute name="sqlstoredprocedures" default="true" />
+		<attribute name="sqlinsert" default="true" />
+		<attribute name="sqlselect" default="true" />
+		<attribute name="sqlupdate" default="true" />
+		<attribute name="sqldelete" default="true" />
+		<attribute name="maintainconnection" default="true" />
+		<attribute name="logintimeout" default="120" />
+		<attribute name="connectionretries" default="0" />
+		<attribute name="connectionlimit" default="-1" />
+		<attribute name="connectiontimeout" default="120" />
+		<attribute name="custom" default="" />
+		<attribute name="jdbc" default="h2" />
+		<attribute name="jdbcstring" default="jdbc:h2:./h2dbs/lucee-db/lucee-db" />
+		<sequential>
+			<antcontrib:var name="datasource.exists" unset="true" />
+			<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+				<copy path="/*[1]/data-sources/data-source[@name='@{name}']/@name" attrValue="true" property="datasource.exists" />
+				<replace path="/*[1]/data-sources/data-source[@name='@{name}']" if="datasource.exists">
+					<![CDATA[
+ 						<data-source allow="415" blob="@{blob}" 
+ 							name="@{name}" 
+ 							class="@{class}" 
+ 							host="@{host}" port="@{port}"
+ 							database="@{database}"
+ 							password="@{password}" 
+ 							username="@{username}"
+ 							clob="@{clob}" connectionLimit="@{connectionlimit}" connectionTimeout="@{connectiontimeout}" 
+ 							custom="@{custom}" 
+ 							dsn="@{jdbcstring}" 
+ 						/>	  					    
+ 					]]>
+ 					</replace>
+				<insert path="/*[1]/data-sources" position="under" unless="datasource.exists">
+					<![CDATA[
+ 						<data-source allow="415" blob="@{blob}" 
+ 							name="@{name}" 
+ 							class="@{class}" 
+ 							host="@{host}" port="@{port}"
+ 							database="@{database}"
+ 							password="@{password}" 
+ 							username="@{username}"
+ 							clob="@{clob}" connectionLimit="@{connectionlimit}" connectionTimeout="@{connectiontimeout}" 
+ 							custom="@{custom}" 
+								dsn="@{jdbcstring}" 
+ 						/>	  					    
+ 					]]>
+ 					</insert>
+			</xmltask>
+			<antcontrib:switch value="${datasource.exists}">
+				<case value="@{name}">
+					<echo message="Updated Datasource - @{name}" />
+				</case>
+				<default>
+					<echo message="Added Datasource - @{name}" />
+				</default>
+			</antcontrib:switch>
+		</sequential>
+	</macrodef>	
+	
+	
+	<macrodef name="lucee-cache">
+		<attribute name="name"/>
+		<attribute name="class"/>
+		<attribute name="custom"/>
+		<attribute name="storage"/>
+		<attribute name="default-type" default=""/>
+		<attribute name="read-only" default="false"/>
+		
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="${default.cfengine}" arg2="lucee" />
+				<then>
+					<antcontrib:var name="some.cache.exists" unset="true" />
+					<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+						<xmlcatalog refId="commonDTDs" />
+						<copy path="//*[1]/cache/text()" property="some.cache.exists" />
+						<!-- if no caches at all, just insert -->
+						<insert path="//*[1]" position="under" unless="some.cache.exists">
+							<![CDATA[<cache>
+							<connection class="@{class}" custom="@{custom}" name="@{name}" read-only="@{read-only}" storage="@{storage}"/></cache>]]>
+						</insert>
+						<copy path="//*[1]/cache/connection[@name='@{name}']/@name" attrValue="true" property="cache.exists" />
+						<replace path="//*[1]/cache/connection[@name='@{name}']" if="cache.exists">
+							<![CDATA[
+							<connection class="@{class}" custom="@{custom}" name="@{name}" read-only="@{read-only}" storage="@{storage}"/>
+		  					]]>
+		  					</replace>
+						<insert path="//*[1]/cache" position="under" unless="cache.exists">
+							<![CDATA[
+							<connection class="@{class}" custom="@{custom}" name="@{name}" read-only="@{read-only}" storage="@{storage}"/>
+		  					]]>
+	  					</insert>
+					</xmltask>
+					<antcontrib:if>
+						<equals arg1="@{default-type}" arg2="" />
+						<then/>
+						<else>
+							<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+								<attr path="/*[1]/cache" attr="@{default-type}" value="@{name}" />
+							</xmltask>
+						</else>
+					</antcontrib:if>
+					<!-- if some caches exist we can update and add -->
+					<antcontrib:switch value="${cache.exists}">
+						<case value="true">
+							<echo message="updated @{default-type} cache provider @{name} (@{class})" />
+						</case>
+						<default>
+							<echo message="added @{default-type} cache provider @{name} (@{class})" />
+						</default>
+					</antcontrib:switch>
+					<antcontrib:var name="cache.exists" unset="true" />
+				</then>
+				<else>
+					<echo> *** cache providers are useless for ${default.cfengine} hombre!</echo>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>	
+
+	<target name="extension.loadprops">
+		<!-- these property files will override the defaults  -->
+		<property file="${basedir}/build.properties" />
+		<property file="${basedir}/build.extension.properties" />
+		<filter filtersfile="${basedir}/build.properties" />		
+		<!-- defaults -->
+		<property file="${cfdistro.basedir}/buildtypes/build.extension.properties" />
+	</target>
+
+	<target name="extension.build" description="builds the extension" depends="extension.loadprops">
+		<echo message="Building Extension" />
+		<tstamp/>
+		<delete dir="${extension.temp.dir}" />
+		<mkdir dir="${extension.temp.dir}" />
+		<mkdir dir="${extension.dist}" />
+		<propertyfile file="${basedir}/build.extension.lastbuild" comment="Extension Build Information">
+			<entry key="build.date" type="date" pattern="MM-dd-yyyy HH:mm:ss" value="now" />
+			<entry key="build.time" type="date" pattern="kk:mm:ss" value="now" />
+			<entry key="build.timestamp" type="date" pattern="MM-dd-yyyy' at 'HH:mm:ss" value="now" />
+			<entry key="build.lastcommithash" default="" />
+		</propertyfile>
+		<property file="${basedir}/build.extension.lastbuild" />
+
+		<property name="extension.version" value="0.0.0.1"/>
+		<property name="extension.version.bump" value="" description="one of [major|minor|build|revision] or empty to not bump number." />
+		<version-splitter property="extension.build.version" version="${extension.version}" bump="${extension.version.bump}"/>
+		<antcontrib:var name="extension.version" value="${extension.build.version.long}" />
+		<echoproperties>
+			<propertyset>
+				<propertyref prefix="build." />
+				<propertyref prefix="extension." />
+			</propertyset>
+		</echoproperties>
+		<antcontrib:var name="extension.majorminor" value="${extension.build.version.major}.${extension.build.version.minor}"/>
+		<antcontrib:var name="extension.archive" value="${extension.name}-${extension.majorminor}-extension.zip"/>
+		<delete file="${extension.dist}/${extension.archive}" />
+		<antcontrib:if>
+			<available file="${extension.src}/config.xml"/>
+			<then>
+				<copy overwrite="yes" verbose="no" file="${extension.src}/config.xml" tofile="${extension.temp.dir}/config.xml" filtering="true">
+					<filterchain><expandproperties /></filterchain>
+				</copy>
+			</then>
+			<else>
+				<copy overwrite="yes" verbose="no" file="${cfdistro.basedir}/extension/config.xml" tofile="${extension.temp.dir}/config.xml" filtering="true">
+					<filterchain><expandproperties /></filterchain>
+				</copy>
+			</else>
+		</antcontrib:if>
+		
+		<antcontrib:if>
+			<and><available file="${extension.java.src.dir}"/><not><equals arg1="${extension.java.compile}" arg2="false" /></not></and>
+		<then>
+			<property name="extension.java.jar" value="${extension.name}-extension.jar" />
+	  		<echo message="Compiling and jaring Java sources to ${extension.lib}/${extension.java.jar}"/>
+			<path id="extension-java-jar-classpath">
+	            <fileset dir="${extension.lib}" erroronmissingdir="false">
+	                <include name="*.jar"/>
+	             </fileset>
+				<fileset dir="${war.target.dir}/WEB-INF/lib/">
+					<include name="*.jar"/>
+				 </fileset>
+				<fileset dir="${cfdistro.lib.dir}">
+					<include name="*.jar"/>
+				 </fileset>
+				<fileset dir="${extension.java.lib.dir}" erroronmissingdir="false">
+					<include name="*.jar"/>
+				 </fileset>
+			</path>
+			<mkdir dir="${extension.java.bin.dir}" />
+			<javac-ecj srcdir="${extension.java.src.dir}" destdir="${extension.java.bin.dir}"
+				compliance="1.6" target="1.6" fork="false"
+			    classpath="${toString:extension-java-jar-classpath}"/>
+			<jar basedir="${extension.java.bin.dir}" destfile="${extension.lib}/${extension.java.jar}" />
+			<delete dir="${extension.java.bin.dir}" />
+		</then>
+		</antcontrib:if>
+		<zip destfile="${extension.dist}/${extension.archive}" basedir="${extension.temp.dir}">
+			<fileset file="${extension.temp.dir}/config.xml" />
+			<fileset file="${extension.docs.dir}/license.txt" erroronmissingdir="false" />
+			<zipfileset dir="${extension.src}" excludes="config.xml" erroronmissingdir="false" />
+			<zipfileset dir="${extension.lib}" prefix="jars/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.docs.dir}" prefix="docs/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.plugin.dir}" prefix="plugins/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.tag.dir}" prefix="tags/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.applications.dir}" prefix="applications/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.function.dir}" prefix="functions/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.cdriver.dir}" prefix="cdrivers/" erroronmissingdir="false" />
+			<zipfileset dir="${extension.gdriver.dir}" prefix="gdrivers/" erroronmissingdir="false" />
+		</zip>
+<!--
+		<delete dir="${extension.temp.dir}" />
+		<delete file="${extension.lib}/${extension.java.jar}"/>
+-->
+		<delete>
+			<fileset dir="." includes="content.zip,libs.zip,tag.zip,plugin.zip,function.zip" />
+		</delete>
+		<propertyfile file="${basedir}/build.extension.lastbuild" comment="Extension Build Information">
+			<entry key="extension.version" value="${extension.build.version.long}" />
+		</propertyfile>
+	</target>
+
+	<target name="extension.mvn.release" depends="extension.build">
+		<antcontrib:var name="runwar.port" value="0" />
+		<antcontrib:var name="runwar.stop.socket" value="0" />
+		<antcontrib:runtarget target="build.mxunit.tests.run" />
+		<mvn-put artifact="${extension.dist}/${extension.archive}" packaging="zip" repoId="cfdistro.repo.local"
+		 groupId="cfml.extension.${extension.name}" artifactId="${extension.name}" version="${extension.version}"/>
+	</target>
+
+	<target name="extensions.install">
+		<sequential>
+			<antcontrib:for param="extension">
+			  <path>
+			    <fileset dir="${basedir}/extensions" includes="*.zip" erroronmissingdir="false"/>
+			  </path>
+			  <sequential>
+				<antcontrib:propertyregex override="yes" property="__extensionName" input="@{extension}" 
+					regexp=".*/(.*)\.zip" select="\1" />
+				<xmlproperty prefix="${__extensionName}.extension" keeproot='false'>
+				  <zipentry archive="@{extension}" name="config.xml"/>
+				</xmlproperty>
+				<echoproperties prefix="${__extensionName}.extension.info" />
+				<lucee-extension-install extension-zip="@{extension}" />
+			  </sequential>
+			</antcontrib:for>		
+		</sequential>
+	</target>
+
+	<target name="extension.submit" depends="extension.loadprops">
+		<input message="Please enter lucee user:" addproperty="lucee.user" />
+		<input message="Please enter lucee password:" addproperty="lucee.password" />
+		<lucee-extension-upload 
+			lucee.store.url="http://127.0.0.1:8088/luceeorg/index.cfm/extensions/for-developers/index.cfm"
+			lucee.user="${lucee.user}"
+			lucee.password="${lucee.password}"
+			extension.name="${extension.name}"
+			extension.id="${extension.id}"
+			extension.file="${extension.dist}/${extension.archive}"
+			extension.image="${extension.image}"
+			extension.type="${extension.type}"
+			extension.category="${extension.category}"
+			extension.version="${extension.version}"
+			extension.summary="${extension.summary}"
+			extension.support="${extension.support}"
+			extension.paypal="${extension.paypal}"
+			extension.description="${extension.description}"
+			extension.releasenotes="${extension.releasenotes}"
+			extension.developercomments="${extension.developercomments}"
+			extension.properties.file="${basedir}/build.extension.properties"
+			extension.price="0"
+		/>
+	</target>
+	
+	
+	<macrodef name="lucee-extension-upload">
+		<attribute name="lucee.store.url" default="http://127.0.0.1:8088/luceeorg/index.cfm/extensions/for-developers/index.cfm" />
+		<attribute name="lucee.user" />
+		<attribute name="lucee.password" />
+		<attribute name="result" default="uploadresult" />
+		<attribute name="extension.properties.file" />
+		<attribute name="extension.id" default="" />
+		<attribute name="extension.name" />
+		<attribute name="extension.summary" />
+		<attribute name="extension.description" />
+		<attribute name="extension.version" />
+		<attribute name="extension.file" />
+		<attribute name="extension.image" />
+		<attribute name="extension.category" />
+		<attribute name="extension.check" default="No" />
+		<attribute name="extension.price" default="0" />
+		<attribute name="extension.type" default="all" />
+		<attribute name="extension.releasenotes" default="" />
+		<attribute name="extension.developercomments" default="" />
+		<attribute name="extension.license" default="" />
+		<attribute name="extension.support" default="" />
+		<attribute name="extension.paypal" default="" />
+		<attribute name="extension.display" default="1" />
+		<sequential>
+			<echo message="submitting " /> 
+			<echoproperties prefix="extension" /> 
+			<taskdef-dependency name="httpmpost" classname="net.sf.fikin.ant.httpclientanttask.AntMultipartPostMethod" artifactId="fikin-ant-1-7-3" version="1.0.0.0" />
+
+			<!--
+			<property name="lucee.store.url" value="http://www.lucee.org/index.cfm/extensions/for-developers/index.cfm" />
+			-->
+			<httpmpost url="@{lucee.store.url}?nocache=1" logLevel="none" sslAcceptUntrusted="true">
+				<postString name="username" value="@{lucee.user}" />
+				<postString name="password" value="@{lucee.password}" />
+				<postString name="rememberMe" value="1" />
+				<postString name="doaction" value="login" />
+				<postString name="linkServID" value="" />
+				<postString name="returnURL" value="" />
+			</httpmpost>
+			<httpmpost url="@{lucee.store.url}?gfa=saveGadget" sslAcceptUntrusted="true" retryAttempts="1" logFile="${temp.dir}/submitlog.html">
+				<postFile name="gadgetFile" file="@{extension.file}" />
+				<!--NewFile: Icon (JPG or PNG format)"  -->
+				<postFile name="NewFile" file="@{extension.image}" />
+				<postString name="price" value="@{extension.price}" />
+				<postString name="paypalaccount" value="@{extension.paypal}" />
+				<postString name="gadgetDisplay" value="@{extension.display}" />
+				<!-- installType:  web | server | all -->
+				<postString name="installType" value="@{extension.type}" />
+				<postString name="categories" value="" />
+	<!--
+	<option value="C4686030-A00B-454E-AD3D9E4C3A7AEFA9
+	<option value="F94C5C93-ECC5-45C3-A5B7300D6D133088
+	<option value="2B587539-0D9B-40CB-9C4C97CC235B6074
+	<option value="2BA5C7E6-C0C1-4561-AA82D1862E04FF6D
+	<option value="42587D3F-6B6A-4636-8011E36903B90ABF
+	<option value="E03A1D44-F209-4529-9E4473F894D80FC9
+	-->
+				<postString name="newCategory" value="@{extension.category}" />
+				<postString name="title" value="@{extension.name}" />
+
+				<!-- description in 15 words or less -->
+				<postString name="summary" value="@{extension.summary}" />
+				<!-- long description -->
+				<postString name="body" value="@{extension.description}" />
+				<!-- Separate multiple tags with commas -->
+				<postString name="tags" value="" />
+				<postString name="extCheck" value="@{extension.check}" />
+
+				<postString name="versionNumber" value="@{extension.version}" />
+				<postString name="releaseNotes" value="@{extension.releasenotes}" />
+				<postString name="developerComments" value="@{extension.developercomments}" />
+				<!--
+	http://www.opensource.org/licenses/afl-3.0|Academic Free License 3.0 (AFL 3.0)
+		http://www.opensource.org/licenses/apl-1.0|Adaptive Public License
+		http://www.opensource.org/licenses/apache2.0|Apache License, 2.0
+		http://www.opensource.org/licenses/apsl-2.0|Apple Public Source License
+		http://www.opensource.org/licenses/artistic-license-2.0|Artistic license 2.0
+		http://www.opensource.org/licenses/attribution|Attribution Assurance Licenses
+		http://www.opensource.org/licenses/bsd-license|BSD licenses (New and Simplified)
+		http://www.opensource.org/licenses/bsl1.0|Boost Software License (BSL1.0)
+		http://www.opensource.org/licenses/ca-tosl1.1|Computer Associates Trusted Open Source License 1.1
+		http://www.opensource.org/licenses/cddl1|Common Development and Distribution License
+		http://www.opensource.org/licenses/cpal_1.0|Common Public Attribution License 1.0 (CPAL)
+		http://www.opensource.org/licenses/cuaoffice|CUA Office Public License Version 1.0
+		http://www.opensource.org/licenses/eudatagrid|EU DataGrid Software License
+		http://www.opensource.org/licenses/eclipse-1.0|Eclipse Public License
+		http://www.opensource.org/licenses/ecl2|Educational Community License, Version 2.0
+		http://www.opensource.org/licenses/ver2_eiffel|Eiffel Forum License V2.0
+		http://www.opensource.org/licenses/entessa|Entessa Public License
+		http://www.osor.eu/eupl/european-union-public-licence-eupl-v.1.1|European Union Public License
+		http://www.opensource.org/licenses/fair|Fair License
+		http://www.opensource.org/licenses/frameworx|Frameworx License
+		http://www.opensource.org/licenses/agpl-v3|GNU Affero General Public License v3 (AGPLv3)
+		http://www.opensource.org/licenses/gpl-2.0|GNU General Public License version 2.0 (GPLv2)
+		http://www.opensource.org/licenses/gpl-3.0|GNU General Public License version 3.0 (GPLv3)
+		http://www.opensource.org/licenses/lgpl-2.1|GNU Library or 'Lesser' General Public License version 2.1 (LGPLv2.1)
+		http://www.opensource.org/licenses/lgpl-3.0|GNU Library or 'Lesser' General Public License version 3.0 (LGPLv3)
+		http://www.opensource.org/licenses/historical|Historical Permission Notice and Disclaimer
+		http://www.opensource.org/licenses/ibmpl|IBM Public License
+		http://www.opensource.org/licenses/ipafont|IPA Font License
+		http://www.opensource.org/licenses/isc-license|ISC License
+		http://www.opensource.org/licenses/lppl|LaTeX Project Public License (LPPL)
+		http://www.opensource.org/licenses/lucent1.02|Lucent Public License Version 1.02
+		http://www.opensource.org/licenses/miros|MirOS Licence
+		http://www.opensource.org/licenses/ms-pl|Microsoft Public License (Ms-PL)
+		http://www.opensource.org/licenses/ms-rl|Microsoft Reciprocal License (Ms-RL)
+		http://www.opensource.org/licenses/mit-license|MIT license
+		http://www.opensource.org/licenses/motosoto|Motosoto License
+		http://www.opensource.org/licenses/mozilla1.1|Mozilla Public License 1.1 (MPL)
+		http://www.opensource.org/licenses/multics|Multics License
+		http://www.opensource.org/licenses/nasa1.3|NASA Open Source Agreement 1.3
+		http://www.opensource.org/licenses/ntp-license|NTP License
+		http://www.opensource.org/licenses/naumen|Naumen Public License
+		http://www.opensource.org/licenses/nethack|Nethack General Public License
+		http://www.opensource.org/licenses/nokia|Nokia Open Source License
+		http://www.opensource.org/licenses/NOSL3.0|Non-Profit Open Software License 3.0 (Non-Profit OSL 3.0)
+		http://www.opensource.org/licenses/oclc2|OCLC Research Public License 2.0
+		http://www.opensource.org/licenses/openfont|Open Font License 1.1 (OFL 1.1)
+		http://www.opensource.org/licenses/opengroup|Open Group Test Suite License
+		http://www.opensource.org/licenses/osl-3.0|Open Software License 3.0 (OSL 3.0)
+		http://www.opensource.org/licenses/php|PHP License
+		http://www.opensource.org/licenses/postgresql|The PostgreSQL License
+		http://www.opensource.org/licenses/pythonpl|Python license (CNRI Python License)
+		http://www.opensource.org/licenses/PythonSoftFoundation|Python Software Foundation License
+		http://www.opensource.org/licenses/qtpl|Qt Public License (QPL)
+		http://www.opensource.org/licenses/real|RealNetworks Public Source License V1.0
+		http://www.opensource.org/licenses/rpl1.5|Reciprocal Public License 1.5 (RPL1.5)
+		http://www.opensource.org/licenses/ricohpl|Ricoh Source Code Public License
+		http://www.opensource.org/licenses/simpl-2.0|Simple Public License 2.0
+		http://www.opensource.org/licenses/sleepycat|Sleepycat License
+		http://www.opensource.org/licenses/sunpublic|Sun Public License
+		http://www.opensource.org/licenses/sybase|Sybase Open Watcom Public License 1.0
+		http://www.opensource.org/licenses/UoI-NCSA|University of Illinois/NCSA Open Source License
+		http://www.opensource.org/licenses/vovidapl|Vovida Software License v. 1.0
+		http://www.opensource.org/licenses/W3C|W3C License
+		http://www.opensource.org/licenses/wxwindows|wxWindows Library License
+		http://www.opensource.org/licenses/xnet|X.Net License
+		http://www.opensource.org/licenses/zpl|Zope Public License
+		http://www.opensource.org/licenses/zlib-license|zlib/libpng license
+				-->
+				<postString name="license" value="@{extension.license}" />
+				<postString name="supportURL" value="@{extension.support}" />
+				<!--
+				<postFile name="image1" file="" />
+				<postFile name="image2" file="" />
+				<postFile name="image3" file="" />
+				<postFile name="image4" file="" />
+				<postFile name="image5" file="" />
+				<postFile name="video" file="" />
+				-->
+				<postString name="notes" value="" />
+
+				<postString name="tac" value="on" />
+				<postString name="submit" value="Submit" />
+				<postString name="gadgetID" value="@{extension.id}" />
+			</httpmpost>
+			<antcontrib:var unset="true" name="extension.submit.result"/>
+			<antcontrib:var unset="true" name="extension.submit.error"/>
+			<loadfile property="extension.submit.result" srcfile="${temp.dir}/submitlog.html">
+				<filterchain>         
+					<containsregex pattern=".*GADGETID_FOR_SDK:([^\s]+)?.*" replace="\1"/>
+					<striplinebreaks/>
+				</filterchain>
+			</loadfile>
+			<loadfile property="extension.submit.error" srcfile="${temp.dir}/submitlog.html">
+				 <filterchain><tailfilter lines="7" /><trim/></filterchain>
+			</loadfile>
+			<fail unless="extension.submit.result" message="Error submitting extension! See ${temp.dir}/submitlog.html ${extension.submit.error}" />
+			<echo message="Extension submitted: ID:${extension.submit.result}"/>
+			<antcontrib:if description="save ID if new">
+				<equals arg1="@{extension.id}" arg2="" />
+				<then>
+					<propertyfile file="@{extension.properties.file}">
+						<entry key="extension.id" value="${extension.submit.result}"/>
+					</propertyfile>
+				</then>
+			</antcontrib:if>
+			<!-- UPLOAD THE IMAGE NOT SURE WHY DOESN'T WORK WITH ABOVE -->
+			<httpmpost url="@{lucee.store.url}?gfa=saveGadget" sslAcceptUntrusted="true" retryAttempts="1" logFile="${temp.dir}/submitlog.html">
+				<!--NewFile: Icon (JPG or PNG format)"  -->
+				<postFile name="NewFile" file="@{extension.image}" />
+				<postString name="price" value="@{extension.price}" />
+				<postString name="paypalaccount" value="@{extension.paypal}" />
+				<postString name="gadgetDisplay" value="@{extension.display}" />
+				<postString name="installType" value="@{extension.type}" />
+				<postString name="title" value="@{extension.name}" />
+				<postString name="summary" value="@{extension.summary}" />
+				<postString name="body" value="@{extension.description}" />
+				<postString name="tags" value="" />
+				<postString name="extCheck" value="@{extension.check}" />
+				<postString name="versionNumber" value="@{extension.version}" />
+				<postString name="releaseNotes" value="@{extension.releasenotes}" />
+				<postString name="developerComments" value="@{extension.developercomments}" />
+				<postString name="license" value="@{extension.license}" />
+				<postString name="supportURL" value="@{extension.support}" />
+				<postString name="notes" value="" />
+				<postString name="tac" value="on" />
+				<postString name="submit" value="Submit" />
+				<postString name="gadgetID" value="@{extension.id}" />
+			</httpmpost>		
+		</sequential>
+	</macrodef>
+
+	<macrodef name="lucee-extension-install">
+		<attribute name="extension-zip" />
+		<attribute name="builtin" default="false" />
+		<attribute name="contextType" default="web" />
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="@{contextType}" arg2="web" />
+				<then>
+			  		<echo message="Installing extension to web context"/>
+					<antcontrib:var name="lucee.customtags.dir" value="${lucee.web.customtags.dir}"/>
+					<antcontrib:var name="lucee.library.dir" value="${lucee.web.library.dir}"/>
+				</then>
+				<else>
+			  		<echo message="Installing extension to server context"/>
+					<antcontrib:var name="lucee.customtags.dir" value="${lucee.server.customtags.dir}"/>
+					<antcontrib:var name="lucee.library.dir" value="${lucee.server.library.dir}"/>
+				</else>
+			</antcontrib:if>
+			<property name="extension.temp.dir" value="${temp.dir}/extensions-tmp"/>
+			<mkdir dir="${extension.temp.dir}" />
+			<unzip src="@{extension-zip}" dest="${extension.temp.dir}" />
+			<antcontrib:if><available file="${extension.temp.dir}/jars"/>
+			<then>
+		  		<echo message="Installing extension libs"/>
+				<copy todir="${war.target.dir}/WEB-INF/lucee/lib/">
+					<fileset dir="${extension.temp.dir}/jars"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/plugins"/>
+			<then>
+		  		<echo message="Installing extension plugin"/>
+				<copy todir="${war.target.dir}/WEB-INF/lucee/context/admin/plugin">
+					<fileset dir="${extension.temp.dir}/plugins"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/applications"/>
+			<then>
+		  		<echo message="Installing extension application"/>
+				<copy todir="${war.target.dir}/">
+					<fileset dir="${extension.temp.dir}/applications"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/tags"/>
+			<then>
+		  		<echo message="Installing extension tag"/>
+				<antcontrib:for param="file">
+					<path>
+						<fileset dir="${extension.temp.dir}/tags" includes="*/*.cfm"/>
+					</path>
+					<sequential>
+						<antcontrib:propertyregex override="yes" property="extension-tag" input="@{file}" 
+							regexp=".*/(.*)\.cfm" select="cf\1" />
+						<antcontrib:if>
+							<equals arg1="@{builtin}" arg2="true" />
+							<then>
+								<echo message="installing as built-in tag to ${lucee.library.dir}/tag/${extension-tag}" />
+								<antcontrib:propertyregex override="yes" property="extension.tag.cfc.dir" input="${extension-tag}" 
+									regexp="^cf(.*)" select="\1" />
+								<mkdir dir="${lucee.library.dir}/tag/" />
+								<echo file="${lucee.library.dir}/tag/${extension.tag.cfc.dir}.cfc"><![CDATA[<cfcomponent extends="${extension-tag}/cfc/${extension.tag.cfc.dir}"></cfcomponent>]]></echo>
+								<copy todir="${lucee.library.dir}/library/tag">
+									<fileset dir="${extension.temp.dir}/tags"/>
+								</copy>
+								<lucee-customtag physical="${lucee.library.dir}/tag/${extension-tag}" virtual="/${extension-tag}" />
+							</then>
+							<else>
+								<echo message="installing as custom tag to ${lucee.customtags.dir}/${extension-tag}" />
+								<copy todir="${lucee.customtags.dir}">
+									<fileset dir="${extension.temp.dir}/tags"/>
+								</copy>
+								<lucee-customtag physical="${lucee.customtags.dir}/${extension-tag}" virtual="/${extension-tag}" />
+							</else>
+						</antcontrib:if>
+					</sequential>
+				</antcontrib:for>		
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/cdrivers"/>
+			<then>
+		  		<echo message="Installing extension cache driver"/>
+				<copy todir="${war.target.dir}/WEB-INF/lucee/context/admin/cdriver">
+					<fileset dir="${extension.temp.dir}/cdrivers"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/gdrivers"/>
+			<then>
+		  		<echo message="Installing extension gateway driver"/>
+				<copy todir="${war.target.dir}/WEB-INF/lucee/context/admin/gdriver">
+					<fileset dir="${extension.temp.dir}/gdrivers"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/plugins"/>
+			<then>
+		  		<echo message="Installing extension plugin"/>
+				<copy todir="${war.target.dir}/WEB-INF/lucee/context/admin/plugin">
+					<fileset dir="${extension.temp.dir}/plugins"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+			<antcontrib:if><available file="${extension.temp.dir}/functions"/>
+			<then>
+		  		<echo message="Installing extension function"/>
+				<copy todir="${lucee.library.dir}/function">
+					<fileset dir="${extension.temp.dir}/functions"/>
+				</copy>
+			</then>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="lucee-mapping-remove">
+		<attribute name="virtual" />
+		<sequential>
+			<antcontrib:var name="mapping.exists" unset="true" />
+			<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+				<copy path="/*[1]/mappings/mapping[@virtual='@{virtual}']/@virtual" attrValue="true" property="mapping.exists" />
+				<replace path="/*[1]/mappings/mapping[@virtual=@{virtual}]/text()" if="mapping.exists">
+					<![CDATA[]]>
+				</replace>
+			</xmltask>
+			<antcontrib:switch value="${mapping.exists}">
+				<case value="@{virtual}">
+					<echo message="Removed Mapping - @{virtual}" />
+				</case>
+				<default>
+					<echo message="Didn't find Mapping to remove - @{virtual} 	@{physical}" />
+				</default>
+			</antcontrib:switch>
+		</sequential>
+	</macrodef>	
+		
+	<macrodef name="lucee-error-template">
+		<attribute name="path" />
+		<attribute name="type" default="500" />
+		<sequential>
+			<echo>setting lucee template-@{type} to @{path}</echo>
+			<antcontrib:var name="lucee.template.error.exists" unset="true" />
+			<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+				<copy path="/*[1]/error/@status-code" attrValue="true" property="lucee.template.error.exists"/>
+				<insert path="/*[1]" position="under" unless="lucee.template.error.exists"><![CDATA[<error status-code="true"/>]]></insert>
+				<attr path="/*[1]/error" attr="template-@{type}" value="@{path}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+		
+	<macrodef name="lucee-inspect-template">
+		<attribute name="when" default="" />
+		<sequential>
+			<antcontrib:runtarget target="lucee.set.inspect.templates" />
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="extensionprovider">
+		<attribute name="url" default="" />
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="${default.cfengine}" arg2="lucee" />
+				<then>
+					<antcontrib:var name="some.extension.exists" unset="true" />
+					<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+						<xmlcatalog refId="commonDTDs" />
+						<copy path="/*[1]/extensions/text()" property="some.extension.exists" />
+						<!-- if no extensions at all, just insert -->
+						<insert path="/*[1]" position="under" unless="some.extension.exists">
+							<![CDATA[<extensions><provider url="@{url}"/></extensions>]]>
+						</insert>
+						<copy path="/*[1]/extensions/provider[@url='@{url}']/@url" attrValue="true" property="extension.exists" />
+						<replace path="/*[1]/extensions/provider[@url='@{url}']/text()" if="extension.exists">
+							<![CDATA[
+		  						<provider url="@{url}"/>
+		  					]]>
+		  					</replace>
+						<insert path="/*[1]/extensions" position="under" unless="extension.exists">
+							<![CDATA[
+								<provider url="@{url}"/>
+		  					]]>
+		  					</insert>
+					</xmltask>
+					<!-- if some extensions exist we can update and add -->
+					<antcontrib:switch value="${extension.exists}">
+						<case value="true">
+							<echo message="updated extension provider @{url}" />
+						</case>
+						<default>
+							<echo message="added extension provider @{url}" />
+						</default>
+					</antcontrib:switch>
+				</then>
+				<else>
+					<echo> *** Extension providers are useless for ${default.cfengine} hombre!</echo>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>	
+
+	
+	<macrodef name="lucee-eventgateway">
+		<attribute name="id" />
+		<attribute name="cfc-path" default="lucee.extension.gateway.DirectoryWatcher" />
+		<attribute name="class" default="" />
+		<attribute name="listener-cfc-path" default="srcsync.sync" />
+		<attribute name="read-only" default="false" />
+		<attribute name="startup-mode" default="automatic" />
+		<attribute name="directory" default="" />
+		<attribute name="interval" default="6000" />
+		<attribute name="addFunction" default="onAdd" />
+		<attribute name="deleteFunction" default="onDelete" />
+		<attribute name="changeFunction" default="onChange" />
+		<attribute name="extensions" default="*" />
+		<attribute name="recurse" default="true" />		 
+		<sequential>
+			<antcontrib:if>
+				<equals arg1="${default.cfengine}" arg2="lucee" />
+				<then>
+					<antcontrib:var name="some.gateway.exists" unset="true" />
+					<xmltask source="${lucee.config.file}" dest="${lucee.config.file}">
+						<xmlcatalog refId="commonDTDs" />
+						<copy path="/*[1]/gateways/text()" property="some.gateway.exists" />
+						<!-- if no gateways at all, just insert -->
+						<insert path="/*[1]" position="under" unless="some.gateway.exists">
+							<![CDATA[
+						    <gateways>
+							<gateway cfc-path="@{cfc-path}" class="" custom="directory=@{directory}&amp;interval=@{interval}&amp;changeFunction=@{changeFunction}&amp;extensions=@{extensions}&amp;recurse=@{recurse}&amp;addFunction=@{addFunction}&amp;deleteFunction=@{deleteFunction}" id="@{id}" listener-cfc-path="@{listener-cfc-path}" read-only="@{read-only}" startup-mode="@{startup-mode}"/>
+						    </gateways>
+		  					]]>
+						</insert>
+						<copy path="/*[1]/gateways/gateway[@id='@{id}']/@id" attrValue="true" property="gateway.exists" />
+						<replace path="/*[1]/gateways/provider[@url='@{url}']/text()" if="gateway.exists">
+							<![CDATA[
+							<gateway cfc-path="@{cfc-path}" class="" custom="directory=@{directory}&amp;interval=@{interval}&amp;changeFunction=@{changeFunction}&amp;extensions=@{extensions}&amp;recurse=@{recurse}&amp;addFunction=@{addFunction}&amp;deleteFunction=@{deleteFunction}" id="@{id}" listener-cfc-path="@{listener-cfc-path}" read-only="@{read-only}" startup-mode="@{startup-mode}"/>
+		  					]]>
+		  					</replace>
+						<insert path="/*[1]/gateways" position="under" unless="gateway.exists">
+							<![CDATA[
+							<gateway cfc-path="@{cfc-path}" class="" custom="directory=@{directory}&amp;interval=@{interval}&amp;changeFunction=@{changeFunction}&amp;extensions=@{extensions}&amp;recurse=@{recurse}&amp;addFunction=@{addFunction}&amp;deleteFunction=@{deleteFunction}" id="@{id}" listener-cfc-path="@{listener-cfc-path}" read-only="@{read-only}" startup-mode="@{startup-mode}"/>
+		  					]]>
+		  					</insert>
+					</xmltask>
+					<!-- if some gateways exist we can update and add -->
+					<antcontrib:switch value="${gateway.exists}">
+						<case value="true">
+							<echo message="updated gateway @{url}" />
+						</case>
+						<default>
+							<echo message="added gateway @{url}" />
+						</default>
+					</antcontrib:switch>
+				</then>
+				<else>
+					<echo> *** gateways are useless for ${default.cfengine} hombre!</echo>
+				</else>
+			</antcontrib:if>
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="lucee-scope">
+		<attribute name="configfile" default="${lucee.config.file}" />
+		<attribute name="setting" description='applicationtimeout="1,0,0,0" session-type="j2ee" cascade-to-resultset="yes" cascading="standard" client-directory-max-size="10mb" client-max-age="90" clientmanagement="no" merge-url-form="no" requesttimeout="0,0,0,50" requesttimeout-log="{lucee-config}/logs/requesttimeout.log" sessionmanagement="yes" sessiontimeout="0,0,30,0" setclientcookies="yes" setdomaincookies="no"' />
+		<attribute name="value" />
+		<sequential>
+			<echo message="scope setting @{setting} = @{value}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/*[1]/scope" attr="@{setting}" value="@{value}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="lucee-applicationlistener" description="define where the Application.cfc/Application.cfm will be searched">
+		<attribute name="configfile" default="${lucee.config.file}" />
+		<attribute name="listener-type" default="mixed" description='none:no application listener handling, classic:search only for Application.cfm, modern:search only for Application.cfc, mixed:search for Application.cfc and Application.cfm' />
+		<attribute name="listener-mode" default="curr2root" description="root:search only in webroot, current:search only in current directory, curr2root:search the App... from current directory up to root." />
+		<sequential>
+			<echo message="applicationlistener listener-mode:@{listener-mode} listener-type:@{listener-type}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/*[1]/application" attr="listener-mode" value="@{listener-mode}" />
+				<attr path="/*[1]/application" attr="listener-type" value="@{listener-type}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+
+	<macrodef name="lucee-flex" description="define where the Application.cfc/Application.cfm will be searched">
+		<attribute name="configfile" default="${lucee.config.file}" />
+		<attribute name="configuration" default="xml" description='xml:deploy default configuration for the MessageBrokerServlet as xml to th WEB-INF directory, manual:the configuration is up to the user, lucee does nothing' />
+		<attribute name="caster-class" default="classic" description="classic (default): Build in AMFCaster follows the implementation of other engines., modern: Build in AMFCaster based on classic AMFCaster improved in functionality,{class-name} full class path of class implemeting interface AMFCaster (http://www.lucee.org/javadoc/lucee/runtime/net/amf/AMFCaster.html)" />
+		<attribute name="caster-class-arguments" default="" description="init arguments provided to the AMFCaster init method, use 'CSS' syntax." />
+		<sequential>
+			<echo message="flex configuration:@{configuration} caster-class:@{caster-class} caster-class-arguments:@{caster-class-arguments}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/*[1]/flex" attr="configuration" value="@{configuration}" />
+				<attr path="/*[1]/flex" attr="caster-class" value="@{caster-class}" />
+				<attr path="/*[1]/flex" attr="caster-class-arguments" value="@{caster-class-arguments}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="lucee-security" description="configure lucee security">
+		<attribute name="configfile" default="${lucee.config.file}" />
+		<attribute name="setting" description='access_read="protected" access_write="protected" cache="yes" cfx_setting="yes" cfx_usage="yes" custom_tag="yes" datasource="yes" debugging="yes" direct_java_access="yes" file="yes" gateway="yes" mail="yes" mapping="yes" remote="yes" scheduled_task="yes" search="yes" setting="yes" tag_execute="yes" tag_import="yes" tag_object="yes" tag_registry="yes"' />
+		<attribute name="value" />
+		<sequential>
+			<echo message="security setting @{setting} = @{value}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/*[1]/security" attr="@{setting}" value="@{value}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="lucee-regional" description="configure lucee regional settings">
+		<attribute name="configfile" default="${lucee.config.file}" />
+		<attribute name="setting" description='locale: default[system locale], timezone: default[maschine configuration] the ID for a TimeZone either an abbreviation such as "PST" a full name such as "America/Los_Angeles" or a custom ID such as "GMT-8:00",timeserver: [example: swisstime.ethz.ch] default:local time dns of a ntp time server' />
+		<attribute name="value" />
+		<sequential>
+			<echo message="regional setting @{setting} = @{value}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/*[1]/regional" attr="@{setting}" value="@{value}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="lucee-file-system" description="configure lucee tag, function, etc., locations">
+		<attribute name="configfile" default="${lucee.config.file}" />
+		<attribute name="setting" description='fld-directory="{lucee-config}/library/fld/" function-directory="{lucee-config}/library/function/" tag-directory="{lucee-config}/library/tag/" temp-directory="{lucee-config}/temp/" tld-directory="{lucee-config}/library/tld/"' />
+		<attribute name="value" />
+		<sequential>
+			<echo message="file-system setting @{setting} = @{value}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/*[1]/file-system" attr="@{setting}" value="@{value}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
+	<macrodef name="lucee-systemoutput" description="configure lucee system output">
+		<attribute name="configfile" default="${lucee.config.file}" />
+		<attribute name="out" default="null" description='default (write out to default output stream), null (write no output), class:{class} (class that implements java.io.PrintWriter), file:{file} (file to write in)' />
+		<attribute name="err" default="default" />
+		<sequential>
+			<echo message="file-system setting @{setting} = @{value}"/>
+			<xmltask source="@{configfile}" dest="@{configfile}">
+				<attr path="/*[1]/system" attr="out" value="@{out}" />
+				<attr path="/*[1]/system" attr="err" value="@{err}" />
+			</xmltask>
+		</sequential>
+	</macrodef>	
+	
+	<!-- these are overridden prior -->
+	<target name="clean">
+		<antcontrib:runtarget target="cfdistro.clean" />
+	</target>
+
+	<target name="copySources">
+		<antcontrib:runtarget target="cfdistro.copySources" />
+	</target>
+
+	<target name="exists.mappings.xml">
+		<antcall target="cfdistro.exists.mappings.xml" />
+	</target>
+
+	<target name="exists.datasources.xml">
+		<antcall target="cfdistro.exists.datasources.xml" />
+	</target>
+
+	<target name="exists.customtags.xml">
+		<antcall target="cfdistro.exists.customtags.xml" />
+	</target>
+
+	<target name="exists.mail.xml">
+		<antcall target="cfdistro.exists.mail.xml" />
+	</target>
+
+	<target name="exists.scheduledtasks.xml">
+		<antcall target="cfdistro.exists.scheduledtasks.xml" />
+	</target>
+
+</project>
